@@ -26,8 +26,10 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
-        All Matches
+      <h1 className="text-5xl font-extrabold text-center mb-8">
+        <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text animate-gradient">
+          All Matches!
+        </span>
       </h1>
       <SwipeDeck profiles={mockProfiles} onSwipe={handleSwipe} />
       {currentMatch && (
