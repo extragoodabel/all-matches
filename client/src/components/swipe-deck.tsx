@@ -18,7 +18,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const handleSwipe = (swipeDirection: "left" | "right") => {
     setDirection(swipeDirection);
     onSwipe(currentProfile, swipeDirection);
-    
+
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
       setDirection(null);
@@ -35,34 +35,36 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   }
 
   return (
-    <div className="relative h-[600px] w-full max-w-sm mx-auto">
-      <AnimatePresence>
-        <motion.div
-          key={currentProfile.id}
-          initial={{ scale: 1 }}
-          animate={{
-            scale: 1,
-            x: direction === "left" ? -300 : direction === "right" ? 300 : 0,
-            rotate: direction === "left" ? -20 : direction === "right" ? 20 : 0,
-          }}
-          exit={{ scale: 0.5, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="absolute w-full"
-        >
-          <ProfileCard profile={currentProfile} />
-        </motion.div>
-      </AnimatePresence>
+    <div className="flex flex-col items-center gap-6">
+      <div className="relative h-[500px] w-full max-w-sm">
+        <AnimatePresence>
+          <motion.div
+            key={currentProfile.id}
+            initial={{ scale: 1 }}
+            animate={{
+              scale: 1,
+              x: direction === "left" ? -300 : direction === "right" ? 300 : 0,
+              rotate: direction === "left" ? -20 : direction === "right" ? 20 : 0,
+            }}
+            exit={{ scale: 0.5, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute w-full"
+          >
+            <ProfileCard profile={currentProfile} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
+      <div className="flex gap-4">
         <button
           onClick={() => handleSwipe("left")}
-          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100"
+          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
         >
           <X className="w-8 h-8 text-red-500" />
         </button>
         <button
           onClick={() => handleSwipe("right")}
-          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100"
+          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
         >
           <Heart className="w-8 h-8 text-green-500" />
         </button>
