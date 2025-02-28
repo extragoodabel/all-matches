@@ -18,7 +18,7 @@ export const mockProfiles = [
   {
     id: 3,
     name: "Emma",
-    age: 26,
+    age: 24,
     bio: "Book lover, yoga instructor, and proud plant mom. Let's talk about your favorite author!",
     imageUrl: "https://images.unsplash.com/photo-1502323777036-f29e3972d82f",
     isAI: true
@@ -34,7 +34,7 @@ export const mockProfiles = [
   {
     id: 5,
     name: "Olivia",
-    age: 27,
+    age: 25,
     bio: "Travel blogger with a passion for street food and local markets. Show me your favorite spots!",
     imageUrl: "https://images.unsplash.com/photo-1506863530036-1efeddceb993",
     isAI: true
