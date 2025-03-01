@@ -69,7 +69,7 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
   }, [isTyping, onNewMessage]);
 
   const handleSend = async () => {
-    if (!message.trim() || isTyping) return;
+    if (!message.trim()) return;
 
     try {
       // Send user message
@@ -81,7 +81,11 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
 
       setMessage("");
       onNewMessage();
-      setIsTyping(true);
+
+      // Add a small delay before showing typing indicator
+      setTimeout(() => {
+        setIsTyping(true);
+      }, 500);
 
     } catch (error) {
       toast({
@@ -130,9 +134,8 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
-          disabled={isTyping}
         />
-        <Button onClick={handleSend} disabled={isTyping}>
+        <Button onClick={handleSend}>
           <Send className="w-4 h-4" />
         </Button>
       </div>
