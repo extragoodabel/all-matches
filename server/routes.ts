@@ -50,17 +50,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req, res) => {
     try {
       const message = insertMessageSchema.parse(req.body);
+
+      // Create the user's message first
       const createdMessage = await storage.createMessage(message);
 
+      // If it's a user message, generate AI response
       if (!message.isAI) {
-        // Get the profile directly since matchId is actually profileId in our case
+        // Get the profile (in our case, matchId is actually profileId)
         const profile = await storage.getProfile(message.matchId);
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
         }
 
+        // Get message history for context
         const messages = await storage.getMessages(message.matchId);
-        const aiResponse = await generateAIResponse(
+
+        // Generate AI response asynchronously
+        generateAIResponse(
           {
             profileName: profile.name,
             profileBio: profile.bio,
@@ -70,16 +76,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }))
           },
           message.content
-        );
-
-        // Simulate typing delay
-        setTimeout(async () => {
-          await storage.createMessage({
-            matchId: message.matchId,
-            content: aiResponse.content,
-            isAI: true
-          });
-        }, aiResponse.typingDelay);
+        ).then(async (aiResponse) => {
+          try {
+            // Create the AI's response message after the delay
+            await storage.createMessage({
+              matchId: message.matchId,
+              content: aiResponse.content,
+              isAI: true
+            });
+          } catch (error) {
+            console.error("Error creating AI response:", error);
+          }
+        }).catch(error => {
+          console.error("Error generating AI response:", error);
+        });
       }
 
       res.json(createdMessage);

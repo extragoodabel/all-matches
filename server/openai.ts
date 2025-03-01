@@ -6,7 +6,7 @@ function calculateTypingDelay(message: string): number {
   const wordsPerMinute = 40;
   const wordCount = message.split(' ').length;
   const minutes = wordCount / wordsPerMinute;
-  return Math.min(Math.max(minutes * 60 * 1000, 2000), 5000); // Between 2-5 seconds
+  return Math.min(Math.max(minutes * 60 * 1000, 3000), 8000); // Between 3-8 seconds
 }
 
 export async function generateAIResponse(
@@ -21,26 +21,43 @@ export async function generateAIResponse(
     // If OpenAI API is available, use it
     if (process.env.OPENAI_API_KEY) {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const prompt = `You are ${context.profileName}, with this bio: "${context.profileBio}".
-      You are chatting on a dating app. Keep these rules in mind:
-      1. Stay in character according to your bio
-      2. Keep responses conversational and natural, showing genuine interest
-      3. Ask follow-up questions to keep the conversation going
-      4. Reference previous messages for context
-      5. Keep responses between 1-3 sentences
-      6. Never be inappropriate or overly forward
 
-      Previous messages:
-      ${context.messageHistory.map(m => `${m.isAI ? context.profileName : 'User'}: ${m.content}`).join('\n')}
+      // Format conversation history
+      const formattedHistory = context.messageHistory
+        .slice(-5) // Keep last 5 messages for context
+        .map(m => ({
+          role: m.isAI ? "assistant" : "user",
+          content: m.content
+        }));
 
-      User: ${userMessage}
-      ${context.profileName}:`;
+      // Create system message with character background
+      const systemMessage = {
+        role: "system",
+        content: `You are ${context.profileName}, a dating app profile with this bio: "${context.profileBio}"
+
+Role-playing guidelines:
+1. Stay consistently in character, letting your bio inform your personality and interests
+2. Be genuinely interested in getting to know the other person
+3. Ask relevant follow-up questions based on the conversation
+4. Show emotional intelligence and empathy in your responses
+5. Keep responses natural and conversational, 1-3 sentences long
+6. Reference previous parts of the conversation when relevant
+7. Never be inappropriate or overly forward
+8. Include occasional emojis to convey emotion naturally, but don't overuse them
+9. If asked something you don't know, stay in character while admitting uncertainty`
+      };
 
       const response = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          systemMessage,
+          ...formattedHistory,
+          { role: "user", content: userMessage }
+        ],
         max_tokens: 150,
         temperature: 0.8,
+        presence_penalty: 0.6, // Encourage diverse responses
+        frequency_penalty: 0.3, // Reduce repetition
       });
 
       const content = response.choices[0].message.content || getRandomResponse();

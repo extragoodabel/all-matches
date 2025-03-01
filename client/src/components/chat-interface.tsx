@@ -18,6 +18,8 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
   const [isTyping, setIsTyping] = useState(false);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const pollIntervalRef = useRef<NodeJS.Timeout>();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,20 +29,60 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
     scrollToBottom();
   }, [messages]);
 
+  // Clear intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Poll for new messages when typing indicator is shown
+  useEffect(() => {
+    if (isTyping) {
+      // Poll every 2 seconds for new messages
+      pollIntervalRef.current = setInterval(() => {
+        onNewMessage();
+      }, 2000);
+
+      // Set a maximum typing time of 30 seconds
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+      }, 30000);
+
+      return () => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+      };
+    }
+  }, [isTyping, onNewMessage]);
+
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isTyping) return;
 
     try {
+      // Send user message
       await apiRequest("POST", "/api/messages", {
         matchId,
         content: message.trim(),
         isAI: false,
       });
+
       setMessage("");
       onNewMessage();
-
-      // Show typing indicator for AI response
       setIsTyping(true);
+
     } catch (error) {
       toast({
         title: "Error",
@@ -49,13 +91,6 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
       });
     }
   };
-
-  // Reset typing status when new messages arrive
-  useEffect(() => {
-    if (messages.length > 0 && isTyping) {
-      setIsTyping(false);
-    }
-  }, [messages]);
 
   return (
     <Card className="h-[600px] flex flex-col">
