@@ -35,8 +35,8 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <div className="relative h-[500px] w-full max-w-sm">
+    <div className="flex flex-col items-center">
+      <div className="w-full max-w-sm mb-6">
         <AnimatePresence>
           <motion.div
             key={currentProfile.id}
@@ -48,14 +48,13 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
             }}
             exit={{ scale: 0.5, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute w-full"
           >
             <ProfileCard profile={currentProfile} />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-6 mt-4">
         <button
           onClick={() => handleSwipe("left")}
           className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
