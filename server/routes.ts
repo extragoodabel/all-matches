@@ -72,11 +72,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message.content
         );
 
-        await storage.createMessage({
-          matchId: message.matchId,
-          content: aiResponse,
-          isAI: true
-        });
+        // Simulate typing delay
+        setTimeout(async () => {
+          await storage.createMessage({
+            matchId: message.matchId,
+            content: aiResponse.content,
+            isAI: true
+          });
+        }, aiResponse.typingDelay);
       }
 
       res.json(createdMessage);

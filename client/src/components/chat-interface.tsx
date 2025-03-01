@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,17 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterfaceProps) {
   const [message, setMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -23,11 +33,14 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
     try {
       await apiRequest("POST", "/api/messages", {
         matchId,
-        content: message,
+        content: message.trim(),
         isAI: false,
       });
       setMessage("");
       onNewMessage();
+
+      // Show typing indicator for AI response
+      setIsTyping(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -36,6 +49,13 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
       });
     }
   };
+
+  // Reset typing status when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && isTyping) {
+      setIsTyping(false);
+    }
+  }, [messages]);
 
   return (
     <Card className="h-[600px] flex flex-col">
@@ -56,6 +76,18 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
             </div>
           </div>
         ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="max-w-[70%] p-3 rounded-lg bg-gray-100">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </CardContent>
       <div className="p-4 border-t flex gap-2">
         <Input
@@ -63,8 +95,9 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
+          disabled={isTyping}
         />
-        <Button onClick={handleSend}>
+        <Button onClick={handleSend} disabled={isTyping}>
           <Send className="w-4 h-4" />
         </Button>
       </div>
