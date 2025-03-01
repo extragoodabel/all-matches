@@ -1,4 +1,5 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
+import { mockProfiles } from "../client/src/lib/mock-profiles";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -27,10 +28,15 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.currentId = {
       users: 1,
-      profiles: 1,
+      profiles: mockProfiles.length + 1, // Start after mock profiles
       matches: 1,
       messages: 1,
     };
+
+    // Initialize with mock profiles
+    mockProfiles.forEach(profile => {
+      this.profiles.set(profile.id, profile);
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
