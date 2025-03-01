@@ -53,12 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdMessage = await storage.createMessage(message);
 
       if (!message.isAI) {
-        const matches = await storage.getMatches(message.matchId);
-        if (!matches.length) {
-          return res.status(404).json({ error: "Match not found" });
-        }
-
-        const profile = await storage.getProfile(matches[0].profileId);
+        // Get the profile directly since matchId is actually profileId in our case
+        const profile = await storage.getProfile(message.matchId);
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
         }
@@ -88,6 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid message data" });
       } else {
+        console.error("Message error:", error);
         res.status(500).json({ error: "Failed to create message" });
       }
     }
