@@ -30,7 +30,7 @@ export async function generateAIResponse(
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // Format conversation history
-      const formattedHistory = context.messageHistory
+      const formattedHistory: OpenAI.Chat.ChatCompletionMessageParam[] = context.messageHistory
         .slice(-5) // Keep last 5 messages for context
         .map(m => ({
           role: m.isAI ? "assistant" : "user",
@@ -38,7 +38,7 @@ export async function generateAIResponse(
         }));
 
       // Create system message with character background
-      const systemMessage = {
+      const systemMessage: OpenAI.Chat.ChatCompletionMessageParam = {
         role: "system",
         content: `You are ${context.profileName}, a 21+ year old dating app user with this bio: "${context.profileBio}"
 
