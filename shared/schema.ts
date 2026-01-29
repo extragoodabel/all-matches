@@ -6,6 +6,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  minAge: integer("min_age").notNull().default(21),
+  maxAge: integer("max_age").notNull().default(50),
+  genderPreference: text("gender_preference").notNull().default("all"),
 });
 
 export const profiles = pgTable("profiles", {
@@ -15,6 +18,7 @@ export const profiles = pgTable("profiles", {
   bio: text("bio").notNull(),
   imageUrl: text("image_url").notNull(),
   isAI: pgBoolean("is_ai").notNull().default(false),
+  gender: text("gender").notNull().default("other"), // Added gender
 });
 
 export const matches = pgTable("matches", {

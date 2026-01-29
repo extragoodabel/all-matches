@@ -25,6 +25,15 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
     }, 300);
   };
 
+  if (profiles.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[600px]">
+        <h2 className="text-2xl font-bold text-gray-700">No matches found with these filters!</h2>
+        <p className="mt-2 text-gray-600">Try expanding your preferences</p>
+      </div>
+    );
+  }
+
   if (currentIndex >= profiles.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[600px]">

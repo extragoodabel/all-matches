@@ -66,7 +66,12 @@ export class MemStorage implements IStorage {
 
   async createProfile(insertProfile: InsertProfile): Promise<Profile> {
     const id = this.currentId.profiles++;
-    const profile: Profile = { ...insertProfile, id, isAI: insertProfile.isAI ?? false };
+    const profile: Profile = { 
+      ...insertProfile, 
+      id, 
+      isAI: insertProfile.isAI ?? false,
+      gender: insertProfile.gender ?? "other"
+    };
     this.profiles.set(id, profile);
     return profile;
   }
