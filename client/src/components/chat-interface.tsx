@@ -44,10 +44,10 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
   // Poll for new messages when typing indicator is shown
   useEffect(() => {
     if (isTyping) {
-      // Poll every 2 seconds for new messages
+      // Poll more frequently for a snappier feel
       pollIntervalRef.current = setInterval(() => {
         onNewMessage();
-      }, 2000);
+      }, 1000);
 
       // Set a maximum typing time of 30 seconds
       typingTimeoutRef.current = setTimeout(() => {
@@ -68,24 +68,34 @@ export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterface
     }
   }, [isTyping, onNewMessage]);
 
+  // Turn off typing indicator when a new AI message arrives
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.isAI) {
+      setIsTyping(false);
+    }
+  }, [messages]);
+
   const handleSend = async () => {
     if (!message.trim()) return;
 
     try {
+      const currentMessage = message.trim();
+      setMessage(""); // Clear input immediately
+      
       // Send user message
       await apiRequest("POST", "/api/messages", {
         matchId,
-        content: message.trim(),
+        content: currentMessage,
         isAI: false,
       });
 
-      setMessage("");
       onNewMessage();
 
-      // Add a small delay before showing typing indicator
+      // Set typing indicator after a very short delay
       setTimeout(() => {
         setIsTyping(true);
-      }, 500);
+      }, 300);
 
     } catch (error) {
       toast({

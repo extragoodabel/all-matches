@@ -78,17 +78,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message.content
         ).then(async (aiResponse) => {
           try {
-            // Add initial delay before starting to type
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Realistic "human" delay:
+            // 1. A short pause before the "typing" starts (1-2 seconds)
+            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-            // Create the AI's response message after the typing delay
-            setTimeout(async () => {
-              await storage.createMessage({
-                matchId: message.matchId,
-                content: aiResponse.content,
-                isAI: true
-              });
-            }, aiResponse.typingDelay);
+            // 2. The actual typing duration (already calculated in generateAIResponse)
+            await new Promise(resolve => setTimeout(resolve, aiResponse.typingDelay));
+
+            // Create the AI's response message
+            await storage.createMessage({
+              matchId: message.matchId,
+              content: aiResponse.content,
+              isAI: true
+            });
           } catch (error) {
             console.error("Error creating AI response:", error);
           }
