@@ -54,9 +54,9 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 relative z-50">
         <div className="w-10" /> {/* Spacer */}
-        <h1 className="text-5xl font-extrabold">
+        <h1 className="text-5xl font-extrabold flex-1 text-center">
           <div className="flex items-center justify-center gap-2">
             <Heart className="w-6 h-6 text-red-500" />
             <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text animate-gradient">
@@ -67,8 +67,8 @@ export default function Home() {
         </h1>
         <Dialog>
           <DialogTrigger asChild>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <Settings2 className="w-6 h-6 text-gray-600" />
+            <button className="p-3 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-gray-100 rounded-full transition-all group active:scale-95">
+              <Settings2 className="w-6 h-6 text-gray-600 group-hover:text-pink-500 transition-colors" />
             </button>
           </DialogTrigger>
           <DialogContent>
