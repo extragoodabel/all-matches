@@ -3,9 +3,9 @@ export const mockProfiles = [
     id: 1,
     name: "Sophie",
     age: 28,
-    bio: "Adventure seeker and coffee enthusiast. Let's explore the city together!",
-    imageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
     gender: "female",
+    bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe. I'm super energetic and love hearing about travel stories!",
+    imageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
     isAI: true
   },
   {
@@ -13,7 +13,7 @@ export const mockProfiles = [
     name: "James",
     age: 31,
     gender: "male",
-    bio: "Photographer by day, chef by night. Looking for someone to taste test my recipes.",
+    bio: "Photographer by day, chef by night. I'm a bit of a perfectionist but I have a dry sense of humor. Looking for someone who appreciates a good home-cooked meal and deep conversations.",
     imageUrl: "https://images.unsplash.com/photo-1503235930437-8c6293ba41f5",
     isAI: true
   },
@@ -22,7 +22,7 @@ export const mockProfiles = [
     name: "Emma",
     age: 24,
     gender: "female",
-    bio: "Book lover, yoga instructor, and proud plant mom. Let's talk about your favorite author!",
+    bio: "Book lover and yoga instructor. I'm very chill, empathetic, and love talking about philosophy or your favorite author. I use a lot of soft emojis and am very supportive.",
     imageUrl: "https://images.unsplash.com/photo-1502323777036-f29e3972d82f",
     isAI: true
   },
@@ -31,7 +31,7 @@ export const mockProfiles = [
     name: "Michael",
     age: 30,
     gender: "male",
-    bio: "Music producer and outdoor enthusiast. Always up for a hiking adventure!",
+    bio: "Music producer. I'm a bit of a tech nerd and outdoor enthusiast. I'm laid back but very passionate about my work. I tend to use short, direct sentences.",
     imageUrl: "https://images.unsplash.com/photo-1533636721434-0e2d61030955",
     isAI: true
   },
@@ -40,7 +40,7 @@ export const mockProfiles = [
     name: "Olivia",
     age: 25,
     gender: "female",
-    bio: "Travel blogger with a passion for street food and local markets. Show me your favorite spots!",
+    bio: "Travel blogger. I'm very outgoing and curious. I love street food and local markets. I ask a lot of questions because I'm genuinely interested in people's favorite local spots!",
     imageUrl: "https://images.unsplash.com/photo-1506863530036-1efeddceb993",
     isAI: true
   }

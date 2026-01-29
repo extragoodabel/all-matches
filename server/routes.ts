@@ -56,21 +56,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If it's a user message, generate AI response
       if (!message.isAI) {
-        // Get the profile (in our case, matchId is actually profileId)
         const profile = await storage.getProfile(message.matchId);
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
         }
 
-        // Get message history for context
-        const messages = await storage.getMessages(message.matchId);
+        const currentMessages = await storage.getMessages(message.matchId);
 
-        // Generate AI response asynchronously
         generateAIResponse(
           {
             profileName: profile.name,
             profileBio: profile.bio,
-            messageHistory: messages.map(m => ({
+            messageHistory: currentMessages.map(m => ({
               content: m.content,
               isAI: m.isAI
             }))
@@ -78,14 +75,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message.content
         ).then(async (aiResponse) => {
           try {
-            // Realistic "human" delay:
-            // 1. A short pause before the "typing" starts (1-2 seconds)
+            // Human-like delay: Initial pause (1.5-2.5s) + Typing duration (2-6s)
             await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-            // 2. The actual typing duration (already calculated in generateAIResponse)
             await new Promise(resolve => setTimeout(resolve, aiResponse.typingDelay));
 
-            // Create the AI's response message
             await storage.createMessage({
               matchId: message.matchId,
               content: aiResponse.content,
