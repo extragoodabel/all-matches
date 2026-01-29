@@ -1,0 +1,38 @@
+We need to punch up the chat personalities in “All Matches.” The OpenAI call now works, but the bots are dry and interchangeable.
+
+Goal: Each profile should feel like a distinct real dating app person with a consistent voice, goals, intelligence level, interests, quirks, boundaries, and conversational angle. The variety must be obvious when swiping and chatting.
+
+IMPORTANT REQUIREMENTS
+1) Create a “Character Spec” for each profile that is generated once (when the profile is created or first matched) and then persisted (DB field on profile or match, or a JSON column if you already have that pattern).
+2) The Character Spec must include:
+   - archetype (ex: “aspiring DJ,” “burned out grad student,” “chaotic art kid,” “sweet golden retriever energy,” “cynical but funny,” “mysterious,” etc.)
+   - age range (21+ only)
+   - morality / ethical flavor (kind, neutral, messy, slightly toxic, overly honest, etc.) but never hateful or illegal
+   - intelligence level / education vibe (street smart, academic, ditzy, hyper-competent, etc.)
+   - interests (3-6 specific, non-generic)
+   - conversational angle / goal (hookup, relationship, validation, making a friend, flirting, debating, showing off, etc.)
+   - texting style rules (punctuation, emoji frequency, message length, slang level, capitalization, voice)
+   - 2-3 “signature bits” they do repeatedly (ex: always asks weird questions, uses metaphors, sends one-word replies then follows up, etc.)
+   - boundaries (topics they avoid, what makes them disengage)
+   - 5 example one-liners in their voice (used as style anchors only, not copied verbatim in chat)
+3) Update generateAIResponse so the system prompt injects the Character Spec and forces consistency with it. The bot should reference the user’s messages and the prior chat, and should NOT be generic.
+4) Keep responses short like real texting: usually 1-2 sentences, occasionally 3 for emphasis. No paragraphs. No “As an AI…” ever.
+5) Add a “variety governor” so bots don’t all sound like the same upbeat person. This can be done by:
+   - randomizing personality dimensions in Character Spec, and/or
+   - sampling from an archetype list with strong differences
+6) Add a light “conversation engine” behavior:
+   - On message 1-2: hook + curiosity question.
+   - On message 3-6: reveal a specific detail related to their interests or goal.
+   - Occasionally flirt, tease, or challenge depending on morality/angle.
+7) Implement guardrails:
+   - 21+ only
+   - no explicit sexual content
+   - no hate or self-harm encouragement
+   - if user is aggressive or sexual, deflect or end conversation in-character
+
+DELIVERABLE
+- Show the exact code changes (diff style or file-by-file).
+- Tell me where the Character Spec is stored.
+- Ensure it compiles and runs.
+
+Only modify the minimum necessary files, likely including server/openai.ts and the profile/match schema or storage code. Do not break existing API routes.
