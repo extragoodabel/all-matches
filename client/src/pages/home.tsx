@@ -66,11 +66,12 @@ export default function Home() {
       
       return data;
     },
-    staleTime: 1000 * 60 * 5,      // Data stays fresh for 5 minutes (no refetch)
+    staleTime: 1000 * 60 * 2,      // Data stays fresh for 2 minutes
     gcTime: 1000 * 60 * 10,        // Keep in cache for 10 minutes
     refetchOnWindowFocus: false,   // Don't refetch when tab regains focus
-    refetchOnMount: false,         // Don't refetch when component remounts (e.g., returning from chat)
+    refetchOnMount: "always",      // Always refetch on mount to get latest profiles
     refetchOnReconnect: false,     // Don't refetch on network reconnect
+    refetchInterval: 30000,        // Auto-refetch every 30 seconds to pick up new background-generated profiles
   });
 
   const shuffledProfiles = useMemo(() => {
@@ -106,7 +107,8 @@ export default function Home() {
       }
     }
     
-    if (filteredProfiles.length < 10) {
+    // Trigger refetch when running low on profiles to load more from server
+    if (filteredProfiles.length < 5) {
       refetch();
     }
   };

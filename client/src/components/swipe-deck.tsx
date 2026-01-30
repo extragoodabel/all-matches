@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProfileCard } from "./profile-card";
 import type { Profile } from "@shared/schema";
@@ -127,12 +127,33 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
 export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
+  const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
 
-  const currentProfile = profiles[currentIndex];
+  // Find the first unseen profile in the current array
+  const currentProfile = profiles.find(p => !seenProfileIds.has(p.id));
+  
+  // Reset index if we've gone past the end but new profiles arrived
+  useEffect(() => {
+    if (currentIndex >= profiles.length && profiles.length > 0) {
+      // Check if there are any unseen profiles
+      const unseenProfiles = profiles.filter(p => !seenProfileIds.has(p.id));
+      if (unseenProfiles.length > 0) {
+        setCurrentIndex(0);
+      }
+    }
+  }, [profiles.length, currentIndex, seenProfileIds]);
 
   const handleSwipe = useCallback((swipeDirection: "left" | "right") => {
     if (!currentProfile || direction) return;
     setDirection(swipeDirection);
+    
+    // Mark this profile as seen
+    setSeenProfileIds(prev => {
+      const newSet = new Set(Array.from(prev));
+      newSet.add(currentProfile.id);
+      return newSet;
+    });
+    
     onSwipe(currentProfile, swipeDirection);
 
     setTimeout(() => {
@@ -159,11 +180,15 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
     );
   }
 
-  if (currentIndex >= profiles.length) {
+  // Check if there are any unseen profiles
+  const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id));
+  
+  if (!currentProfile || remainingProfiles.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[600px]">
-        <h2 className="text-2xl font-bold text-gray-700">No more profiles!</h2>
-        <p className="mt-2 text-gray-600">Check back later for more matches</p>
+        <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <h2 className="text-2xl font-bold text-gray-700">Finding more matches...</h2>
+        <p className="mt-2 text-gray-600">New profiles are being loaded</p>
       </div>
     );
   }
