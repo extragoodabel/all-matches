@@ -50,7 +50,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const quirk = quirks[Math.floor(Math.random() * quirks.length)];
         
         const seed = Math.floor(Math.random() * 1000000);
-        const imageUrl = `https://picsum.photos/seed/${seed}/400/600`;
+        // Using Unsplash with "person" keyword to ensure profile pictures
+        const imageUrl = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?auto=format&fit=crop&q=80&w=400&h=600&person`;
         
         const bio = `I'm a ${arch.label.toLowerCase()}. Usually found ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} My secret talent is ${arch.interests[2]}.`;
 
