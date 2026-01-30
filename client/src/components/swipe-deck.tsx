@@ -290,12 +290,14 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             ];
             const patternIdx = (currentProfile.id + i) % stackPatterns.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
+            // Subtle height variation: 0.58 to 0.62 ratio (base is 0.6 for 3:5)
+            const heightVariation = 0.60 + ((currentProfile.id * i) % 5 - 2) * 0.01;
             return (
               <div
                 key={`stack-${i}-${currentProfile.id}`}
                 className="absolute w-full pointer-events-none"
                 style={{
-                  transform: `translateX(${i * 5}px) translateY(${i * 7}px)`,
+                  transform: `translateX(${i * 4}px) translateY(${i * 5}px)`,
                   zIndex: -10 - i,
                   '--eg-primary': stackColors[colorIdx].primary,
                   '--eg-secondary': stackColors[colorIdx].secondary,
@@ -305,7 +307,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
                   <div 
                     className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
                     style={{
-                      aspectRatio: '3/5',
+                      aspectRatio: `3/${3 / heightVariation}`,
                       background: stackPatterns[patternIdx] === 'checker' 
                         ? `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`
                         : stackPatterns[patternIdx] === 'stripes'

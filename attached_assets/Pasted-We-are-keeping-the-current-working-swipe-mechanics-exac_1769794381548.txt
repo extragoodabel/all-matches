@@ -1,0 +1,87 @@
+We are keeping the current, working swipe mechanics exactly as they are. Do NOT modify swipe behavior, pointer handling, drag thresholds, or card movement logic in any way.
+
+We are only refining the visual card stack layer that lives behind the active profile card.
+
+Current behavior
+
+There is a visible stack of patterned cards behind the active profile card
+
+The stack concept is correct, but the execution needs refinement
+
+Required fixes (design-only)
+
+Card size variation
+
+The top (active) profile card already varies slightly in height across profiles
+
+The cards in the stack behind it should reflect this
+
+Each underlying card should be the same width as the active card
+
+Heights should vary subtly (small random variance) so the stack feels organic, not uniform
+
+Variation should be minor and tasteful, not chaotic
+
+Vertical positioning
+
+The entire card stack is currently positioned too low on the screen
+
+Move the stack slightly upward so it sits directly behind the active profile card
+
+The stack should feel centered behind the card, not detached or floating lower on the page
+
+The top edges of underlying cards should peek out evenly behind the active card
+
+Opacity / material integrity
+
+All patterned card borders must be fully opaque
+
+No transparency, translucency, or see-through effects
+
+Each underlying card should read as a solid physical card
+
+This applies to:
+
+Pattern fills
+
+Borders
+
+Background layers
+
+The stack should feel like a real pile of printed cards, not layered UI panels
+
+Critical constraints (do not break these)
+
+Do NOT alter swipe direction logic
+
+Do NOT alter drag physics or thresholds
+
+Do NOT attach gestures to the stack itself
+
+The stack must be a purely visual layer
+
+It should live above the patterned background and below the active profile card
+
+The stack should not intercept pointer events
+
+Animation behavior
+
+The next profile does NOT need to animate out of the stack
+
+The active card can continue behaving exactly as it does now
+
+The stack simply updates visually once a swipe completes
+
+Goal
+
+The final result should look like:
+
+A stack of similarly shaped, solid cards
+
+Slight height variation for realism
+
+Clean alignment directly behind the active card
+
+Zero impact on interaction mechanics
+
+Do not add new features. Do not refactor swipe logic. This is a visual refinement only.
