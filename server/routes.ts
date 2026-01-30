@@ -5,60 +5,165 @@ import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 
+import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
+import express from "express";
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function makePortraitUrl(seed: number): string {
-  const portraitIds = [
-    "1534528741775-53994a69daeb", "1506794778202-cad84cf45f1d", "1507003211169-0a1dd7228f2d",
-    "1531746020798-e6953c6e8e04", "1544005313-94ddf0286df2", "1552374196-c4e7ffc6e12e",
-    "1500648767791-00dcc994a43e", "1494790108377-be9c29b29330", "1521119956141-1933120bc71e",
-    "1517841905572-4b668627c810", "1508214751196-435431004b74", "1529626431928-c79c1031c130",
-    "1520813792240-a88d7c442654", "1524503033104-815228536339", "1509191425245-974c4673832d"
-  ];
-  const id = portraitIds[seed % portraitIds.length];
-  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=80&w=400&h=600`;
+function ensureDir(dirPath: string) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function safeFileName(name: string) {
+  return name.replace(/[^a-z0-9_-]/gi, "_").toLowerCase();
+}
+
+/**
+ * Generate a fictional, photoreal dating-app portrait.
+ * - NOT a real person
+ * - NOT a celebrity
+ * - 21+ adult
+ *
+ * Uses GPT image models which return base64-encoded images. :contentReference[oaicite:1]{index=1}
+ */
+async function generatePortraitToDisk(args: {
+  profileId: number;
+  name: string;
+  age: number;
+  gender: "male" | "female";
+  archetypeLabel: string;
+  interests: string[];
+  quirk: string;
+}): Promise<string> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const outDir = path.join(process.cwd(), "generated");
+  ensureDir(outDir);
+
+  const fileBase = `profile_${args.profileId}_${safeFileName(args.name)}_${args.age}`;
+  const filePath = path.join(outDir, `${fileBase}.png`);
+
+  // If we already generated it, reuse it.
+  if (fs.existsSync(filePath)) {
+    return `/generated/${path.basename(filePath)}`;
+  }
+
+  const [i1, i2] = args.interests;
+
+  // Strong guardrails to avoid real-person resemblance.
+  const prompt = `
+Create a photorealistic portrait photo for a fictional dating-app profile.
+
+Subject:
+- Fictional ${args.gender}, age ${args.age} (must look 21+)
+- Archetype: ${args.archetypeLabel}
+- Vibe: modern, believable, candid
+- Interests: ${i1}, ${i2}
+- Quirk: ${args.quirk}
+
+Photo style:
+- Looks like a real smartphone portrait (natural lighting, slight imperfection, shallow depth of field)
+- Head-and-shoulders or upper torso
+- Neutral/simple background (apartment wall, cafe, street bokeh) but not a landmark
+- No text, no logos, no watermarks
+- Not a celebrity, not a public figure, not based on any real person
+- Do not resemble a specific identifiable person
+- One person only
+- Tasteful, fully clothed
+  `.trim();
+
+  // Portrait size supported by GPT image models. :contentReference[oaicite:2]{index=2}
+  const img = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt,
+    size: "1024x1536",
+  });
+
+  const b64 = img.data?.[0]?.b64_json;
+  if (!b64) throw new Error("Image generation returned no base64 data.");
+
+  fs.writeFileSync(filePath, Buffer.from(b64, "base64"));
+  return `/generated/${path.basename(filePath)}`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve generated images from disk at /generated/...
+  const genDir = path.join(process.cwd(), "generated");
+  ensureDir(genDir);
+  app.use("/generated", express.static(genDir));
+
   app.get("/api/profiles", async (req, res) => {
-    const userId = 1; // Default user for now
+    const userId = 1; // default user for now
     let unseen = await storage.getUnseenProfiles(userId);
 
-    // Refill buffer if running low
-    if (unseen.length < 20) {
+    // If we’re low, generate a few more right now.
+    // IMPORTANT: Image generation is slower/costly, so cap per request to avoid timeouts.
+    const TARGET_BUFFER = 20;
+    const MAX_NEW_PER_REQUEST = 4;
+
+    if (unseen.length < TARGET_BUFFER) {
       const archetypes = [
-        { label: "Chaotic Art Kid", interests: ["analog photography", "DIY synthesizers", "street art"] },
-        { label: "Aspiring DJ", interests: ["vinyl collecting", "techno", "club hopping"] },
-        { label: "Burned Out Grad Student", interests: ["quantum physics", "perfecting sourdough", "thesis writing"] },
-        { label: "Sweet Golden Retriever Energy", interests: ["dog parks", "beach days", "movie nights"] },
-        { label: "Cynical but Funny", interests: ["dark comedy", "people watching", "urban exploration"] },
-        { label: "Mysterious", interests: ["occult history", "stargazing", "poetry"] },
-        { label: "Hyper-Competent Techie", interests: ["open source", "cybersecurity", "mechanical keyboards"] },
-        { label: "Spiritual Nomad", interests: ["reiki", "crystals", "van life"] },
-        { label: "High-Energy Athlete", interests: ["crossfit", "meal prep", "hiking"] },
-        { label: "Old Soul Librarian", interests: ["classic literature", "tea blending", "knitting"] },
-        { label: "Socialite with an Edge", interests: ["fashion design", "cocktail mixing", "modern art"] },
-        { label: "Corporate Rebel", interests: ["investing", "skydiving", "poker"] },
-        { label: "Indie Musician", interests: ["songwriting", "thrift shopping", "coffee"] },
-        { label: "Gamer", interests: ["speedrunning", "cosplay", "streaming"] },
-        { label: "History Buff", interests: ["museums", "archaeology", "weird historical trivia"] },
-        { label: "Plant Parent", interests: ["botany", "interior design", "organic gardening"] },
-        { label: "Anime Enthusiast", interests: ["manga", "conventions", "japanese cooking"] },
-        { label: "DIY Crafter", interests: ["pottery", "sewing", "woodworking"] },
-        { label: "Coffee Snob", interests: ["espresso machines", "bean roasting", "latte art"] },
-        { label: "Stargazer", interests: ["astrophotography", "telescopes", "space exploration"] },
-        { label: "Urban Gardener", interests: ["beekeeping", "hydroponics", "farmers markets"] },
-        { label: "Vinyl Collector", interests: ["jazz", "record stores", "audio equipment"] },
-        { label: "Puzzle Master", interests: ["escape rooms", "crosswords", "sudoku"] },
-        { label: "Street Photographer", interests: ["leica cameras", "film processing", "architecture"] },
-        { label: "Foodie Blogger", interests: ["hole-in-the-wall spots", "food photography", "tasting menus"] },
+        {
+          label: "Chaotic Art Kid",
+          interests: ["analog photography", "DIY synthesizers", "street art"],
+          styleHint: "expressive, unpredictable, witty",
+        },
+        {
+          label: "Aspiring DJ",
+          interests: ["vinyl collecting", "techno", "club hopping"],
+          styleHint: "confident, flirty, nightlife energy",
+        },
+        {
+          label: "Burned Out Grad Student",
+          interests: ["research rabbit holes", "sourdough experiments", "late-night debates"],
+          styleHint: "smart, slightly frazzled, funny",
+        },
+        {
+          label: "Sweet Golden Retriever Energy",
+          interests: ["dog parks", "beach days", "movie nights"],
+          styleHint: "warm, upbeat, wholesome",
+        },
+        {
+          label: "Cynical but Funny",
+          interests: ["dark comedy", "people watching", "urban exploration"],
+          styleHint: "dry, sharp, surprisingly sweet",
+        },
+        {
+          label: "Mysterious",
+          interests: ["occult history", "stargazing", "poetry"],
+          styleHint: "cryptic, poetic, curious",
+        },
+        {
+          label: "Hyper-Competent Techie",
+          interests: ["open source", "cybersecurity", "mechanical keyboards"],
+          styleHint: "fast brain, playful competence",
+        },
+        {
+          label: "Spiritual Nomad",
+          interests: ["reiki", "crystals", "van life"],
+          styleHint: "gentle, mystical, inviting",
+        },
+        {
+          label: "High-Energy Athlete",
+          interests: ["crossfit", "meal prep", "mountain trails"],
+          styleHint: "motivated, competitive, upbeat",
+        },
+        {
+          label: "Old Soul Librarian",
+          interests: ["classic literature", "tea blending", "quiet museums"],
+          styleHint: "soft-spoken, thoughtful, charming",
+        },
+        // You can add more here later without changing anything else.
       ];
 
       const names = [
-        "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery",
-        "Dakota", "Reese", "Hayden", "Emerson", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+        "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler",
+        "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker",
+        "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
       ];
 
       const quirks = [
@@ -72,27 +177,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "I only drink coffee from blue mugs. No exceptions.",
       ];
 
-      for (let i = 0; i < 30; i++) {
+      const toCreate = Math.min(TARGET_BUFFER - unseen.length, MAX_NEW_PER_REQUEST);
+
+      for (let i = 0; i < toCreate; i++) {
         const arch = pick(archetypes);
         const name = pick(names);
         const age = 21 + Math.floor(Math.random() * 25);
         const gender = Math.random() > 0.5 ? "male" : "female";
         const quirk = pick(quirks);
 
-        const seed = Math.floor(Math.random() * 1_000_000);
-        const imageUrl = makePortraitUrl(seed);
+        // Bio includes explicit personality hooks to help chat immediately.
+        const bio =
+          `Archetype: ${arch.label}. ` +
+          `I’m into ${arch.interests[0]}, ${arch.interests[1]}, and ${arch.interests[2]}. ` +
+          `${quirk} ` +
+          `Texting style: ${arch.styleHint}.`;
 
-        const bio = `I’m a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}.`;
-
-        await storage.createProfile({
+        // Create the profile first with a temporary image URL (won’t be shown long)
+        // Then replace it with generated image once we have the ID.
+        const created = await storage.createProfile({
           name,
           age,
           bio,
           gender,
-          imageUrl,
+          imageUrl: "", // filled after image generation
           isAI: true,
           characterSpec: null,
         });
+
+        // Generate and save portrait to disk; then update imageUrl by re-creating profile record.
+        // MemStorage has no update method, so we re-create by direct get+set via createProfile isn't possible.
+        // Instead: since MemStorage stores the object, we can fetch it and mutate safely in memory.
+        const p = await storage.getProfile(created.id);
+        if (p) {
+          try {
+            const imgUrl = await generatePortraitToDisk({
+              profileId: created.id,
+              name,
+              age,
+              gender: gender as "male" | "female",
+              archetypeLabel: arch.label,
+              interests: arch.interests,
+              quirk,
+            });
+            // @ts-expect-error MemStorage stores by reference; safe to mutate in-memory record
+            p.imageUrl = imgUrl;
+          } catch (e) {
+            console.error("Image generation failed:", e);
+            // Fallback: a simple local placeholder (you can add a real placeholder asset later)
+            // @ts-expect-error
+            p.imageUrl = "";
+          }
+        }
       }
 
       unseen = await storage.getUnseenProfiles(userId);
@@ -139,25 +275,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const message = insertMessageSchema.parse(req.body);
 
-      // Save user message immediately
+      // Save user message
       const createdMessage = await storage.createMessage(message);
 
-      // Generate AI reply asynchronously
       if (!message.isAI) {
-        // IMPORTANT FIX:
-        // message.matchId is a match id, not a profile id.
-        // We must look up the match to find the profileId, then load that profile.
-        const matches = await storage.getMatches(1); // default user
+        // FIX: matchId is not profileId. Find the match, then the profileId.
+        const matches = await storage.getMatches(1);
         const match = matches.find((m) => m.id === message.matchId);
-
-        if (!match) {
-          return res.status(404).json({ error: "Match not found" });
-        }
+        if (!match) return res.status(404).json({ error: "Match not found" });
 
         const profile = await storage.getProfile(match.profileId);
-        if (!profile) {
-          return res.status(404).json({ error: "Profile not found" });
-        }
+        if (!profile) return res.status(404).json({ error: "Profile not found" });
 
         const currentMessages = await storage.getMessages(message.matchId);
 
@@ -174,9 +302,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
           .then(async (aiResponse) => {
             try {
-              // Small natural pause + typing duration
-              await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 700));
-              await new Promise((resolve) => setTimeout(resolve, aiResponse.typingDelay));
+              // Shorter, less annoying delay baseline
+              await new Promise((r) => setTimeout(r, 350 + Math.random() * 450));
+              await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
 
               await storage.createMessage({
                 matchId: message.matchId,
