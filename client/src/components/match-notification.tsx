@@ -3,6 +3,7 @@ import { type Profile } from "@shared/schema";
 import { Heart, Loader2, Sparkles, X } from "lucide-react";
 import { getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
+import { DopamineConfetti } from "./dopamine-confetti";
 
 interface MatchNotificationProps {
   profile: Profile;
@@ -32,6 +33,8 @@ export function MatchNotification({
         '--eg-accent': theme.palette.accent,
       } as React.CSSProperties}
     >
+      <DopamineConfetti />
+      
       <div 
         className="absolute inset-0"
         style={{

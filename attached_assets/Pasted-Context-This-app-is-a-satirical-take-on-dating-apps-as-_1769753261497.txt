@@ -1,0 +1,106 @@
+Context:
+This app is a satirical take on dating apps as dopamine machines. Matches are not about connection — they’re about validation. When a match happens, it should feel chemically rewarding, excessive, chaotic, and delightful, then disappear quickly so the user can keep swiping.
+
+Task:
+Add a short, non-blocking celebratory animation that triggers when a match occurs (“It’s a match!” screen). This animation should layer on top of the existing UI for ~1–1.5 seconds, then fully clear without affecting app flow.
+
+Animation Concept
+
+When a match happens:
+
+The screen briefly pulses or flashes (dopamine spike)
+
+A chaotic burst of animated icons explodes outward like confetti fireworks
+
+Icons then fall off-screen and disappear
+
+After the animation, the app behaves exactly as it does now
+
+Icons to Include
+
+Use a mix of playful and slightly unsettling icons:
+
+❤️ Hearts (most frequent)
+
+💊 Pills (medium frequency)
+
+🎈 Balloons (slow floaters)
+
+💉 Syringes (rare, for shock/comedy)
+
+➡️ Arrows (fast streaking motion)
+
+Visual Rules
+
+Icons should vary in:
+
+size
+
+rotation
+
+speed
+
+direction
+
+Some icons bounce once before falling
+
+Some briefly float upward before gravity pulls them down
+
+Use bright, saturated colors aligned with the app’s bold palette
+
+No text commentary explaining the joke
+
+Timing Beats (Important)
+
+0–100ms: Quick background pulse or glow behind “It’s a match!”
+
+100–600ms: Confetti explosion outward
+
+600–1200ms: Gravity takes over, icons fall and drift off screen
+
+End: Animation fully clears
+
+Audio (Optional)
+
+One short, subtle sound (pop / fizz / chime)
+
+No looping, no casino noise
+
+Must be optional or easy to disable
+
+Variability (Low Effort, High Impact)
+
+Add subtle randomness:
+
+Slightly different icon mixes per match
+
+Occasionally (≈10% of matches):
+
+One oversized absurd icon
+
+Slightly altered motion or color scheme
+
+Constraints
+
+Do NOT block user interaction
+
+Do NOT interfere with match/chat logic
+
+Do NOT persist anything in state
+
+Respect reduced-motion preferences (disable or simplify animation if enabled)
+
+No flashing patterns that could cause accessibility issues
+
+Implementation Notes
+
+This should be a purely presentational animation layer
+
+Use CSS animations or lightweight JS (no heavy libs)
+
+Component should mount, animate, and self-destroy cleanly
+
+Must be plug-and-play with the existing match UI
+
+Goal:
+Make the match feel euphoric, excessive, and slightly absurd — like dopamine confetti — then vanish so the user can keep chasing the next hit.
