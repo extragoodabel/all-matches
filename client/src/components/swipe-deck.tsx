@@ -282,16 +282,32 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           aria-hidden="true"
         >
           {[3, 2, 1].map((i) => {
-            const stackPatterns = ['checker', 'stripes', 'dots'];
+            const stackPatternStyles = [
+              // checker
+              `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`,
+              // stripes
+              `repeating-linear-gradient(-45deg, var(--eg-primary), var(--eg-primary) 10px, var(--eg-secondary) 10px, var(--eg-secondary) 20px)`,
+              // dots
+              `radial-gradient(circle, var(--eg-primary) 8px, transparent 8px) 0 0 / 32px 32px, var(--eg-secondary)`,
+              // halftone
+              `radial-gradient(circle, var(--eg-primary) 2px, transparent 2px) 0 0 / 12px 12px, radial-gradient(circle, var(--eg-primary) 2px, transparent 2px) 6px 6px / 12px 12px, var(--eg-secondary)`,
+              // grid
+              `linear-gradient(var(--eg-primary) 2px, transparent 2px), linear-gradient(90deg, var(--eg-primary) 2px, var(--eg-secondary) 2px)`,
+              // diamonds
+              `linear-gradient(45deg, var(--eg-primary) 25%, transparent 25%), linear-gradient(-45deg, var(--eg-primary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--eg-primary) 75%), linear-gradient(-45deg, transparent 75%, var(--eg-primary) 75%)`,
+            ];
             const stackColors = [
               { primary: '#B388FF', secondary: '#FFDC00' },
               { primary: '#00D9A5', secondary: '#FFF8E7' },
               { primary: '#FF6B6B', secondary: '#FFDC00' },
+              { primary: '#00BFFF', secondary: '#FFF8E7' },
+              { primary: '#FF1493', secondary: '#FFDC00' },
             ];
-            const patternIdx = (currentProfile.id + i) % stackPatterns.length;
+            const patternIdx = (currentProfile.id + i) % stackPatternStyles.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
-            // Subtle height variation: 0.62 to 0.66 ratio (reduced by 5%)
-            const heightVariation = 0.63 + ((currentProfile.id * i) % 5 - 2) * 0.01;
+            // Height variation: 0.58 to 0.65 (10% more range, max unchanged)
+            const heightVariation = 0.65 - ((currentProfile.id * i) % 8) * 0.01;
+            const bgSize = patternIdx === 4 ? '24px 24px' : patternIdx === 5 ? '30px 30px' : undefined;
             return (
               <div
                 key={`stack-${i}-${currentProfile.id}`}
@@ -308,11 +324,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
                     className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
                     style={{
                       aspectRatio: `3/${3 / heightVariation}`,
-                      background: stackPatterns[patternIdx] === 'checker' 
-                        ? `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`
-                        : stackPatterns[patternIdx] === 'stripes'
-                        ? `repeating-linear-gradient(-45deg, var(--eg-primary), var(--eg-primary) 10px, var(--eg-secondary) 10px, var(--eg-secondary) 20px)`
-                        : `radial-gradient(circle, var(--eg-primary) 8px, transparent 8px) 0 0 / 32px 32px, var(--eg-secondary)`,
+                      background: stackPatternStyles[patternIdx],
+                      backgroundSize: bgSize,
                     }}
                   />
                 </div>
