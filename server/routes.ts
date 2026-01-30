@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Parse and validate filter params
     const rawGender = (req.query.gender as string) || "all";
-    const genderPref = ["male", "female", "all"].includes(rawGender) ? rawGender : "all";
+    const genderPref = ["male", "female", "other", "all"].includes(rawGender) ? rawGender : "all";
     const rawMinAge = parseInt(req.query.minAge as string) || 21;
     const rawMaxAge = parseInt(req.query.maxAge as string) || 99;
     // Clamp ages to valid range
@@ -295,6 +295,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Harper", "Evelyn", "Luna", "Camila", "Gianna", "Penelope", "Riley", "Layla"
       ];
       
+      const otherFirstNames = [
+        "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
+        "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+        "Jamie", "Sam", "Cameron", "Drew", "Kai", "Morgan", "Avery", "Hayden",
+        "Emerson", "Sasha", "Jules", "Remy", "Phoenix", "River", "Sage", "Eden"
+      ];
+      
       const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
       const quirks = [
         "I make playlists for every mood.",
@@ -326,12 +333,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gender = "male";
         } else if (genderPref === "female") {
           gender = "female";
+        } else if (genderPref === "other") {
+          gender = "other";
         } else {
-          gender = Math.random() > 0.5 ? "male" : "female";
+          // "all" - mix of male, female, and other
+          const rand = Math.random();
+          if (rand < 0.4) gender = "male";
+          else if (rand < 0.8) gender = "female";
+          else gender = "other";
         }
         
         const quirk = pick(quirks);
-        const firstNames = gender === "male" ? maleFirstNames : femaleFirstNames;
+        const firstNames = gender === "male" ? maleFirstNames : 
+                          gender === "female" ? femaleFirstNames : otherFirstNames;
         const name = generateUniqueName(firstNames, lastInitials);
 
         const bio = await generateUniqueBio({
@@ -356,8 +370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const nextProfileId = storage['currentId'].profiles;
         let imageUrl = '';
         let imageId = '';
+        // For "other" gender, randomly pick from male or female pool
+        const imageGender = gender === "other" 
+          ? (Math.random() > 0.5 ? "male" : "female") 
+          : gender;
         for (let imgAttempt = 0; imgAttempt < 5; imgAttempt++) {
-          imageId = storage.getUniqueImageId(gender as 'male' | 'female');
+          imageId = storage.getUniqueImageId(imageGender as 'male' | 'female');
           imageUrl = buildImageUrl(imageId, nextProfileId);
           const isValid = await validateImageUrl(imageUrl);
           if (isValid) {

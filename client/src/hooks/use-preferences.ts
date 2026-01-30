@@ -5,7 +5,7 @@ const STORAGE_KEY = "matchPreferences";
 export type MatchPreferences = {
   minAge: number;
   maxAge: number;
-  genderPreference: "male" | "female" | "all";
+  genderPreference: "male" | "female" | "other" | "all";
 };
 
 const DEFAULT_PREFERENCES: MatchPreferences = {

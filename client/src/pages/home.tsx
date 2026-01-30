@@ -38,7 +38,7 @@ export default function Home() {
     preferences.minAge,
     preferences.maxAge,
   ]);
-  const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "all">(
+  const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
   );
 
@@ -169,7 +169,7 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               <Label>Show me</Label>
-              <Select value={draftGenderPref} onValueChange={(v) => setDraftGenderPref(v as "male" | "female" | "all")}>
+              <Select value={draftGenderPref} onValueChange={(v) => setDraftGenderPref(v as "male" | "female" | "other" | "all")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -177,6 +177,7 @@ export default function Home() {
                   <SelectItem value="all">Everyone</SelectItem>
                   <SelectItem value="male">Men</SelectItem>
                   <SelectItem value="female">Women</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
