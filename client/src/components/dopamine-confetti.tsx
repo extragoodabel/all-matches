@@ -1,7 +1,12 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 
-const PRIMARY_ICONS = ["❤️", "💘", "✨", "⭐", "💫", "🎈", "💊", "➡️"];
-const SECONDARY_ICONS = ["💊", "🧪", "🧠", "🔥", "⚡", "🎯", "💥"];
+const PRIMARY_ICONS = [
+  "❤️", "💘", "💕", "💗", "💖", "💝", "🩷", "🧡", "💛", "💚", "💙", "🩵", "💜", "🖤", "🤍", "🤎",
+  "✨", "⭐", "💫", "🎈", "👅", "😘", "💋", "💄", "👠", "💍", "🌹", "💐", "🍬", "🍫", "🍾"
+];
+const SECONDARY_ICONS = [
+  "💊", "🧪", "🧠", "🔥", "⚡", "🎯", "💥", "🦩", "🍄", "🥭", "🍒", "🌶️", "🍆", "💦", "🧨", "🩸", "🌡️"
+];
 const RARE_ICONS = ["💉", "🧬", "👁️", "🪞", "🧿", "🫀", "🎭"];
 const SUBLIMINAL_WORDS = ["MATCH", "VALIDATED", "SEEN", "REWARDED", "DOPAMINE", "SEROTONIN"];
 
@@ -84,7 +89,7 @@ function generateConfetti(count: number, allowRare: boolean): ConfettiParticle[]
       size: 14 + Math.random() * 18,
       rotation: Math.random() * 360,
       rotationSpeed: (Math.random() - 0.5) * 200,
-      fallSpeed: 0.8 + Math.random() * 0.6,
+      fallSpeed: 0.4 + Math.random() * 1.2,
       swayAmplitude: 15 + Math.random() * 25,
       swayFrequency: 0.8 + Math.random() * 1.2,
       delay: Math.random() * 1500,
@@ -96,7 +101,7 @@ function generateConfetti(count: number, allowRare: boolean): ConfettiParticle[]
 
 function generateBalloons(count: number): BalloonParticle[] {
   const particles: BalloonParticle[] = [];
-  const balloonEmojis = ["🎈", "🎈", "🎈", "💊", "🧠"];
+  const balloonEmojis = ["🎈", "🎈", "🎈", "🦩", "🍄", "💊", "🧠", "🍾"];
   for (let i = 0; i < count; i++) {
     const side = Math.random() > 0.5;
     particles.push({
@@ -264,12 +269,9 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
 
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (pos.y > 110) {
-        setOpacity(0);
+      if (pos.y > 120) {
         return;
       }
-
-      setOpacity((o) => Math.max(0, o - dt * 0.4));
 
       animationFrame = requestAnimationFrame(animate);
     };
@@ -278,7 +280,7 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
     return () => cancelAnimationFrame(animationFrame);
   }, [started, vel, pos.y, particle.rotationSpeed]);
 
-  if (opacity <= 0 && started) return null;
+  if (pos.y > 120 && started) return null;
 
   return (
     <div
@@ -327,13 +329,8 @@ function ConfettiElement({ particle }: { particle: ConfettiParticle }) {
       setY((prevY) => prevY + particle.fallSpeed * dt * 35);
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (y > 110) {
-        setOpacity(0);
+      if (y > 120) {
         return;
-      }
-
-      if (y > 80) {
-        setOpacity((o) => Math.max(0, o - dt * 2));
       }
 
       animationFrame = requestAnimationFrame(animate);
@@ -343,7 +340,7 @@ function ConfettiElement({ particle }: { particle: ConfettiParticle }) {
     return () => cancelAnimationFrame(animationFrame);
   }, [started, y, particle.fallSpeed, particle.rotationSpeed]);
 
-  if (opacity <= 0 && started && y > 0) return null;
+  if (y > 120 && started) return null;
 
   const swayX = particle.startX + Math.sin(time * particle.swayFrequency * 2) * particle.swayAmplitude * 0.3;
 
