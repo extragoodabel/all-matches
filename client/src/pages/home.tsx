@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
 import { Heart, Settings2, MessageCircle, RotateCcw } from "lucide-react";
 import {
@@ -108,6 +108,8 @@ export default function Home() {
         console.log(`[Swipe] Match created: match.id=${createdMatch.id}, profile.id=${profile.id}`);
         // Update with actual matchId
         setCurrentMatch({ profile, matchId: createdMatch.id });
+        // Invalidate inbox cache so new match appears immediately
+        queryClient.invalidateQueries({ queryKey: ["/api/inbox/1"] });
       } catch (error) {
         console.error("[Swipe] Failed to create match:", error);
         // Keep showing modal but matchId will remain null (Start Chat stays disabled)
