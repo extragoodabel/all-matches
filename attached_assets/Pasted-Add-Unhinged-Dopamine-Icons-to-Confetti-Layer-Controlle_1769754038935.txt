@@ -1,0 +1,145 @@
+Add Unhinged Dopamine Icons to Confetti Layer (Controlled, Rare, Iconic)
+
+Extend the existing match celebration animation with a symbolic “dopamine overload” layer.
+
+Core Concept
+
+The match animation should feel like a reward chemical hit. Not literal or gross. Playful, ironic, surreal. The icons should feel slightly wrong in a funny way, not shocking.
+
+Confetti Content Update
+1) Confetti should be a MIX of:
+
+Primary (most common, 70–80 percent):
+
+hearts
+
+arrows
+
+stars
+
+sparkles
+
+pills (capsule style, pastel)
+
+balloons
+
+Secondary (rare, 15–25 percent):
+
+💊 pills (capsules, tablets)
+
+🧪 test tubes
+
+🧠 brain
+
+🔥 flame
+
+⚡ lightning
+
+🎯 target
+
+💥 comic burst
+
+Rare Unhinged Icons (VERY LIMITED, 5–10 percent max):
+Use these sparingly so they read as “blink and you miss it”:
+
+💉 syringe (cartoonish, non-realistic)
+
+🧬 DNA helix
+
+👁️ eye
+
+🪞 mirror
+
+🧿 evil eye
+
+🫀 anatomical heart (only if stylized, not realistic)
+
+🎭 masks (comedy/tragedy)
+
+No gore, no blood, no realistic medical imagery. Everything should feel graphic, icon-like, playful.
+
+2) Distribution Rules
+
+Confetti icons should be randomly mixed, not grouped
+
+Rare unhinged icons should never cluster together
+
+At most 1–2 syringes visible on screen at any moment
+
+If prefers-reduced-motion is enabled, remove syringes and reduce total icon count
+
+3) Motion Behavior
+
+All icon types follow the same motion rules as confetti:
+
+fall from the top with drift
+
+slow rotation
+
+gentle sway
+
+readable speed (2–3 seconds on screen)
+
+No icon should:
+
+fly directly at the camera
+
+move faster than others
+
+draw attention by speed alone
+
+The humor comes from recognition, not shock.
+
+4) Visual Treatment
+
+Use flat, bold, graphic emoji or SVG style
+
+No outlines heavier than hearts or balloons
+
+Saturated but harmonious colors
+
+Slight opacity variance (85–100 percent) so it feels layered
+
+5) Tone Check (IMPORTANT)
+
+The animation should communicate:
+“This feels good. Maybe too good. Haha… wait.”
+
+Not:
+
+drug use promotion
+
+violence
+
+medical realism
+
+gross-out humor
+
+It should feel like A24 irony meets dopamine slot machine.
+
+6) Timing Integration
+
+The unhinged icons appear only during the confetti phase, not fireworks launch.
+They fade out naturally as confetti exits the screen.
+
+Output Instructions
+
+Implement this by modifying the confetti icon pool only
+
+Do not change match logic or navigation
+
+Keep everything non-blocking and performant
+
+Optional Extra (If You Want One More Layer of Meaning)
+
+If feasible, briefly flash (150–250ms, low opacity) a subtle background word pattern behind the match card during the burst:
+
+“MATCH”
+
+“VALIDATED”
+
+“SEEN”
+
+“REWARDED”
+
+Barely visible. Almost subliminal.

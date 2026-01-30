@@ -216,6 +216,17 @@
     0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
     40% { transform: scale(1); opacity: 1; }
   }
+
+  @keyframes dopamine-fade {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  @keyframes dopamine-flash {
+    0% { opacity: 0; }
+    30% { opacity: 0.08; }
+    100% { opacity: 0; }
+  }
   
   .eg-confetti {
     @apply fixed pointer-events-none;

@@ -1,0 +1,112 @@
+The current match celebration animation feels glitchy because:
+
+particles launch from the exact center
+
+all movement is straight-line
+
+speed is too fast
+
+there is not enough confetti
+
+there is no readable “moment”
+
+Update the animation behavior to this:
+1) Split into 3 layers that overlap (for variety)
+
+Layer A: Firework burst (up then fall)
+
+Spawn from bottom 20 to 35 percent of screen (not dead center)
+
+Initial velocity goes upward with slight left or right variance
+
+Apply gravity so particles arc and fall back down
+
+Add drag so it slows naturally
+
+Duration: 1.6 to 2.2 seconds
+
+Stagger: small delay per particle (0 to 200ms) so it does not look like one frame dump
+
+Layer B: Confetti rain (dominant layer)
+
+Spawn from the top edge across the full width
+
+Drift downward with side to side sway (sin wave or noise)
+
+Rotate while falling
+
+Duration: 2.2 to 3.2 seconds
+
+Particle count should be the highest, this is the “moment” layer
+
+Layer C: Balloons (slow floaters)
+
+Spawn near the bottom corners and lower sides
+
+Rise slowly and drift diagonally
+
+Very low count, like accents
+
+Duration: 2.8 to 4.0 seconds
+
+2) Slow down speeds so it is readable
+
+Target these ranges:
+
+Firework particles: 900 to 1600ms before they noticeably fall
+
+Confetti: steady, readable descent for 2 to 3 seconds
+
+Balloons: slowest, 3 to 4 seconds
+
+Use easing like ease-out on launch and ease-in on fall, or implement simple physics with gravity.
+
+3) Increase particle counts
+
+Right now it needs more volume.
+Use something like:
+
+Fireworks: 24 to 40 particles
+
+Confetti: 120 to 220 pieces
+
+Balloons: 6 to 12
+
+Keep performance safe with a cap on total particles at once.
+
+4) Fix “straight line” motion
+
+Every particle should have at least one of these:
+
+gravity arc
+
+horizontal drift that changes over time
+
+slight random wobble
+
+rotation
+
+No particle should travel in a perfectly straight line from center to edge.
+
+5) Make it feel like a moment
+
+Add a quick pacing sequence:
+
+0 to 150ms: soft glow pulse behind “It’s a match!”
+
+150 to 600ms: fireworks launch and burst
+
+300 to 1800ms: confetti rains continuously
+
+600 to 3500ms: balloons float up while confetti finishes
+Then cleanly remove everything.
+
+6) Keep it non-blocking and accessible
+
+Do not block clicks
+
+Respect prefers-reduced-motion by reducing particle count and removing wobble
+
+Output
+
+Implement this by editing only the celebration animation component, not match or chat logic. Use lightweight CSS animations or simple JS physics, no heavy libraries.
