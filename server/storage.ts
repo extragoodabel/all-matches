@@ -1,6 +1,30 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
-import { mockProfiles } from "../client/src/lib/mock-profiles";
 import crypto from "crypto";
+
+const MALE_PHOTOS: Record<string, string[]> = {
+  "21-25": ["1500648767791-00dcc994a43e", "1507003211169-0a1dd7228f2d", "1519345182560-3f2917c472ef"],
+  "26-32": ["1506794778202-cad84cf45f1d", "1560250097-0b93528c311a", "1463453091185-61582044d556"],
+  "33-40": ["1552374196-c4e7ffc6e12e", "1472099645785-5658abf4ff4e", "1502323777036-f29e3972d82f"],
+};
+
+const FEMALE_PHOTOS: Record<string, string[]> = {
+  "21-25": ["1534528741775-53994a69daeb", "1544005313-94ddf0286df2", "1531746020798-e6953c6e8e04"],
+  "26-32": ["1524504388940-b1c1722653e1", "1489424731084-a5d8b219a5bb", "1508214751196-bcfd4ca60f91"],
+  "33-40": ["1503235930437-8c6293ba41f5", "1533636721434-0e2d61030955", "1438761681033-6461ffad8d80"],
+};
+
+function getAgeBucketForMock(age: number): string {
+  if (age <= 25) return "21-25";
+  if (age <= 32) return "26-32";
+  return "33-40";
+}
+
+function getMockPhotoUrl(gender: string, age: number, id: number): string {
+  const bucket = getAgeBucketForMock(age);
+  const pool = gender === "male" ? MALE_PHOTOS[bucket] : FEMALE_PHOTOS[bucket];
+  const photoId = pool[id % pool.length];
+  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=400&h=600&q=80&v=${id}`;
+}
 
 function generateMockCharacterSpec(name: string, bio: string, age: number, gender: string): string {
   const seed = crypto.createHash('md5').update(name + bio).digest('hex');
@@ -53,6 +77,14 @@ function generateMockCharacterSpec(name: string, bio: string, age: number, gende
   return JSON.stringify(spec);
 }
 
+const INITIAL_PROFILES = [
+  { id: 1, name: "Sophie", age: 28, gender: "female", bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe.", isAI: true },
+  { id: 2, name: "James", age: 31, gender: "male", bio: "Photographer by day, chef by night. Dry humor. I will absolutely judge your cutting technique.", isAI: true },
+  { id: 3, name: "Emma", age: 24, gender: "female", bio: "Book lover and yoga instructor. If you have a favorite essay, I want to hear about it.", isAI: true },
+  { id: 4, name: "Michael", age: 30, gender: "male", bio: "Music producer. Outdoors when I can, obsessed with sound design when I cannot.", isAI: true },
+  { id: 5, name: "Olivia", age: 25, gender: "female", bio: "Travel blogger. Street food, local markets, and I will ask you too many questions.", isAI: true },
+];
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -89,22 +121,23 @@ export class MemStorage implements IStorage {
     this.usedBioHashes = new Set();
     this.currentId = {
       users: 1,
-      profiles: mockProfiles.length + 1, // Start after mock profiles
+      profiles: INITIAL_PROFILES.length + 1, // Start after initial profiles
       matches: 1,
       messages: 1,
     };
 
-    // Initialize with mock profiles (with generated character specs)
-    mockProfiles.forEach((profile, idx) => {
+    // Initialize with mock profiles (with generated character specs and gender-matched photos)
+    INITIAL_PROFILES.forEach((profile) => {
       const charSpec = generateMockCharacterSpec(profile.name, profile.bio, profile.age, profile.gender);
+      const imageUrl = getMockPhotoUrl(profile.gender, profile.age, profile.id);
       this.profiles.set(profile.id, {
         ...profile,
+        imageUrl,
         characterSpec: charSpec
       });
       // Track mock profile names and bios as used
       this.usedNames.add(profile.name.toLowerCase());
       this.usedBioHashes.add(this.hashBio(profile.bio));
-      this.usedImageIndices.add(idx);
     });
   }
 

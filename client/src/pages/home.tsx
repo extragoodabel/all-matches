@@ -30,7 +30,7 @@ export default function Home() {
   const [genderPref, setGenderPref] = useState("all");
 
   const { data: profiles = [], refetch } = useQuery<Profile[]>({
-    queryKey: ["/api/profiles"],
+    queryKey: [`/api/profiles?gender=${genderPref}&minAge=${ageRange[0]}&maxAge=${ageRange[1]}`],
   });
 
   const shuffledProfiles = useMemo(() => {
@@ -100,7 +100,7 @@ export default function Home() {
                 <Label>Age Range: {ageRange[0]} - {ageRange[1]}</Label>
                 <Slider
                   min={21}
-                  max={60}
+                  max={50}
                   step={1}
                   value={ageRange}
                   onValueChange={setAgeRange}

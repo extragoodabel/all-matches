@@ -1,0 +1,48 @@
+TASK: Fix profile/photo mismatches and make filters (gender + age range) actually work.
+
+CONTEXT:
+- App has filters: show Men / Women / Everyone, and an age range slider (minAge, maxAge).
+- Current bug: profile images do not match profile gender, and age slider does not affect results.
+- We are using Unsplash photos (not AI images) for speed.
+
+GOALS:
+1) Gender consistency:
+   - When a profile is created, it must select an image from the correct gender photo pool:
+     - profiles.gender === "male" => pick from MALE_PHOTOS
+     - profiles.gender === "female" => pick from FEMALE_PHOTOS
+     - gender === "other" or "all" => pick from a mixed pool
+   - When user filter = "men", only return male profiles, and ensure their images are male pool images.
+   - When user filter = "women", only return female profiles, and ensure their images are female pool images.
+   - When user filter = "all", return all genders, but each profile’s image must still match its own gender.
+
+2) Age filter works:
+   - Respect minAge/maxAge when returning profiles from GET /api/profiles.
+   - The results must be filtered to only include profiles where age is within [minAge, maxAge].
+   - Add basic age realism: create photo pools with rough age buckets (e.g., 21–25, 26–32, 33–40, 41–50).
+     When generating a profile, pick an age first, then choose a photo from the matching age bucket + correct gender pool.
+   - Do NOT attempt ML “guessing” from the image itself. Instead, use curated photo ID lists grouped by gender and age bucket.
+
+IMPLEMENTATION DETAILS:
+- Create constants:
+  MALE_PHOTOS_BY_AGE_BUCKET, FEMALE_PHOTOS_BY_AGE_BUCKET, (optional) OTHER_PHOTOS
+  Each bucket is an array of Unsplash photo IDs or full URLs.
+- Update server profile generation logic (in server/routes.ts or wherever profiles are created):
+  - Determine gender
+  - Determine age
+  - Choose photo from matching pool
+  - Save profile with imageUrl that is consistent and stable
+- Update storage / schema only if necessary.
+- Ensure the GET /api/profiles endpoint takes filter params (or reads stored user prefs) and enforces:
+  - unseen profiles
+  - gender filter
+  - age range filter
+  - randomize order AFTER filtering
+- Add debug logs showing:
+  - requested filters
+  - number of profiles before filtering
+  - number after gender filter
+  - number after age filter
+
+DELIVERABLE:
+- Provide full replacement code for any server files changed (no partial diffs).
+- Keep performance fast (no AI image generation).

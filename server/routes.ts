@@ -152,40 +152,94 @@ async function generateUniqueBio(context: {
   return fallback;
 }
 
-const PORTRAIT_IDS: string[] = [
-  "1500648767791-00dcc994a43e",
-  "1507003211169-0a1dd7228f2d",
-  "1534528741775-53994a69daeb",
-  "1544005313-94ddf0286df2",
-  "1531746020798-e6953c6e8e04",
-  "1488426862026-3ee34a7d66df",
-  "1524504388940-b1c1722653e1",
-  "1489424731084-a5d8b219a5bb",
-  "1508214751196-bcfd4ca60f91",
-  "1487412720507-e7ab37603c6f",
-  "1519345182560-3f2917c472ef",
-  "1463453091185-61582044d556",
-  "1472099645785-5658abf4ff4e",
-  "1560250097-0b93528c311a",
-  "1552374196-c4e7ffc6e12e",
-  "1506794778202-cad84cf45f1d",
-  "1503235930437-8c6293ba41f5",
-  "1502323777036-f29e3972d82f",
-  "1533636721434-0e2d61030955",
-  "1506863530036-1efeddceb993",
-  "1438761681033-6461ffad8d80",
-];
+// Gender and age-bucketed photo pools
+// Age buckets: 21-25, 26-32, 33-40, 41-50
+const MALE_PHOTOS_BY_AGE: Record<string, string[]> = {
+  "21-25": [
+    "1500648767791-00dcc994a43e",
+    "1507003211169-0a1dd7228f2d", 
+    "1519345182560-3f2917c472ef",
+    "1472099645785-5658abf4ff4e",
+  ],
+  "26-32": [
+    "1506794778202-cad84cf45f1d",
+    "1560250097-0b93528c311a",
+    "1463453091185-61582044d556",
+    "1502323777036-f29e3972d82f",
+  ],
+  "33-40": [
+    "1552374196-c4e7ffc6e12e",
+    "1500648767791-00dcc994a43e",
+    "1519345182560-3f2917c472ef",
+    "1506794778202-cad84cf45f1d",
+  ],
+  "41-50": [
+    "1560250097-0b93528c311a",
+    "1463453091185-61582044d556",
+    "1472099645785-5658abf4ff4e",
+    "1502323777036-f29e3972d82f",
+  ],
+};
 
-function getUnusedImageIndex(): number {
-  for (let i = 0; i < PORTRAIT_IDS.length; i++) {
-    if (!storage.usedImageIndices.has(i)) return i;
-  }
-  return Math.floor(Math.random() * PORTRAIT_IDS.length);
+const FEMALE_PHOTOS_BY_AGE: Record<string, string[]> = {
+  "21-25": [
+    "1534528741775-53994a69daeb",
+    "1544005313-94ddf0286df2",
+    "1531746020798-e6953c6e8e04",
+    "1488426862026-3ee34a7d66df",
+  ],
+  "26-32": [
+    "1524504388940-b1c1722653e1",
+    "1489424731084-a5d8b219a5bb",
+    "1508214751196-bcfd4ca60f91",
+    "1487412720507-e7ab37603c6f",
+  ],
+  "33-40": [
+    "1503235930437-8c6293ba41f5",
+    "1533636721434-0e2d61030955",
+    "1506863530036-1efeddceb993",
+    "1438761681033-6461ffad8d80",
+  ],
+  "41-50": [
+    "1508214751196-bcfd4ca60f91",
+    "1503235930437-8c6293ba41f5",
+    "1487412720507-e7ab37603c6f",
+    "1438761681033-6461ffad8d80",
+  ],
+};
+
+function getAgeBucket(age: number): string {
+  if (age <= 25) return "21-25";
+  if (age <= 32) return "26-32";
+  if (age <= 40) return "33-40";
+  return "41-50";
 }
 
-function portraitUrlByIndex(idx: number, profileId: number): string {
-  const id = PORTRAIT_IDS[idx % PORTRAIT_IDS.length];
-  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&h=600&q=80&v=${profileId}&t=${Date.now()}`;
+function getPhotoForGenderAndAge(gender: string, age: number, profileId: number): string {
+  const bucket = getAgeBucket(age);
+  let photoPool: string[];
+  
+  // Default fallback pool if everything else fails
+  const fallbackPool = ["1500648767791-00dcc994a43e", "1534528741775-53994a69daeb"];
+  
+  if (gender === "male") {
+    photoPool = MALE_PHOTOS_BY_AGE[bucket] || MALE_PHOTOS_BY_AGE["26-32"] || fallbackPool;
+  } else if (gender === "female") {
+    photoPool = FEMALE_PHOTOS_BY_AGE[bucket] || FEMALE_PHOTOS_BY_AGE["26-32"] || fallbackPool;
+  } else {
+    // "other" or unknown - pick from combined pool
+    const malePool = MALE_PHOTOS_BY_AGE[bucket] || MALE_PHOTOS_BY_AGE["26-32"] || [];
+    const femalePool = FEMALE_PHOTOS_BY_AGE[bucket] || FEMALE_PHOTOS_BY_AGE["26-32"] || [];
+    photoPool = [...malePool, ...femalePool];
+  }
+  
+  // Ensure we always have at least one photo
+  if (photoPool.length === 0) {
+    photoPool = fallbackPool;
+  }
+  
+  const photoId = photoPool[profileId % photoPool.length];
+  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=400&h=600&q=80&v=${profileId}&t=${Date.now()}`;
 }
 
 function generateCharacterSpec(context: {
@@ -248,8 +302,32 @@ function generateCharacterSpec(context: {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/profiles", async (req, res) => {
     const userId = 1;
+    
+    // Parse and validate filter params
+    const rawGender = (req.query.gender as string) || "all";
+    const genderPref = ["male", "female", "all"].includes(rawGender) ? rawGender : "all";
+    const rawMinAge = parseInt(req.query.minAge as string) || 21;
+    const rawMaxAge = parseInt(req.query.maxAge as string) || 50;
+    // Clamp ages to valid range
+    const minAge = Math.max(21, Math.min(50, rawMinAge));
+    const maxAge = Math.max(21, Math.min(50, rawMaxAge));
+    
+    console.log(`[Profiles] Filters: gender=${genderPref}, age=${minAge}-${maxAge}`);
 
     let unseen = await storage.getUnseenProfiles(userId);
+    console.log(`[Profiles] Total unseen: ${unseen.length}`);
+
+    // Apply gender filter
+    if (genderPref !== "all") {
+      const beforeCount = unseen.length;
+      unseen = unseen.filter(p => p.gender === genderPref);
+      console.log(`[Profiles] After gender filter (${genderPref}): ${beforeCount} -> ${unseen.length}`);
+    }
+    
+    // Apply age filter
+    const beforeAgeCount = unseen.length;
+    unseen = unseen.filter(p => p.age >= minAge && p.age <= maxAge);
+    console.log(`[Profiles] After age filter (${minAge}-${maxAge}): ${beforeAgeCount} -> ${unseen.length}`);
 
     const TARGET_BUFFER = 25;
     const MAX_NEW_PER_REQUEST = 12;
@@ -275,13 +353,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Foodie", interests: ["hole-in-the-wall spots", "tasting menus", "food photography"] },
       ];
 
-      const firstNames = [
-        "Alex","Jordan","Taylor","Morgan","Casey","Riley","Quinn","Skyler","Peyton","Avery",
-        "Dakota","Reese","Hayden","Emerson","Parker","Charlie","Blake","Sawyer","Rowan","Finley",
-        "Jamie","Sam","Cameron","Drew","Kai","Logan","Milan","Noah","Remy","Sasha",
-        "Leah","Maya","Nina","Zoe","Iris","Lena","Aria","Jules","Tessa","Mina",
-        "Evan","Owen","Miles","Eli","Theo","Max","Jonah","Isaac","Leo","Caleb",
+      const maleFirstNames = [
+        "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
+        "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+        "Jamie", "Sam", "Cameron", "Drew", "Kai", "Logan", "Noah", "Remy",
+        "Evan", "Owen", "Miles", "Eli", "Theo", "Max", "Jonah", "Isaac", "Leo", "Caleb",
+        "Marcus", "Derek", "Jason", "Tyler", "Ryan", "Kevin", "Brandon", "Justin"
       ];
+      
+      const femaleFirstNames = [
+        "Morgan", "Avery", "Hayden", "Emerson", "Sasha",
+        "Leah", "Maya", "Nina", "Zoe", "Iris", "Lena", "Aria", "Jules", "Tessa", "Mina",
+        "Sophie", "Emma", "Olivia", "Ava", "Isabella", "Mia", "Charlotte", "Amelia",
+        "Harper", "Evelyn", "Luna", "Camila", "Gianna", "Penelope", "Riley", "Layla"
+      ];
+      
       const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
       const quirks = [
         "I make playlists for every mood.",
@@ -299,12 +385,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       const need = Math.min(TARGET_BUFFER - unseen.length, MAX_NEW_PER_REQUEST);
+      console.log(`[Profiles] Generating ${need} new profiles for genderPref=${genderPref}`);
 
       for (let i = 0; i < need; i++) {
         const arch = pick(archetypes);
-        const age = 21 + Math.floor(Math.random() * 25);
-        const gender = Math.random() > 0.5 ? "male" : "female";
+        
+        // Generate age within user's preferred range
+        const age = minAge + Math.floor(Math.random() * (maxAge - minAge + 1));
+        
+        // Determine gender based on user preference
+        let gender: string;
+        if (genderPref === "male") {
+          gender = "male";
+        } else if (genderPref === "female") {
+          gender = "female";
+        } else {
+          gender = Math.random() > 0.5 ? "male" : "female";
+        }
+        
         const quirk = pick(quirks);
+        const firstNames = gender === "male" ? maleFirstNames : femaleFirstNames;
         const name = generateUniqueName(firstNames, lastInitials);
 
         const bio = await generateUniqueBio({
@@ -335,15 +435,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           characterSpec: charSpec,
         });
 
-        const idx = getUnusedImageIndex();
-        storage.usedImageIndices.add(idx);
-
-        await storage.updateProfile(created.id, {
-          imageUrl: portraitUrlByIndex(idx, created.id),
-        });
+        // Use gender and age appropriate photo
+        const imageUrl = getPhotoForGenderAndAge(gender, age, created.id);
+        await storage.updateProfile(created.id, { imageUrl });
       }
 
+      // Re-fetch unseen profiles after generation
       unseen = await storage.getUnseenProfiles(userId);
+      
+      // Re-apply filters
+      if (genderPref !== "all") {
+        unseen = unseen.filter(p => p.gender === genderPref);
+      }
+      unseen = unseen.filter(p => p.age >= minAge && p.age <= maxAge);
+      console.log(`[Profiles] After generation and filtering: ${unseen.length} profiles`);
     }
 
     res.json(shuffle(unseen));
