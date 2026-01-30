@@ -239,8 +239,8 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center min-h-0">
-      <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2">
+    <div className="flex-1 flex flex-col items-center min-h-0 relative">
+      <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-16">
         <AnimatePresence>
           <motion.div
             ref={cardRef}
@@ -268,7 +268,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
             } as React.CSSProperties}
             {...handlers}
           >
-            <div className="relative pointer-events-none">
+            <div className="relative pointer-events-none pb-12">
               <ProfileCard 
                 key={currentProfile.id}
                 profile={currentProfile} 
@@ -276,7 +276,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
               />
               
               {swipeIndicator === "like" && (
-                <div className="absolute inset-0 rounded-2xl flex items-center justify-center">
+                <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
                   <div className="bg-[#00D9A5] text-[#1A1A1A] px-8 py-3 rounded-full text-3xl font-black rotate-[-15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
                     Like!
                   </div>
@@ -284,7 +284,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
               )}
               
               {swipeIndicator === "nope" && (
-                <div className="absolute inset-0 rounded-2xl flex items-center justify-center">
+                <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
                   <div className="bg-[#FF4136] text-white px-8 py-3 rounded-full text-3xl font-black rotate-[15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
                     Nope
                   </div>
@@ -295,22 +295,45 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
         </AnimatePresence>
       </div>
 
-      <div className="flex-shrink-0 flex gap-6 py-3 pb-4">
+      <div 
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-6 z-20 pointer-events-auto"
+        style={{ animation: 'floatBob 4s ease-in-out infinite' }}
+      >
         <button
           onClick={() => handleSwipe("left")}
-          className="p-4 md:p-5 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          className="p-4 md:p-5 bg-white rounded-full eg-outline-thick shadow-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-md transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-sm pointer-events-auto"
+          style={{ 
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2), 4px 4px 0 #1A1A1A',
+            animation: 'floatBob 4.2s ease-in-out infinite',
+          }}
           aria-label="Dislike profile"
         >
           <X className="w-7 h-7 md:w-8 md:h-8 text-[#FF4136]" />
         </button>
         <button
           onClick={() => handleSwipe("right")}
-          className="p-4 md:p-5 bg-[#00D9A5] rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          className="p-4 md:p-5 bg-[#00D9A5] rounded-full eg-outline-thick shadow-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-md transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-sm pointer-events-auto"
+          style={{ 
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2), 4px 4px 0 #1A1A1A',
+            animation: 'floatBob 3.8s ease-in-out infinite',
+            animationDelay: '0.3s',
+          }}
           aria-label="Like profile"
         >
           <Heart className="w-7 h-7 md:w-8 md:h-8 text-[#1A1A1A]" />
         </button>
       </div>
+      
+      <style>{`
+        @keyframes floatBob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .absolute { animation: none !important; }
+          button { animation: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

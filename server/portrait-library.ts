@@ -84,6 +84,8 @@ export const MEN_PORTRAIT_IDS: string[] = [
   "1636377985931-898218afd306",
   "1583195763986-0231686dcd43",
   "1600486913747-55e5470d6f40",
+  "/portraits/burger-guy.jpg",
+  "/portraits/glasses-guy.jpg",
 ];
 
 // Androgynous/non-binary portrait IDs - curated for "other" gender profiles
@@ -193,5 +195,13 @@ export function shuffleArray<T>(arr: T[]): T[] {
 }
 
 export function buildImageUrl(photoId: string, profileId: number): string {
+  if (photoId.startsWith('/')) {
+    return photoId;
+  }
   return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=600&h=900&q=80&v=${profileId}`;
 }
+
+export const LOCAL_MALE_PORTRAITS: string[] = [
+  '/portraits/burger-guy.jpg',
+  '/portraits/glasses-guy.jpg',
+];
