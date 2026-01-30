@@ -5,7 +5,6 @@ import type { Profile } from "@shared/schema";
 import { Heart, X, Sparkles } from "lucide-react";
 import { getSessionPalette } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
-import { useHeartOverheat, HeartOverheatEffect } from "./valentine-easter-eggs";
 
 const SWIPE_THRESHOLD_PX = 80;
 const SWIPE_THRESHOLD_PERCENT = 0.18;
@@ -178,9 +177,6 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
   const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
   const [lastProfileIds, setLastProfileIds] = useState<string>("");
-  
-  // Easter egg: heart overheat
-  const { recordTap: recordHeartTap, isOverheated } = useHeartOverheat();
 
   const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
@@ -349,20 +345,16 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           <X className="w-7 h-7 md:w-8 md:h-8 text-[#FF4136]" />
         </button>
         <button
-          onClick={() => {
-            recordHeartTap();
-            handleSwipe("right");
-          }}
-          className="p-4 md:p-5 bg-[#00D9A5] rounded-full eg-outline-thick shadow-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-md transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-sm pointer-events-auto relative"
+          onClick={() => handleSwipe("right")}
+          className="p-4 md:p-5 bg-[#00D9A5] rounded-full eg-outline-thick shadow-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-md transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-sm pointer-events-auto"
           style={{ 
             boxShadow: '0 8px 24px rgba(0,0,0,0.2), 4px 4px 0 #1A1A1A',
-            animation: isOverheated ? 'none' : 'floatBob 3.8s ease-in-out infinite',
+            animation: 'floatBob 3.8s ease-in-out infinite',
             animationDelay: '0.3s',
           }}
           aria-label="Like profile"
         >
           <Heart className="w-7 h-7 md:w-8 md:h-8 text-[#1A1A1A]" />
-          <HeartOverheatEffect isActive={isOverheated} />
         </button>
       </div>
       
