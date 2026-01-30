@@ -33,14 +33,24 @@ export default function Home() {
     queryKey: ["/api/profiles"],
   });
 
+  const shuffledProfiles = useMemo(() => {
+    if (profiles.length === 0) return [];
+    const arr = [...profiles];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [profiles.length === 0]); // Only reshuffle when the list first loads or when length changes significantly
+
   const filteredProfiles = useMemo(() => {
-    return profiles.filter((p) => {
+    return (shuffledProfiles.length > 0 ? shuffledProfiles : profiles).filter((p) => {
       const ageMatch = p.age >= ageRange[0] && p.age <= ageRange[1];
       const genderMatch =
         genderPref === "all" || p.gender === genderPref;
       return ageMatch && genderMatch;
     });
-  }, [profiles, ageRange, genderPref]);
+  }, [shuffledProfiles, profiles, ageRange, genderPref]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
     if (direction === "right") {
