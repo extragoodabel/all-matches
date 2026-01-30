@@ -170,10 +170,10 @@ export default function Home() {
           </button>
           
           <div className="flex-1 text-center min-w-0">
-            <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap text-lg sm:text-2xl md:text-3xl">
+            <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1 text-base sm:text-xl md:text-2xl"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 text-sm sm:text-2xl md:text-3xl"
                 style={{ 
                   color: palette.background,
                   background: palette.primary,
