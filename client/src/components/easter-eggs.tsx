@@ -19,35 +19,34 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
     setIsAnimating(true);
     setPhase("spinning");
     
-    const sparkColors = [color, secondaryColor, '#FFD700', '#FF6B35', '#FF1493', '#FFFFFF', '#FFF700'];
+    const sparkColors = [color, secondaryColor, '#FFD700', '#FF6B35', '#FF1493', '#FFFFFF', '#FFF700', '#00FFFF', '#FF0080'];
     const newSparks: typeof sparks = [];
     
-    // Electric line sparks that spiral clockwise
-    for (let i = 0; i < 24; i++) {
-      const baseAngle = (i / 24) * 360;
-      // Add clockwise offset based on emission time
-      const clockwiseOffset = (i % 8) * 15;
+    // MAXIMALIST electric line sparks that spiral clockwise
+    for (let i = 0; i < 60; i++) {
+      const baseAngle = (i / 60) * 360;
+      const clockwiseOffset = (i % 12) * 12;
       newSparks.push({
         id: i,
-        angle: baseAngle + clockwiseOffset + Math.random() * 30,
-        velocity: 100 + Math.random() * 150,
+        angle: baseAngle + clockwiseOffset + Math.random() * 40,
+        velocity: 200 + Math.random() * 350,
         color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
         type: 'line',
-        delay: (i % 8) * 0.05,
+        delay: (i % 12) * 0.03,
       });
     }
     
-    // Big glowing circle sparks
-    for (let i = 0; i < 16; i++) {
-      const baseAngle = (i / 16) * 360;
-      const clockwiseOffset = (i % 4) * 20;
+    // Big glowing circle sparks - MORE of them
+    for (let i = 0; i < 40; i++) {
+      const baseAngle = (i / 40) * 360;
+      const clockwiseOffset = (i % 8) * 15;
       newSparks.push({
         id: 100 + i,
-        angle: baseAngle + clockwiseOffset + Math.random() * 25,
-        velocity: 80 + Math.random() * 120,
+        angle: baseAngle + clockwiseOffset + Math.random() * 30,
+        velocity: 150 + Math.random() * 300,
         color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
         type: 'circle',
-        delay: (i % 4) * 0.08,
+        delay: (i % 8) * 0.04,
       });
     }
     
@@ -83,8 +82,8 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
             key={spark.id}
             className="absolute"
             style={{ 
-              width: spark.type === 'line' ? '3px' : '16px',
-              height: spark.type === 'line' ? '20px' : '16px',
+              width: spark.type === 'line' ? '4px' : '24px',
+              height: spark.type === 'line' ? '28px' : '24px',
               borderRadius: spark.type === 'line' ? '2px' : '50%',
               background: spark.type === 'line' 
                 ? `linear-gradient(to bottom, ${spark.color}, transparent)`
@@ -194,17 +193,17 @@ export function HeartKiss({ color, accentColor }: HeartKissProps) {
               💋
             </motion.div>
 
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
               {words.map((word, index) => (
                 <AnimatePresence key={word}>
                   {currentWord >= index && (
                     <motion.span
-                      className="text-5xl md:text-7xl font-black uppercase tracking-tight"
+                      className="text-7xl sm:text-8xl md:text-9xl font-black uppercase tracking-tight"
                       style={{ 
                         fontFamily: "var(--font-display)",
                         color: color,
-                        textShadow: `4px 4px 0 ${accentColor}, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white`,
-                        WebkitTextStroke: `2px ${accentColor}`,
+                        textShadow: `6px 6px 0 ${accentColor}, -3px -3px 0 white, 3px -3px 0 white, -3px 3px 0 white, 8px 8px 20px rgba(0,0,0,0.3)`,
+                        WebkitTextStroke: `3px ${accentColor}`,
                       }}
                       initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0, y: 50, opacity: 0 }}
                       animate={prefersReducedMotion ? { opacity: 1 } : { scale: [0, 1.3, 1], y: 0, opacity: 1 }}
