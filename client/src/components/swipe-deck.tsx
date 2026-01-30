@@ -305,8 +305,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             ];
             const patternIdx = (currentProfile.id + i) % stackPatternStyles.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
-            // Height variation: 0.55 to 0.62 (reduced by 5%)
-            const heightVariation = 0.62 - ((currentProfile.id * i) % 8) * 0.01;
+            // Height variation: shorter cards (10% decrease in height)
+            const heightVariation = 0.72 - ((currentProfile.id * i) % 8) * 0.01;
             const bgSize = patternIdx === 4 ? '24px 24px' : patternIdx === 5 ? '30px 30px' : undefined;
             return (
               <div
