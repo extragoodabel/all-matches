@@ -134,9 +134,9 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
     SUBLIMINAL_WORDS[Math.floor(Math.random() * SUBLIMINAL_WORDS.length)]
   );
   const [subliminalPosition] = useState(() => ({
-    x: 30 + Math.random() * 40,
-    y: 35 + Math.random() * 30,
-    rotate: (Math.random() - 0.5) * 20,
+    x: 40 + Math.random() * 20,
+    y: 40 + Math.random() * 20,
+    rotate: (Math.random() - 0.5) * 16,
   }));
 
   const prefersReducedMotion = useMemo(() => {
@@ -201,8 +201,8 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
             left: `${subliminalPosition.x}%`,
             top: `${subliminalPosition.y}%`,
             transform: `translate(-50%, -50%) rotate(${subliminalPosition.rotate}deg)`,
-            opacity: 0.15,
-            fontSize: "12vw",
+            opacity: 0.25,
+            fontSize: "9vw",
             fontWeight: 900,
             letterSpacing: "0.2em",
             color: "#FF1493",
