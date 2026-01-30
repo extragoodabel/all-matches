@@ -6,7 +6,18 @@ import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
-import { buildImageUrl, MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS, ANDROGYNOUS_PORTRAIT_IDS } from "./portrait-library";
+import { 
+  buildImageUrl, 
+  MEN_PORTRAIT_IDS, 
+  WOMEN_PORTRAIT_IDS, 
+  ANDROGYNOUS_PORTRAIT_IDS,
+  MEN_PORTRAIT_ASSETS,
+  WOMEN_PORTRAIT_ASSETS,
+  ANDROGYNOUS_PORTRAIT_ASSETS,
+  getAssetKey,
+  type PortraitAsset
+} from "./portrait-library";
+import { BURST_MEN, BURST_WOMEN, BURST_OTHER } from "./burst-library";
 
 // ------------------------------------------------------------
 // Helpers
@@ -1065,7 +1076,7 @@ async function generateProfilesInBackground(
             isChaos,
           });
 
-          const imageId = storage.getUniqueImageId(gender as "male" | "female" | "other");
+          const imageAsset = storage.getUniqueImageAsset(gender as "male" | "female" | "other");
 
           // Create profile first so we have the real profile.id for the image URL
           const profile = await storage.createProfile({
@@ -1078,7 +1089,7 @@ async function generateProfilesInBackground(
             characterSpec: charSpec,
           });
 
-          const imageUrl = buildImageUrl(imageId, profile.id);
+          const imageUrl = buildImageUrl(imageAsset, profile.id);
 
           // Prefer an explicit storage update method if it exists
           if (typeof (storage as any).updateProfileImageUrl === "function") {
@@ -1483,6 +1494,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("[Admin] Error saving tags:", error);
       res.status(500).json({ error: "Failed to save tags" });
     }
+  });
+
+  // Admin endpoint to validate Burst image URLs
+  app.get("/api/admin/images/validate", async (req, res) => {
+    const source = req.query.source as string;
+    
+    if (source !== "burst") {
+      return res.status(400).json({ error: "Only 'source=burst' is supported" });
+    }
+    
+    const allBurstUrls = [...BURST_MEN, ...BURST_WOMEN, ...BURST_OTHER];
+    const results: { url: string; status: number | string; gender: string }[] = [];
+    
+    console.log(`[Admin] Validating ${allBurstUrls.length} Burst URLs...`);
+    
+    for (const url of allBurstUrls) {
+      const gender = BURST_MEN.includes(url) ? "male" : 
+                     BURST_WOMEN.includes(url) ? "female" : "other";
+      try {
+        const response = await fetch(url, { method: "HEAD" });
+        results.push({ url, status: response.status, gender });
+        if (response.status !== 200) {
+          console.log(`[Admin] BROKEN: ${url} (${response.status})`);
+        }
+      } catch (error) {
+        results.push({ url, status: "error", gender });
+        console.log(`[Admin] ERROR: ${url} (${error})`);
+      }
+    }
+    
+    const broken = results.filter(r => r.status !== 200);
+    console.log(`[Admin] Validation complete: ${broken.length}/${allBurstUrls.length} broken`);
+    
+    res.json({
+      total: allBurstUrls.length,
+      valid: results.filter(r => r.status === 200).length,
+      broken: broken.length,
+      brokenUrls: broken
+    });
   });
 
   const httpServer = createServer(app);

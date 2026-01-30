@@ -1,0 +1,58 @@
+Goal:
+Add Burst (Shopify) portraits into our existing portrait library as additional profile image sources, tagged by gender, without relying on “searching” Burst at runtime.
+
+Constraints:
+- We already have MEN_PORTRAIT_IDS / WOMEN_PORTRAIT_IDS / ANDROGYNOUS_PORTRAIT_IDS and buildImageUrl().
+- Right now we assume Unsplash IDs. We need to support Burst images too.
+- We want to curate a fixed list of “known good” Burst image URLs (no scraping at runtime).
+
+Task:
+1) Create a new file server/burst-library.ts that exports:
+   - BURST_MEN: string[]
+   - BURST_WOMEN: string[]
+Each array should contain direct image URLs to the “large” or “original” Burst photo assets (not page URLs). You can populate these arrays by manually collecting links from the provided pages.
+
+Pages:
+- Women: https://www.shopify.com/stock-photos/woman
+- Men: https://www.shopify.com/stock-photos/man
+
+Important:
+- Do NOT implement a scraper or crawler in the app runtime.
+- Only store direct image URLs that we can reliably load in <img src="...">.
+- Add 40–80 good images per gender to start (more is fine).
+
+2) Update server/portrait-library.ts (or wherever our current library is) to support multiple sources.
+Add a unified type like:
+
+type PortraitAsset = {
+  source: "unsplash" | "burst";
+  id?: string;        // for unsplash
+  url?: string;       // for burst
+};
+
+Then update our existing MEN/WOMEN/ANDROGYNOUS lists to be PortraitAsset[] instead of string[].
+- Convert current Unsplash IDs into { source:"unsplash", id:"..." } objects.
+- Convert Burst entries into { source:"burst", url:"https://..." } objects.
+
+3) Update buildImageUrl() so it accepts a PortraitAsset and returns the correct final URL:
+- If source==="unsplash": keep existing behavior (using id + any resizing params we already use).
+- If source==="burst": return the asset.url as-is (or optionally append query params if supported, but only if safe).
+
+4) Update any code that calls storage.getUniqueImageId(...) so it returns PortraitAsset (not string).
+- Ensure we still prevent duplicates (maintain a Set keyed by source + id/url).
+- Ensure "broken" tagging still works: broken images should be removable from the arrays regardless of source.
+
+5) Add a quick admin helper endpoint to validate Burst URLs:
+- GET /api/admin/images/validate?source=burst
+- It should iterate through BURST_MEN/BURST_WOMEN URLs, fetch HEAD (or GET with small range) and log which ones return non-200.
+- Do not run on every request; this is manual admin use only.
+
+Deliverable:
+Provide the full updated code for:
+- server/burst-library.ts (new)
+- server/portrait-library.ts (modified)
+- any buildImageUrl changes
+- any storage changes needed for getUniqueImageId to support PortraitAsset
+- any admin endpoint changes
+
+Also include a short note on where in Burst pages to copy “direct image URLs” (we may need to open an image and copy the image address).
