@@ -370,7 +370,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const matchId = parseInt(req.params.matchId);
       if (isNaN(matchId)) return res.status(400).json({ error: "Invalid match ID" });
 
-      const messages = await storage.getMessages(matchId);
+      // Try to get messages by matchId first
+      let messages = await storage.getMessages(matchId);
+      
+      // Fallback: if no messages and matchId might be a profileId
+      if (messages.length === 0) {
+        const matches = await storage.getMatches(1);
+        const match = matches.find((m) => m.profileId === matchId);
+        if (match) {
+          messages = await storage.getMessages(match.id);
+        }
+      }
+      
       res.json(messages);
     } catch {
       res.status(500).json({ error: "Failed to fetch messages" });
