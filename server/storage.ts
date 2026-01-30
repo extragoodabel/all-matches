@@ -20,12 +20,20 @@ export class MemStorage implements IStorage {
   private matches: Map<number, Match>;
   private messages: Map<number, Message>;
   private currentId: { [key: string]: number };
+  
+  // Track used names, image indices, and bio hashes to prevent duplicates
+  public usedNames: Set<string>;
+  public usedImageIndices: Set<number>;
+  public usedBioHashes: Set<string>;
 
   constructor() {
     this.users = new Map();
     this.profiles = new Map();
     this.matches = new Map();
     this.messages = new Map();
+    this.usedNames = new Set();
+    this.usedImageIndices = new Set();
+    this.usedBioHashes = new Set();
     this.currentId = {
       users: 1,
       profiles: mockProfiles.length + 1, // Start after mock profiles
@@ -34,12 +42,26 @@ export class MemStorage implements IStorage {
     };
 
     // Initialize with mock profiles
-    mockProfiles.forEach(profile => {
+    mockProfiles.forEach((profile, idx) => {
       this.profiles.set(profile.id, {
         ...profile,
         characterSpec: null
       });
+      // Track mock profile names and bios as used
+      this.usedNames.add(profile.name.toLowerCase());
+      this.usedBioHashes.add(this.hashBio(profile.bio));
+      this.usedImageIndices.add(idx);
     });
+  }
+
+  hashBio(bio: string): string {
+    let hash = 0;
+    for (let i = 0; i < bio.length; i++) {
+      const char = bio.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
   }
 
   async getUser(id: number): Promise<User | undefined> {

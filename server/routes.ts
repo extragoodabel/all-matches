@@ -9,6 +9,12 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function pickUnused<T>(arr: T[], usedSet: Set<T>): T | null {
+  const available = arr.filter(item => !usedSet.has(item));
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
 // Curated list of real, working Unsplash portrait photo IDs
 const PORTRAIT_IDS = [
   // Female portraits
@@ -45,9 +51,83 @@ const PORTRAIT_IDS = [
   "1537511446984-935f663eb1f4"
 ];
 
-function getPortraitUrl(seed: number): string {
-  const id = PORTRAIT_IDS[seed % PORTRAIT_IDS.length];
+function getPortraitUrl(index: number): string {
+  const id = PORTRAIT_IDS[index % PORTRAIT_IDS.length];
   return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&h=600&q=80`;
+}
+
+function getUnusedImageIndex(usedIndices: Set<number>): number {
+  for (let i = 0; i < PORTRAIT_IDS.length; i++) {
+    if (!usedIndices.has(i)) return i;
+  }
+  // All used, cycle with offset
+  return usedIndices.size % PORTRAIT_IDS.length;
+}
+
+function generateUniqueName(
+  firstNames: string[],
+  usedNames: Set<string>,
+  lastInitials: string[]
+): string {
+  // Shuffle first names for variety
+  const shuffled = [...firstNames].sort(() => Math.random() - 0.5);
+  
+  // Try plain first name first
+  for (const name of shuffled) {
+    if (!usedNames.has(name.toLowerCase())) {
+      return name;
+    }
+  }
+  // Try first name + last initial (shuffled)
+  const shuffledInitials = [...lastInitials].sort(() => Math.random() - 0.5);
+  for (const first of shuffled) {
+    for (const initial of shuffledInitials) {
+      const combo = `${first} ${initial}.`;
+      if (!usedNames.has(combo.toLowerCase())) {
+        return combo;
+      }
+    }
+  }
+  // Fallback: add random number suffix
+  const base = shuffled[0];
+  const suffix = Math.floor(Math.random() * 99) + 1;
+  return `${base}${suffix}`;
+}
+
+function hashBio(bio: string): string {
+  let hash = 0;
+  for (let i = 0; i < bio.length; i++) {
+    const char = bio.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+function generateUniqueBio(
+  archetypes: { label: string; interests: string[] }[],
+  quirks: string[],
+  usedBioHashes: Set<string>,
+  maxRetries: number = 10
+): { bio: string; arch: { label: string; interests: string[] } } {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const arch = pick(archetypes);
+    const quirk = pick(quirks);
+    const bio = `I'm a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}.`;
+    const bioHash = hashBio(bio);
+    
+    if (!usedBioHashes.has(bioHash)) {
+      usedBioHashes.add(bioHash);
+      return { bio, arch };
+    }
+  }
+  // Fallback: make it unique with a random element
+  const arch = pick(archetypes);
+  const quirk = pick(quirks);
+  const unique = Math.random().toString(36).substring(2, 6);
+  const bio = `I'm a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}. (${unique})`;
+  usedBioHashes.add(hashBio(bio));
+  return { bio, arch };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -84,11 +164,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Foodie Blogger", interests: ["hole-in-the-wall spots", "food photography", "tasting menus"] }
       ];
 
-      const names = [
+      const firstNames = [
         "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler",
         "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker",
-        "Charlie", "Blake", "Sawyer", "Rowan", "Finley"
+        "Charlie", "Blake", "Sawyer", "Rowan", "Finley", "Jamie", "Drew", "Sam",
+        "Kai", "Robin", "Jesse", "Devon", "Cameron", "Logan", "Sage"
       ];
+
+      const lastInitials = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T", "V", "W", "Z"];
 
       const quirks = [
         "I'm weirdly good at naming pets.",
@@ -98,25 +181,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "I've never seen Star Wars. Don't hurt me.",
         "I sleep with a fan on even in winter.",
         "I'm a semi-pro at GeoGuessr.",
-        "I only drink coffee from blue mugs. No exceptions."
+        "I only drink coffee from blue mugs. No exceptions.",
+        "I have opinions about font kerning.",
+        "I've memorized way too many movie quotes.",
+        "I make playlists for every mood.",
+        "I name all my houseplants."
       ];
 
       for (let i = 0; i < 30; i++) {
-        const arch = pick(archetypes);
-        const name = pick(names);
+        // Generate unique name
+        const name = generateUniqueName(firstNames, storage.usedNames, lastInitials);
+        storage.usedNames.add(name.toLowerCase());
+        
+        // Generate unique bio
+        const { bio } = generateUniqueBio(archetypes, quirks, storage.usedBioHashes);
+        
         const age = 21 + Math.floor(Math.random() * 25);
         const gender = Math.random() > 0.5 ? "male" : "female";
-        const quirk = pick(quirks);
-        const seed = Date.now() + i + Math.floor(Math.random() * 10000);
-
-        const bio = `I'm a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}.`;
+        
+        // Get unique image index
+        const imageIndex = getUnusedImageIndex(storage.usedImageIndices);
+        storage.usedImageIndices.add(imageIndex);
 
         await storage.createProfile({
           name,
           age,
           bio,
           gender,
-          imageUrl: getPortraitUrl(seed),
+          imageUrl: getPortraitUrl(imageIndex),
           isAI: true,
           characterSpec: null
         });
