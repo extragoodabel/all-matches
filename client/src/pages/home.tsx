@@ -5,7 +5,7 @@ import { MatchNotification } from "@/components/match-notification";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
-import { Heart, Settings2, MessageCircle } from "lucide-react";
+import { Heart, Settings2, MessageCircle, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,24 +24,38 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { usePreferences } from "@/hooks/use-preferences";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [currentMatch, setCurrentMatch] = useState<{ profile: Profile; matchId: number } | null>(null);
   
-  // Saved preferences (persisted state)
-  const [ageRange, setAgeRange] = useState<[number, number]>([21, 50]);
-  const [genderPref, setGenderPref] = useState("all");
+  const { preferences, setPreferences, resetPreferences, DEFAULT_PREFERENCES } = usePreferences();
   
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Draft state for modal (only persisted on Save)
-  const [draftAgeRange, setDraftAgeRange] = useState<[number, number]>([21, 50]);
-  const [draftGenderPref, setDraftGenderPref] = useState("all");
+  const [draftAgeRange, setDraftAgeRange] = useState<[number, number]>([
+    preferences.minAge,
+    preferences.maxAge,
+  ]);
+  const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "all">(
+    preferences.genderPreference
+  );
 
   const { data: profiles = [], refetch } = useQuery<Profile[]>({
-    queryKey: [`/api/profiles?gender=${genderPref}&minAge=${ageRange[0]}&maxAge=${ageRange[1]}`],
+    queryKey: [
+      "/api/profiles",
+      preferences.genderPreference,
+      preferences.minAge,
+      preferences.maxAge,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/profiles?gender=${preferences.genderPreference}&minAge=${preferences.minAge}&maxAge=${preferences.maxAge}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch profiles");
+      return res.json();
+    },
   });
 
   const shuffledProfiles = useMemo(() => {
@@ -56,12 +70,12 @@ export default function Home() {
 
   const filteredProfiles = useMemo(() => {
     return (shuffledProfiles.length > 0 ? shuffledProfiles : profiles).filter((p) => {
-      const ageMatch = p.age >= ageRange[0] && p.age <= ageRange[1];
+      const ageMatch = p.age >= preferences.minAge && p.age <= preferences.maxAge;
       const genderMatch =
-        genderPref === "all" || p.gender === genderPref;
+        preferences.genderPreference === "all" || p.gender === preferences.genderPreference;
       return ageMatch && genderMatch;
     });
-  }, [shuffledProfiles, profiles, ageRange, genderPref]);
+  }, [shuffledProfiles, profiles, preferences]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
     if (direction === "right") {
@@ -82,27 +96,31 @@ export default function Home() {
     }
   };
 
-  // Modal handlers
   const openModal = () => {
-    // Initialize draft from saved state
-    setDraftAgeRange([...ageRange] as [number, number]);
-    setDraftGenderPref(genderPref);
+    setDraftAgeRange([preferences.minAge, preferences.maxAge]);
+    setDraftGenderPref(preferences.genderPreference);
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
-    // Persist draft to saved state
-    setAgeRange(draftAgeRange);
-    setGenderPref(draftGenderPref);
+    setPreferences({
+      minAge: draftAgeRange[0],
+      maxAge: draftAgeRange[1],
+      genderPreference: draftGenderPref,
+    });
     setIsModalOpen(false);
   };
 
   const handleCancel = () => {
-    // Discard draft changes
     setIsModalOpen(false);
   };
 
-  // Validation
+  const handleReset = () => {
+    setDraftAgeRange([DEFAULT_PREFERENCES.minAge, DEFAULT_PREFERENCES.maxAge]);
+    setDraftGenderPref(DEFAULT_PREFERENCES.genderPreference);
+    resetPreferences();
+  };
+
   const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 50 && draftAgeRange[0] <= draftAgeRange[1];
 
   return (
@@ -151,7 +169,7 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               <Label>Show me</Label>
-              <Select value={draftGenderPref} onValueChange={setDraftGenderPref}>
+              <Select value={draftGenderPref} onValueChange={(v) => setDraftGenderPref(v as "male" | "female" | "all")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -164,6 +182,10 @@ export default function Home() {
             </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={handleReset} className="mr-auto">
+              <RotateCcw className="w-4 h-4 mr-1" />
+              Reset
+            </Button>
             <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
@@ -174,7 +196,11 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <SwipeDeck key={`${ageRange.join("-")}-${genderPref}`} profiles={filteredProfiles} onSwipe={handleSwipe} />
+      <SwipeDeck 
+        key={`${preferences.minAge}-${preferences.maxAge}-${preferences.genderPreference}`} 
+        profiles={filteredProfiles} 
+        onSwipe={handleSwipe} 
+      />
       
       {currentMatch && (
         <MatchNotification
