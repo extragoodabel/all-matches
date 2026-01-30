@@ -1,0 +1,41 @@
+Upgrade bio generation to use OpenAI for originality, with caching and fallback, while keeping costs and latency under control.
+
+Current issue:
+Bios are formulaic templates. We want human variety and originality at scale.
+
+Constraints:
+- No schema changes required (but ok to store generated bio in existing Profile.bio field)
+- Use existing OPENAI_API_KEY already configured
+- Do NOT call OpenAI on every refresh or every swipe
+- Only call OpenAI when generating NEW profiles (buffer refill)
+- Must remain fictional, 21+, not based on real people or celebrities
+- Must not reuse the same bio across profiles
+
+Implementation:
+1) Add a function generateBioWithOpenAI(profileContext) in server/routes.ts (or a helper file) that:
+   - Takes: name, age (21+), gender, archetype label, interests, texting style hint, quirk, and an optional “goal/angle”
+   - Returns: 1 bio string, 1–5 lines max, varied formats (one-liner, list, prompt answers, hot takes, low effort, etc.)
+   - Randomly chooses one of several bio “modes” (at least 12 modes) with weighted probabilities.
+2) Uniqueness:
+   - Maintain an in-memory Set of usedBioHashes in MemStorage runtime
+   - Hash each generated bio; if collision occurs, regenerate up to 5 times
+3) Caching:
+   - Once a bio is generated for a profile, store it in Profile.bio and never regenerate unless missing.
+4) Guardrails to prevent formula:
+   - Explicitly forbid repeated template phrases like “I’m a…” “Usually found…” “Secret talent:”
+   - Limit emoji use (0–3)
+   - Include 2–4 specific details from archetype, but do not label them
+   - Mix effort levels: some sparse, some detailed, some weird, some sincere
+5) API usage:
+   - Use model gpt-4o-mini (or equivalent) for cost efficiency
+   - Use low temperature for coherence but enough creativity (0.9 is fine)
+   - Response must be only the bio text, no quotes, no headings
+6) Fallback:
+   - If OpenAI fails, use the existing local pattern library.
+7) Deliverable:
+   - Update profile generation loop so each newly created profile gets:
+     - OpenAI-generated bio (or fallback)
+     - OpenAI-generated portrait (already implemented)
+   - Log 15 example bios to prove variety.
+
+Also: do NOT request Autonomous mode. This is a normal implementation task.

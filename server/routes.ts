@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import OpenAI from "openai";
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -104,30 +105,129 @@ function hashBio(bio: string): string {
   return hash.toString(36);
 }
 
-function generateUniqueBio(
+// Bio generation modes with weighted probabilities
+const BIO_MODES = [
+  { mode: "one_liner", weight: 15, desc: "Single punchy sentence, confident or mysterious" },
+  { mode: "hot_takes", weight: 12, desc: "2-3 controversial opinions or hot takes" },
+  { mode: "list_of_things", weight: 10, desc: "Bullet-style list of 3-4 things about them" },
+  { mode: "prompt_answers", weight: 10, desc: "Answer dating app prompts like 'My ideal Sunday:'" },
+  { mode: "low_effort", weight: 8, desc: "Minimal effort bio, 3-5 words max, mysterious or lazy" },
+  { mode: "self_aware", weight: 10, desc: "Meta/self-deprecating about being on a dating app" },
+  { mode: "sincere", weight: 12, desc: "Genuine and heartfelt, looking for connection" },
+  { mode: "weird_flex", weight: 8, desc: "Humble brag or weird accomplishment" },
+  { mode: "question", weight: 8, desc: "Ends with a question to spark conversation" },
+  { mode: "anti_bio", weight: 5, desc: "Refuses to write a normal bio, defiant" },
+  { mode: "specific_scenario", weight: 7, desc: "Describes a very specific date scenario" },
+  { mode: "red_flags_joke", weight: 5, desc: "Jokes about their own red flags" }
+];
+
+function pickWeightedMode(): string {
+  const total = BIO_MODES.reduce((sum, m) => sum + m.weight, 0);
+  let r = Math.random() * total;
+  for (const m of BIO_MODES) {
+    r -= m.weight;
+    if (r <= 0) return m.mode;
+  }
+  return BIO_MODES[0].mode;
+}
+
+async function generateBioWithOpenAI(context: {
+  name: string;
+  age: number;
+  gender: string;
+  archetypeLabel: string;
+  interests: string[];
+  quirk: string;
+}): Promise<string | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+
+  const mode = pickWeightedMode();
+  const modeInfo = BIO_MODES.find(m => m.mode === mode) || BIO_MODES[0];
+
+  const prompt = `Write a dating app bio for a fictional person (NOT a real person, NOT a celebrity).
+
+Character:
+- Name: ${context.name}, Age: ${context.age}, Gender: ${context.gender}
+- Vibe: ${context.archetypeLabel}
+- Into: ${context.interests.join(", ")}
+- Quirk: ${context.quirk}
+
+Bio style: ${modeInfo.mode.replace(/_/g, " ")} - ${modeInfo.desc}
+
+RULES:
+- 1-5 lines max
+- Do NOT start with "I'm a..." or "Usually found..." or "Secret talent:"
+- Do NOT use labels like "Interests:" or "About me:"
+- Use 0-3 emojis max (or none)
+- Include 2-4 specific details from their interests/vibe but weave them in naturally
+- Match the effort level of the bio style
+- Output ONLY the bio text, no quotes, no explanation`;
+
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 150,
+      temperature: 0.9
+    });
+    return response.choices?.[0]?.message?.content?.trim() || null;
+  } catch (error) {
+    console.error("OpenAI bio generation failed:", error);
+    return null;
+  }
+}
+
+function generateFallbackBio(
+  arch: { label: string; interests: string[] },
+  quirk: string
+): string {
+  const templates = [
+    `${arch.interests[0]} enthusiast. ${quirk}`,
+    `Looking for someone who gets ${arch.interests[1]}. ${quirk}`,
+    `${quirk} Also really into ${arch.interests[0]}.`,
+    `Will talk your ear off about ${arch.interests[2]}.`,
+    `${arch.interests[0]} + ${arch.interests[1]} + coffee`,
+    `Here for a good time and ${arch.interests[1]}.`,
+    `Probably thinking about ${arch.interests[0]} right now.`
+  ];
+  return pick(templates);
+}
+
+async function generateUniqueBioWithAI(
   archetypes: { label: string; interests: string[] }[],
   quirks: string[],
   usedBioHashes: Set<string>,
-  maxRetries: number = 10
-): { bio: string; arch: { label: string; interests: string[] } } {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const arch = pick(archetypes);
-    const quirk = pick(quirks);
-    const bio = `I'm a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}.`;
-    const bioHash = hashBio(bio);
-    
-    if (!usedBioHashes.has(bioHash)) {
-      usedBioHashes.add(bioHash);
-      return { bio, arch };
-    }
-  }
-  // Fallback: make it unique with a random element
+  context: { name: string; age: number; gender: string }
+): Promise<{ bio: string; arch: { label: string; interests: string[] } }> {
   const arch = pick(archetypes);
   const quirk = pick(quirks);
-  const unique = Math.random().toString(36).substring(2, 6);
-  const bio = `I'm a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}. (${unique})`;
-  usedBioHashes.add(hashBio(bio));
-  return { bio, arch };
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const aiBio = await generateBioWithOpenAI({
+      name: context.name,
+      age: context.age,
+      gender: context.gender,
+      archetypeLabel: arch.label,
+      interests: arch.interests,
+      quirk
+    });
+
+    if (aiBio) {
+      const bioHash = hashBio(aiBio);
+      if (!usedBioHashes.has(bioHash)) {
+        usedBioHashes.add(bioHash);
+        console.log(`[Bio Generated] ${context.name}: ${aiBio}`);
+        return { bio: aiBio, arch };
+      }
+    }
+  }
+
+  // Fallback to local template
+  const fallback = generateFallbackBio(arch, quirk);
+  usedBioHashes.add(hashBio(fallback));
+  console.log(`[Bio Fallback] ${context.name}: ${fallback}`);
+  return { bio: fallback, arch };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -193,11 +293,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const name = generateUniqueName(firstNames, storage.usedNames, lastInitials);
         storage.usedNames.add(name.toLowerCase());
         
-        // Generate unique bio
-        const { bio } = generateUniqueBio(archetypes, quirks, storage.usedBioHashes);
-        
         const age = 21 + Math.floor(Math.random() * 25);
         const gender = Math.random() > 0.5 ? "male" : "female";
+        
+        // Generate unique bio with OpenAI (or fallback)
+        const { bio } = await generateUniqueBioWithAI(
+          archetypes, 
+          quirks, 
+          storage.usedBioHashes,
+          { name, age, gender }
+        );
         
         // Get unique image index
         const imageIndex = getUnusedImageIndex(storage.usedImageIndices);
