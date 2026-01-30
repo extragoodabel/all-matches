@@ -290,11 +290,7 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
 
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (pos.y > 70) {
-        setOpacity((o) => Math.max(0, o - dt * 0.35));
-      }
-
-      if (opacity <= 0 || pos.y > 140) {
+      if (pos.y > 115) {
         return;
       }
 
@@ -303,9 +299,9 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [started, vel, pos.y, particle.rotationSpeed, opacity]);
+  }, [started, vel, pos.y, particle.rotationSpeed]);
 
-  if ((pos.y > 140 || opacity <= 0) && started) return null;
+  if (pos.y > 115 && started) return null;
 
   return (
     <div
@@ -354,11 +350,7 @@ function ConfettiElement({ particle }: { particle: ConfettiParticle }) {
       setY((prevY) => prevY + particle.fallSpeed * dt * 35);
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (y > 75) {
-        setOpacity((o) => Math.max(0, o - dt * 0.4));
-      }
-
-      if (opacity <= 0 || y > 130) {
+      if (y > 115) {
         return;
       }
 
@@ -367,9 +359,9 @@ function ConfettiElement({ particle }: { particle: ConfettiParticle }) {
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [started, y, particle.fallSpeed, particle.rotationSpeed, opacity]);
+  }, [started, y, particle.fallSpeed, particle.rotationSpeed]);
 
-  if ((y > 130 || opacity <= 0) && started) return null;
+  if (y > 115 && started) return null;
 
   const swayX = particle.startX + Math.sin(time * particle.swayFrequency * 2) * particle.swayAmplitude * 0.3;
 
