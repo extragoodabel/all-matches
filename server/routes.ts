@@ -678,6 +678,23 @@ async function generateBioWithOpenAI(context: {
     "Reluctant first-timer energy: skeptical about apps but here anyway.",
     "Recently single, ready to mingle tone.",
     "Here for a good time, not a long time energy.",
+    "Humble brag disguised as self-deprecation.",
+    "Series of increasingly specific preferences.",
+    "Backhanded compliment to yourself.",
+    "Very specific hypothetical scenario.",
+    "Unpopular opinion stated as fact.",
+    "A review of yourself (3.5 stars, etc.).",
+    "Resume bullet point energy, but for dating.",
+    "Fake testimonial from a friend or ex.",
+    "Red flag presented as a green flag.",
+    "Overly honest disclaimer.",
+    "Very specific 'looking for' that's actually about you.",
+    "Weird flex, fully owned.",
+    "Domestic fantasy (specific date scenario).",
+    "Anti-bio energy: refusing to sell yourself.",
+    "One word repeated with variations.",
+    "Song lyric energy (but not actual lyrics).",
+    "Text-to-friend style, casual and half-finished.",
   ];
   const structureHint = pick(structures);
 
@@ -696,12 +713,20 @@ ${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
 FORMAT: ${targetLines} line(s) max. 0-2 emojis. No em dashes.
 
-AVOID OVERUSING:
-- Labels like "enthusiast", "aficionado", "connoisseur"
-- Generic openers: "I'm a", "Usually found", "Secret talent"
-- Crutch topics like coffee unless it's genuinely their thing
+AVOID THESE OVERUSED TOPICS (pick something else):
+- Pizza opinions (ranch, pineapple, etc.)
+- Sunsets, golden hour, nature walks
+- Karaoke, dance parties, playlists
+- Coffee (unless central to their job)
+- "Adventure", "vibes", "energy"
+- Hiking unless it's their actual thing
 
-Write like a real person texting a friend, not filling out a form.
+AVOID THESE PHRASES:
+- Labels: "enthusiast", "aficionado", "connoisseur"
+- Openers: "I'm a", "Usually found", "Secret talent"
+- "Looking for my", "Here for", "Just a"
+
+BE SPECIFIC AND SURPRISING. Pick unexpected details. Write like a real person.
 Output ONLY the bio text.`;
 
   try {

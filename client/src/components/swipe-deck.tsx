@@ -205,23 +205,12 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
 
   const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
-  // Reset seen profiles when we get a fresh batch from the server
+  // Track profile IDs for stability - don't reset seen profiles when new ones arrive
   useEffect(() => {
     const currentIds = profiles.map(p => p.id).sort().join(',');
     if (currentIds !== lastProfileIds && profiles.length > 0) {
-      // New profiles arrived - only keep seen IDs that are still in the new batch
-      setSeenProfileIds(prev => {
-        const profileIdSet = new Set(profiles.map(p => p.id));
-        const newSet = new Set<number>();
-        prev.forEach(id => {
-          if (profileIdSet.has(id)) {
-            newSet.add(id);
-          }
-        });
-        return newSet;
-      });
       setLastProfileIds(currentIds);
-      setCurrentIndex(0);
+      // Don't reset seen profiles or currentIndex - just update the lastProfileIds tracker
     }
   }, [profiles, lastProfileIds]);
   
