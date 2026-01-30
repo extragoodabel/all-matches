@@ -50,11 +50,21 @@ export default function Home() {
       preferences.maxAge,
     ],
     queryFn: async () => {
+      const startTime = Date.now();
       const res = await fetch(
         `/api/profiles?gender=${preferences.genderPreference}&minAge=${preferences.minAge}&maxAge=${preferences.maxAge}`
       );
       if (!res.ok) throw new Error("Failed to fetch profiles");
-      return res.json();
+      const data = await res.json();
+      
+      // Ensure spinner shows for at least 3 seconds so users can read it
+      const elapsed = Date.now() - startTime;
+      const minDisplayTime = 3000;
+      if (elapsed < minDisplayTime) {
+        await new Promise(resolve => setTimeout(resolve, minDisplayTime - elapsed));
+      }
+      
+      return data;
     },
     staleTime: 1000 * 60 * 5,      // Data stays fresh for 5 minutes (no refetch)
     gcTime: 1000 * 60 * 10,        // Keep in cache for 10 minutes
