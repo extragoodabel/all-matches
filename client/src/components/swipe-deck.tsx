@@ -270,6 +270,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
           >
             <div className="relative pointer-events-none">
               <ProfileCard 
+                key={currentProfile.id}
                 profile={currentProfile} 
                 onImageError={() => handleImageError(currentProfile.id)}
               />

@@ -1,0 +1,89 @@
+Fix Glitchy Upward Emoji Burst, Add Smooth Firework Arcs, More Maximalism
+
+The current “emojis shooting up from the bottom” animation feels glitchy because they travel in straight lines too fast and with jerky movement. I want a more readable, premium-feeling animation with smooth trajectories, gravity arcs, and maximalist density.
+
+1) Smooth the Trajectory (No Straight-Line Laser Beams)
+
+Replace the straight line motion with firework-like arcs:
+
+Each emoji launched upward should have:
+
+an initial upward velocity (random range)
+
+a slight horizontal drift (random left or right)
+
+a gravity-like downward acceleration so it rises, slows, then falls
+
+Movement should be continuous and eased, with no snapping or teleporting
+
+Avoid jitter from re-renders: use requestAnimationFrame or an animation library that interpolates positions smoothly (Framer Motion is fine)
+
+2) Make Them Shoot Higher
+
+Right now the burst tops out too low and reads like a quick glitch. Increase the launch height:
+
+Most emojis should peak around 60–90 percent of the viewport height
+
+Some should peak lower, some higher, so it feels organic
+
+Add variance so not everything hits the same ceiling
+
+3) Variable Speeds, Like Real Confetti
+
+The upward emojis currently feel “light” and uniform. Add variation:
+
+Give each emoji:
+
+different mass (affects fall speed)
+
+different rotation speed
+
+different drift strength
+
+Some should float down slowly like confetti
+
+Some should drop faster like heavier paper or little objects
+
+4) Maximalism: Increase Density and Layering
+
+We want this to be a MOMENT. Increase quantity and layering:
+
+Increase total burst count (example target: 80–160 particles total across both top-fall confetti and bottom-launch burst)
+
+Add 2–3 staggered micro-bursts within 400–800ms so it “keeps going” briefly
+
+Allow overlapping streams: top confetti continues while bottom fireworks launch
+
+Keep performance acceptable by using a particle cap and reusing DOM nodes/canvas where possible
+
+5) Readability and Timing (Slow It Down Slightly)
+
+Make it readable by the human eye:
+
+Total effect duration: 1.8–2.8 seconds
+
+Upward launch: 0.6–1.0 seconds
+
+Fall/drift: 1.2–2.0 seconds
+
+No particle should cross the entire screen in under ~0.6s
+
+6) Keep the “Unhinged” Icon Mix, But Controlled
+
+Keep the existing icon pool, including rare weird ones (pills, syringes, etc.), but don’t let rare ones cluster:
+
+Rare icons (syringe etc.) should be max 5–10 percent of particles
+
+Never spawn more than 1–2 syringes visible at the same time
+
+7) Output Requirement
+
+Implement this without changing the match logic. Only update the animation physics and particle generation.
+
+Deliverable:
+
+updated animation logic with smooth arcs + gravity
+
+increased particle count + staggered bursts
+
+variable drift, rotation, and fall speeds
