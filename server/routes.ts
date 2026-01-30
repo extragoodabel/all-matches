@@ -323,29 +323,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           characterSpec: null,
         });
 
-        try {
-          const imgUrl = await generatePortraitAndSave({
-            id: created.id,
-            name,
-            age,
-            gender,
-            archetypeLabel: arch.label,
-            interests: arch.interests,
-            quirk,
-          });
-          await storage.updateProfile(created.id, { imageUrl: imgUrl });
-        } catch (e) {
-          console.error("Portrait generation failed, using fallback:", e);
-          // Fallback: use a unique Unsplash portrait URL with cache buster
-          const fallbackIds = [
-            "1494790108377-be9c29b29330", "1507003211169-0a1dd7228f2d", 
-            "1534528741775-53994a69daeb", "1517841905240-472988babdf9",
-            "1539571696357-5a69c17a67c6", "1524504388940-b1c1722653e1"
-          ];
-          const idx = created.id % fallbackIds.length;
-          const fallbackUrl = `https://images.unsplash.com/photo-${fallbackIds[idx]}?auto=format&fit=crop&w=400&h=600&q=80&v=${created.id}&t=${Date.now()}`;
-          await storage.updateProfile(created.id, { imageUrl: fallbackUrl });
-        }
+        // Use curated Unsplash portraits with unique cache busters for fast loading
+        const portraitIds = [
+          "1494790108377-be9c29b29330", "1507003211169-0a1dd7228f2d", 
+          "1534528741775-53994a69daeb", "1517841905240-472988babdf9",
+          "1539571696357-5a69c17a67c6", "1524504388940-b1c1722653e1",
+          "1488426862502-b0c4a4e4f7e8", "1500648767791-00dcc994a43e",
+          "1506794778202-cad84cf45f1d", "1519345182560-3f2917c472ef",
+          "1531746020798-e6953c6e8e04", "1487412720507-e7ab37603c6f",
+          "1489424731084-a5d8b219a5bb", "1463453091185-61582044d556",
+          "1502767089025-6572583495f9", "1560250097-0b93528c311a",
+          "1544005313-94ddf0286df2", "1542206395-9feb3edaa68d",
+          "1499996860823-5f0436640c7c", "1536896407451-6e3dd976edd1",
+          "1522075469751-3a6694fb2f61", "1504199367641-aba8151af406",
+          "1541823709867-1b206113ecd3", "1529626455594-4ff0802cfb7e",
+          "1508214751196-bcfd4ca60f91", "1542909168-82c3e7fdca5c",
+          "1580489944761-15a19d654956", "1438761681033-6461ffad8d80",
+          "1472099645785-5658abf4ff4e", "1500917293891-ef795e70e1f6"
+        ];
+        const idx = created.id % portraitIds.length;
+        const imgUrl = `https://images.unsplash.com/photo-${portraitIds[idx]}?auto=format&fit=crop&w=400&h=600&q=80&v=${created.id}&t=${Date.now()}`;
+        await storage.updateProfile(created.id, { imageUrl: imgUrl });
       }
 
       unseen = await storage.getUnseenProfiles(userId);
