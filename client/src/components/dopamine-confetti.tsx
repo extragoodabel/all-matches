@@ -201,7 +201,7 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
             left: `${subliminalPosition.x}%`,
             top: `${subliminalPosition.y}%`,
             transform: `translate(-50%, -50%) rotate(${subliminalPosition.rotate}deg)`,
-            opacity: 0.25,
+            opacity: 0.32,
             fontSize: "9vw",
             fontWeight: 900,
             letterSpacing: "0.2em",
