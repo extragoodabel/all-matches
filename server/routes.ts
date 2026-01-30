@@ -5,7 +5,7 @@ import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
-import { buildImageUrl } from "./portrait-library";
+import { buildImageUrl, MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS } from "./portrait-library";
 
 async function validateImageUrl(url: string): Promise<boolean> {
   try {
@@ -769,6 +769,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Message error:", error);
         res.status(500).json({ error: "Failed to create message" });
       }
+    }
+  });
+
+  // ============ ADMIN: IMAGE TAGGING ============
+  app.get("/api/admin/images", async (_req, res) => {
+    try {
+      const allImages: { id: string; gender: "male" | "female" | "other" }[] = [];
+      
+      for (const id of MEN_PORTRAIT_IDS) {
+        allImages.push({ id, gender: "male" });
+      }
+      for (const id of WOMEN_PORTRAIT_IDS) {
+        allImages.push({ id, gender: "female" });
+      }
+      
+      res.json(allImages);
+    } catch (error) {
+      console.error("[Admin] Error fetching images:", error);
+      res.status(500).json({ error: "Failed to fetch images" });
+    }
+  });
+
+  app.post("/api/admin/images/tags", async (req, res) => {
+    try {
+      const { tags } = req.body as { tags: Record<string, "male" | "female" | "other"> };
+      
+      const changes = {
+        toMale: [] as string[],
+        toFemale: [] as string[],
+        toOther: [] as string[],
+      };
+      
+      for (const [id, newGender] of Object.entries(tags)) {
+        if (newGender === "male") changes.toMale.push(id);
+        else if (newGender === "female") changes.toFemale.push(id);
+        else changes.toOther.push(id);
+      }
+      
+      console.log("[Admin] Image tag changes:", {
+        toMale: changes.toMale.length,
+        toFemale: changes.toFemale.length,
+        toOther: changes.toOther.length,
+      });
+      
+      console.log("\n=== COPY THESE CHANGES TO portrait-library.ts ===");
+      if (changes.toMale.length > 0) {
+        console.log("\nMove to MEN_PORTRAIT_IDS:");
+        changes.toMale.forEach(id => console.log(`  "${id}",`));
+      }
+      if (changes.toFemale.length > 0) {
+        console.log("\nMove to WOMEN_PORTRAIT_IDS:");
+        changes.toFemale.forEach(id => console.log(`  "${id}",`));
+      }
+      if (changes.toOther.length > 0) {
+        console.log("\nRemove from both arrays (other/ambiguous):");
+        changes.toOther.forEach(id => console.log(`  "${id}",`));
+      }
+      console.log("\n=== END CHANGES ===\n");
+      
+      res.json({ 
+        success: true, 
+        message: "Changes logged to console. Update portrait-library.ts manually.",
+        changes 
+      });
+    } catch (error) {
+      console.error("[Admin] Error saving tags:", error);
+      res.status(500).json({ error: "Failed to save tags" });
     }
   });
 

@@ -6,6 +6,7 @@ import Home from "@/pages/home";
 import Chat from "@/pages/chat";
 import Inbox from "@/pages/inbox";
 import DesignPreview from "@/pages/design";
+import TagImages from "@/pages/tag-images";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/inbox" component={Inbox} />
       <Route path="/chat/:id" component={Chat} />
       <Route path="/design" component={DesignPreview} />
+      <Route path="/tag-images" component={TagImages} />
       <Route component={NotFound} />
     </Switch>
   );
