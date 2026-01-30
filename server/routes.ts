@@ -5,6 +5,22 @@ import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
+import { buildImageUrl } from "./portrait-library";
+
+async function validateImageUrl(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      signal: controller.signal 
+    });
+    clearTimeout(timeout);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -336,9 +352,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quirk,
         });
 
-        // Get unique image URL from pool
-        const imageUrl = storage.getUniqueImageUrl(gender as 'male' | 'female');
-        console.log(`[Profile] Created profile ${name} (${gender}, ${age}): image=${imageUrl}`);
+        // Get unique image with validation - try up to 5 times for a working image
+        const nextProfileId = storage['currentId'].profiles;
+        let imageUrl = '';
+        let imageId = '';
+        for (let imgAttempt = 0; imgAttempt < 5; imgAttempt++) {
+          imageId = storage.getUniqueImageId(gender as 'male' | 'female');
+          imageUrl = buildImageUrl(imageId, nextProfileId);
+          const isValid = await validateImageUrl(imageUrl);
+          if (isValid) {
+            console.log(`[Image] Validated ${gender} image: ${imageId}`);
+            break;
+          }
+          console.log(`[Image] Invalid ${gender} image (attempt ${imgAttempt + 1}): ${imageId}`);
+        }
+        console.log(`[Profile] Created profile ${name} (${gender}, ${age}): image=${imageId}`);
 
         await storage.createProfile({
           name,

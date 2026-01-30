@@ -1,0 +1,35 @@
+We are reverting to Unsplash portraits for speed. Do NOT generate images with OpenAI. Do NOT use randomuser.me.
+
+Goal: Build a large pool of high-quality, reliable portrait images (at least 1000 “men-presenting” and 1000 “women-presenting”) and ensure images are not reused across profiles until the pool is exhausted. Images must load immediately and reliably (no broken URLs).
+
+Requirements:
+
+Use the official Unsplash API (not random “photo-123…” URLs). Use /search/photos with orientation=portrait and a portrait query. Use multiple pages to build a big pool.
+
+Do NOT download and bundle the image files into the repo. Store only metadata (photo id, urls.small or urls.regular, photographer name, photo link) in memory and optionally persist metadata to a JSON file (like server/data/unsplash-pool.json) so it survives server restarts.
+
+Maintain two pools: malePool and femalePool, and two used sets: usedMaleIds, usedFemaleIds. When creating a new profile, pop an unused image from the matching pool.
+
+Add a server-side refresh routine: if a pool drops below 200 unused images, fetch more pages from Unsplash and append only new photo IDs.
+
+Make image URLs stable: use the urls.* returned by the API (they include Unsplash params). Add crop params if needed but do not break the URL.
+
+Fix gender filter mismatch: when user is swiping “men only”, only serve profiles with gender=male AND image from malePool. Same for women.
+
+Add minimal compliance hooks: store attribution fields (photographer name and photo link) alongside the profile so we can display it later if needed. Follow Unsplash API guidance on hotlinking and crediting.
+
+Deliverables:
+
+Replace server/routes.ts with a clean implementation that serves /api/profiles with buffered generation using the Unsplash pools.
+
+Add server/unsplash.ts helper to fetch and normalize results from /search/photos.
+
+Update server/storage.ts (MemStorage) to track used image ids per gender and store attribution fields on profiles (or extend profile type minimally if needed).
+
+Ensure no more broken images and no more repeated images until pool exhaustion.
+
+Notes for agent:
+
+The Unsplash docs include a “Search photos” endpoint and guidelines about hotlinking and crediting.
+
+We want fast loading and minimal cost. OpenAI image generation was burning spend quickly because each portrait generation is a paid image call.
