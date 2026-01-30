@@ -109,7 +109,7 @@ export default function Home() {
       }
     }
     
-    if (filteredProfiles.length < 5) {
+    if (filteredProfiles.length < 10) {
       refetch();
     }
   };
@@ -304,7 +304,8 @@ export default function Home() {
         <SwipeDeck 
           key={`${preferences.minAge}-${preferences.maxAge}-${preferences.genderPreference}`} 
           profiles={filteredProfiles} 
-          onSwipe={handleSwipe} 
+          onSwipe={handleSwipe}
+          onNeedsMore={refetch}
         />
         </div>
         

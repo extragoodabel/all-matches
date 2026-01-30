@@ -308,9 +308,9 @@ function generateCharacterSpec(context: {
 }
 
 // ============ PROFILE GENERATION CONFIG ============
-const PROFILE_BUFFER_TARGET = 50;        // Target number of unseen profiles to maintain
-const PROFILE_GEN_BATCH_SIZE = 25;       // How many profiles to generate per background batch
-const PROFILE_LOW_THRESHOLD = 20;        // Trigger background generation when below this
+const PROFILE_BUFFER_TARGET = 60;        // Target number of unseen profiles to maintain
+const PROFILE_GEN_BATCH_SIZE = 30;       // How many profiles to generate per background batch
+const PROFILE_LOW_THRESHOLD = 35;        // Trigger background generation when below this
 const IMAGE_VALIDATION_TIMEOUT = 1500;   // Image validation timeout (ms)
 
 // Track if background generation is already running to prevent duplicate runs
@@ -872,5 +872,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Pre-generate profiles at startup so users don't wait
+  console.log(`[Startup] Triggering initial profile generation of ${PROFILE_GEN_BATCH_SIZE} profiles`);
+  generateProfilesInBackground("all", 21, 99, PROFILE_GEN_BATCH_SIZE)
+    .catch(err => console.error('[Startup Gen] Error:', err));
+  
   return httpServer;
 }

@@ -22,6 +22,7 @@ const SWIPE_ANIMATION_MS = 300;
 interface SwipeDeckProps {
   profiles: Profile[];
   onSwipe: (profile: Profile, direction: "left" | "right") => void;
+  onNeedsMore?: () => void;
 }
 
 function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void) {
@@ -170,7 +171,7 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
   );
 }
 
-export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
+export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
@@ -244,13 +245,25 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
       ? "nope" 
       : null;
 
+  const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
+  const needsMore = profiles.length === 0 || !currentProfile || remainingProfiles.length === 0;
+  
+  // Poll for more profiles when showing loading screen
+  useEffect(() => {
+    if (needsMore && onNeedsMore) {
+      const interval = setInterval(() => {
+        onNeedsMore();
+      }, 2000);
+      onNeedsMore(); // Call immediately too
+      return () => clearInterval(interval);
+    }
+  }, [needsMore, onNeedsMore]);
+  
   if (profiles.length === 0) {
     return <LoadingCard message="Finding" />;
   }
-
-  const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
-  if (!currentProfile || remainingProfiles.length === 0) {
+  if (needsMore) {
     return (
       <LoadingCard 
         message="Finding more" 
