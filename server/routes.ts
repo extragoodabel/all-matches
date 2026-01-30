@@ -2,14 +2,31 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateAIResponse } from "./openai";
-import { insertUserSchema, insertMatchSchema, insertMessageSchema } from "@shared/schema";
+import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function makePortraitUrl(seed: number): string {
+  const portraitIds = [
+    "1534528741775-53994a69daeb", "1506794778202-cad84cf45f1d", "1507003211169-0a1dd7228f2d",
+    "1531746020798-e6953c6e8e04", "1544005313-94ddf0286df2", "1552374196-c4e7ffc6e12e",
+    "1500648767791-00dcc994a43e", "1494790108377-be9c29b29330", "1521119956141-1933120bc71e",
+    "1517841905572-4b668627c810", "1508214751196-435431004b74", "1529626431928-c79c1031c130",
+    "1520813792240-a88d7c442654", "1524503033104-815228536339", "1509191425245-974c4673832d"
+  ];
+  const id = portraitIds[seed % portraitIds.length];
+  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=80&w=400&h=600`;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/profiles", async (req, res) => {
-    const userId = 1; // Assuming default user for now
+    const userId = 1; // Default user for now
     let unseen = await storage.getUnseenProfiles(userId);
 
+    // Refill buffer if running low
     if (unseen.length < 20) {
       const archetypes = [
         { label: "Chaotic Art Kid", interests: ["analog photography", "DIY synthesizers", "street art"] },
@@ -26,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Corporate Rebel", interests: ["investing", "skydiving", "poker"] },
         { label: "Indie Musician", interests: ["songwriting", "thrift shopping", "coffee"] },
         { label: "Gamer", interests: ["speedrunning", "cosplay", "streaming"] },
-        { label: "History Buff", interests: ["museums", "civil war reenactment", "archaeology"] },
+        { label: "History Buff", interests: ["museums", "archaeology", "weird historical trivia"] },
         { label: "Plant Parent", interests: ["botany", "interior design", "organic gardening"] },
         { label: "Anime Enthusiast", interests: ["manga", "conventions", "japanese cooking"] },
         { label: "DIY Crafter", interests: ["pottery", "sewing", "woodworking"] },
@@ -36,24 +53,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Vinyl Collector", interests: ["jazz", "record stores", "audio equipment"] },
         { label: "Puzzle Master", interests: ["escape rooms", "crosswords", "sudoku"] },
         { label: "Street Photographer", interests: ["leica cameras", "film processing", "architecture"] },
-        { label: "Foodie Blogger", interests: ["michelin stars", "food photography", "wine tasting"] }
+        { label: "Foodie Blogger", interests: ["hole-in-the-wall spots", "food photography", "tasting menus"] },
       ];
 
-      const names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley"];
-      const quirks = ["I'm weirdly good at naming pets.", "I have a weird collection of vintage spoons.", "I can't eat pizza without ranch.", "I still have a flip phone for the aesthetic.", "I've never seen Star Wars.", "I sleep with a fan on even in winter.", "I'm a semi-pro at Geoguessr.", "I only drink coffee from blue mugs."];
+      const names = [
+        "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery",
+        "Dakota", "Reese", "Hayden", "Emerson", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+      ];
+
+      const quirks = [
+        "I’m weirdly good at naming pets.",
+        "I collect vintage spoons like it’s a sport.",
+        "I can’t eat pizza without ranch.",
+        "I still have a flip phone for the aesthetic.",
+        "I’ve never seen Star Wars. Don’t hurt me.",
+        "I sleep with a fan on even in winter.",
+        "I’m a semi-pro at GeoGuessr.",
+        "I only drink coffee from blue mugs. No exceptions.",
+      ];
 
       for (let i = 0; i < 30; i++) {
-        const arch = archetypes[Math.floor(Math.random() * archetypes.length)];
-        const name = names[Math.floor(Math.random() * names.length)];
+        const arch = pick(archetypes);
+        const name = pick(names);
         const age = 21 + Math.floor(Math.random() * 25);
         const gender = Math.random() > 0.5 ? "male" : "female";
-        const quirk = quirks[Math.floor(Math.random() * quirks.length)];
+        const quirk = pick(quirks);
 
-        const seed = Math.floor(Math.random() * 1000000);
-        // Using Unsplash with "person" keyword to ensure profile pictures
-        const imageUrl = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?auto=format&fit=crop&q=80&w=400&h=600&person`;
+        const seed = Math.floor(Math.random() * 1_000_000);
+        const imageUrl = makePortraitUrl(seed);
 
-        const bio = `I'm a ${arch.label.toLowerCase()}. Usually found ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} My secret talent is ${arch.interests[2]}.`;
+        const bio = `I’m a ${arch.label.toLowerCase()}. Usually found doing ${arch.interests[0]} or ${arch.interests[1]}. ${quirk} Secret talent: ${arch.interests[2]}.`;
 
         await storage.createProfile({
           name,
@@ -62,9 +91,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gender,
           imageUrl,
           isAI: true,
-          characterSpec: null
+          characterSpec: null,
         });
       }
+
       unseen = await storage.getUnseenProfiles(userId);
     }
 
@@ -76,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const match = insertMatchSchema.parse(req.body);
       const createdMatch = await storage.createMatch(match);
       res.json(createdMatch);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid match data" });
     }
   });
@@ -84,12 +114,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/matches/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
+      if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
+
       const matches = await storage.getMatches(userId);
       res.json(matches);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch matches" });
     }
   });
@@ -97,12 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages/:matchId", async (req, res) => {
     try {
       const matchId = parseInt(req.params.matchId);
-      if (isNaN(matchId)) {
-        return res.status(400).json({ error: "Invalid match ID" });
-      }
+      if (isNaN(matchId)) return res.status(400).json({ error: "Invalid match ID" });
+
       const messages = await storage.getMessages(matchId);
       res.json(messages);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
@@ -111,12 +139,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const message = insertMessageSchema.parse(req.body);
 
-      // Create the user's message first
+      // Save user message immediately
       const createdMessage = await storage.createMessage(message);
 
-      // If it's a user message, generate AI response
+      // Generate AI reply asynchronously
       if (!message.isAI) {
-        const profile = await storage.getProfile(message.matchId);
+        // IMPORTANT FIX:
+        // message.matchId is a match id, not a profile id.
+        // We must look up the match to find the profileId, then load that profile.
+        const matches = await storage.getMatches(1); // default user
+        const match = matches.find((m) => m.id === message.matchId);
+
+        if (!match) {
+          return res.status(404).json({ error: "Match not found" });
+        }
+
+        const profile = await storage.getProfile(match.profileId);
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
         }
@@ -127,29 +165,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             profileName: profile.name,
             profileBio: profile.bio,
-            messageHistory: currentMessages.map(m => ({
+            messageHistory: currentMessages.map((m) => ({
               content: m.content,
-              isAI: m.isAI
-            }))
+              isAI: m.isAI,
+            })),
           },
           message.content
-        ).then(async (aiResponse) => {
-          try {
-            // Human-like delay: Initial pause (1.5-2.5s) + Typing duration (2-6s)
-            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-            await new Promise(resolve => setTimeout(resolve, aiResponse.typingDelay));
+        )
+          .then(async (aiResponse) => {
+            try {
+              // Small natural pause + typing duration
+              await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 700));
+              await new Promise((resolve) => setTimeout(resolve, aiResponse.typingDelay));
 
-            await storage.createMessage({
-              matchId: message.matchId,
-              content: aiResponse.content,
-              isAI: true
-            });
-          } catch (error) {
-            console.error("Error creating AI response:", error);
-          }
-        }).catch(error => {
-          console.error("Error generating AI response:", error);
-        });
+              await storage.createMessage({
+                matchId: message.matchId,
+                content: aiResponse.content,
+                isAI: true,
+              });
+            } catch (error) {
+              console.error("Error creating AI response:", error);
+            }
+          })
+          .catch((error) => {
+            console.error("Error generating AI response:", error);
+          });
       }
 
       res.json(createdMessage);
