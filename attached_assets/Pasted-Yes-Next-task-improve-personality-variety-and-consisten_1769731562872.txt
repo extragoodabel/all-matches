@@ -1,0 +1,41 @@
+Yes. Next task: improve personality variety and consistency across profiles, WITHOUT database/schema changes.
+
+Constraints:
+- Only edit server/openai.ts
+- Do not touch DB, migrations, seeds, API routes, or UI
+- Keep compile-safe, minimal code changes
+
+Goal:
+Bots currently respond, but they still feel dry and similar. We need strong variety so different profiles feel like different dating app people.
+
+Implement these changes:
+
+1) Add a deterministic “personaSpec” generator inside server/openai.ts so each profile gets a consistent persona derived from (profileName + profileBio). It must be stable across runs.
+2) personaSpec must include:
+   - archetype label (from a diverse list, not generic)
+   - goal/angle (flirt, relationship, validation, debate, chaos, sincere, etc.)
+   - intelligence vibe (academic, street smart, ditzy, intense, etc.)
+   - morality flavor (kind, neutral, messy, blunt, slightly toxic, overly honest, etc.) but never hateful or illegal
+   - interests list (3-6 specific)
+   - texting style (emoji frequency, punctuation, slang, capitalization, response length)
+   - 2 signature bits (recurring behaviors like teasing, rapid-fire questions, voice notes jokes, one-word replies then followup)
+   - boundaries (what makes them disengage)
+
+3) Update the system prompt to inject personaSpec and enforce:
+   - replies are short texting (usually 1-2 sentences, occasional 3)
+   - MUST reference the user’s last message directly (or ask a relevant question)
+   - MUST use the persona’s texting style rules
+   - MUST pursue the persona’s goal/angle over time
+   - no generic “that’s interesting” filler
+
+4) Add a lightweight conversation progression:
+   - first 2 messages: hook + curiosity
+   - messages 3-6: reveal one specific detail tied to interests or goal
+   - occasional flirt/tease/challenge depending on personaSpec
+
+5) Add a “distinctiveness check” in the prompt:
+   - “If your reply could fit any person, rewrite it to be more specific to this persona.”
+
+Deliverable:
+- Provide the full updated server/openai.ts
+- Include 6 quick example personaSpec outputs (just JSON snippets) for different sample bios to prove variety.
