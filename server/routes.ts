@@ -5,7 +5,7 @@ import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
-import { buildImageUrl, MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS } from "./portrait-library";
+import { buildImageUrl, MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS, ANDROGYNOUS_PORTRAIT_IDS } from "./portrait-library";
 
 async function validateImageUrl(url: string): Promise<boolean> {
   try {
@@ -440,10 +440,7 @@ async function generateProfilesInBackground(
           });
 
           const nextProfileId = storage['currentId'].profiles + i;
-          const imageGender = gender === "other" 
-            ? (Math.random() > 0.5 ? "male" : "female") 
-            : gender;
-          const imageId = storage.getUniqueImageId(imageGender as 'male' | 'female');
+          const imageId = storage.getUniqueImageId(gender as 'male' | 'female' | 'other');
           const imageUrl = buildImageUrl(imageId, nextProfileId);
 
           const profile = await storage.createProfile({
@@ -776,14 +773,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/images", async (_req, res) => {
     try {
       const allImages: { id: string; gender: "male" | "female" | "other" }[] = [];
+      const seen = new Set<string>();
       
       for (const id of MEN_PORTRAIT_IDS) {
-        allImages.push({ id, gender: "male" });
+        if (!seen.has(id)) {
+          allImages.push({ id, gender: "male" });
+          seen.add(id);
+        }
       }
       for (const id of WOMEN_PORTRAIT_IDS) {
-        allImages.push({ id, gender: "female" });
+        if (!seen.has(id)) {
+          allImages.push({ id, gender: "female" });
+          seen.add(id);
+        }
+      }
+      for (const id of ANDROGYNOUS_PORTRAIT_IDS) {
+        if (!seen.has(id)) {
+          allImages.push({ id, gender: "other" });
+          seen.add(id);
+        }
       }
       
+      console.log(`[Admin] Returning ${allImages.length} unique images (${MEN_PORTRAIT_IDS.length} male, ${WOMEN_PORTRAIT_IDS.length} female, ${ANDROGYNOUS_PORTRAIT_IDS.length} other)`);
       res.json(allImages);
     } catch (error) {
       console.error("[Admin] Error fetching images:", error);

@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
 import crypto from "crypto";
-import { MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS, shuffleArray, buildImageUrl } from "./portrait-library";
+import { MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS, ANDROGYNOUS_PORTRAIT_IDS, shuffleArray, buildImageUrl } from "./portrait-library";
 
 function generateMockCharacterSpec(name: string, bio: string, age: number, gender: string): string {
   const seed = crypto.createHash('md5').update(name + bio).digest('hex');
@@ -90,11 +90,14 @@ export class MemStorage implements IStorage {
   // Image pools with non-reuse tracking
   public maleImagePool: string[];
   public femaleImagePool: string[];
+  public otherImagePool: string[];
   public usedMaleImageIds: Set<string>;
   public usedFemaleImageIds: Set<string>;
+  public usedOtherImageIds: Set<string>;
   // Track recently used (last 100) to prevent immediate repeats after exhaustion
   public recentMaleImageIds: string[];
   public recentFemaleImageIds: string[];
+  public recentOtherImageIds: string[];
 
   constructor() {
     this.users = new Map();
@@ -107,10 +110,13 @@ export class MemStorage implements IStorage {
     // Initialize shuffled image pools from curated library
     this.maleImagePool = shuffleArray([...MEN_PORTRAIT_IDS]);
     this.femaleImagePool = shuffleArray([...WOMEN_PORTRAIT_IDS]);
+    this.otherImagePool = shuffleArray([...ANDROGYNOUS_PORTRAIT_IDS]);
     this.usedMaleImageIds = new Set();
     this.usedFemaleImageIds = new Set();
+    this.usedOtherImageIds = new Set();
     this.recentMaleImageIds = [];
     this.recentFemaleImageIds = [];
+    this.recentOtherImageIds = [];
     
     this.currentId = {
       users: 1,
@@ -134,15 +140,31 @@ export class MemStorage implements IStorage {
       this.usedBioHashes.add(this.hashBio(profile.bio));
     });
     
-    console.log(`[Image] Pools initialized: ${this.maleImagePool.length} male, ${this.femaleImagePool.length} female`);
+    console.log(`[Image] Pools initialized: ${this.maleImagePool.length} male, ${this.femaleImagePool.length} female, ${this.otherImagePool.length} other`);
   }
   
-  getUniqueImageId(gender: 'male' | 'female'): string {
-    const isMale = gender === "male";
-    const pool = isMale ? this.maleImagePool : this.femaleImagePool;
-    const usedSet = isMale ? this.usedMaleImageIds : this.usedFemaleImageIds;
-    const recentList = isMale ? this.recentMaleImageIds : this.recentFemaleImageIds;
-    const sourcePool = isMale ? MEN_PORTRAIT_IDS : WOMEN_PORTRAIT_IDS;
+  getUniqueImageId(gender: 'male' | 'female' | 'other'): string {
+    let pool: string[];
+    let usedSet: Set<string>;
+    let recentList: string[];
+    let sourcePool: string[];
+    
+    if (gender === "male") {
+      pool = this.maleImagePool;
+      usedSet = this.usedMaleImageIds;
+      recentList = this.recentMaleImageIds;
+      sourcePool = MEN_PORTRAIT_IDS;
+    } else if (gender === "female") {
+      pool = this.femaleImagePool;
+      usedSet = this.usedFemaleImageIds;
+      recentList = this.recentFemaleImageIds;
+      sourcePool = WOMEN_PORTRAIT_IDS;
+    } else {
+      pool = this.otherImagePool;
+      usedSet = this.usedOtherImageIds;
+      recentList = this.recentOtherImageIds;
+      sourcePool = ANDROGYNOUS_PORTRAIT_IDS;
+    }
     
     // Find unused images not in recent 100
     let available = pool.filter(id => !usedSet.has(id) && !recentList.includes(id));
@@ -151,22 +173,27 @@ export class MemStorage implements IStorage {
       // All images used, reshuffle but exclude recent 100
       console.log(`[Image] ${gender} pool EXHAUSTED. Reshuffling...`);
       const newPool = shuffleArray([...sourcePool]);
-      if (isMale) {
+      if (gender === "male") {
         this.maleImagePool = newPool;
         this.usedMaleImageIds.clear();
-      } else {
+      } else if (gender === "female") {
         this.femaleImagePool = newPool;
         this.usedFemaleImageIds.clear();
+      } else {
+        this.otherImagePool = newPool;
+        this.usedOtherImageIds.clear();
       }
       // Filter out recently used
       available = newPool.filter(id => !recentList.includes(id));
       if (available.length === 0) {
         // Even recent list is exhausted, just use any
         available = newPool;
-        if (isMale) {
+        if (gender === "male") {
           this.recentMaleImageIds = [];
-        } else {
+        } else if (gender === "female") {
           this.recentFemaleImageIds = [];
+        } else {
+          this.recentOtherImageIds = [];
         }
       }
     }
