@@ -364,35 +364,30 @@ async function generateBioWithOpenAI(context: {
 
   const targetLines = chance(0.35) ? 1 : chance(0.55) ? 2 : chance(0.80) ? 3 : 4;
   
-  // Pick ONE lead type - this persona's priority for what to showcase
-  const leadWith = pick(BIO_LEAD_TYPES);
+  // Randomly pick 1 or 2 lead types to highlight
+  const numHighlights = chance(0.5) ? 1 : 2;
+  const shuffledLeads = [...BIO_LEAD_TYPES].sort(() => Math.random() - 0.5);
+  const leadTypes = shuffledLeads.slice(0, numHighlights);
   
   // Pick just ONE interest to potentially mention (not all)
   const featuredInterest = pick(context.interests);
 
-  let leadInstruction = "";
-  switch (leadWith) {
-    case "humor":
-      leadInstruction = "Lead with something funny, a witty observation, or a joke.";
-      break;
-    case "vibe":
-      leadInstruction = "Lead with your energy, mood, or aesthetic.";
-      break;
-    case "interest":
-      leadInstruction = `Lead with your passion for: ${featuredInterest}`;
-      break;
-    case "quirk":
-      leadInstruction = context.quirk 
-        ? `Lead with this quirk: ${context.quirk}` 
-        : "Lead with something unusual about yourself.";
-      break;
-    case "question":
-      leadInstruction = "Lead by asking or challenging the reader.";
-      break;
-    case "confession":
-      leadInstruction = "Lead with an admission, hot take, or confession.";
-      break;
-  }
+  // Build instruction for each lead type
+  const getLeadInstruction = (lead: string): string => {
+    switch (lead) {
+      case "humor": return "something funny, a witty observation, or a joke";
+      case "vibe": return "your energy, mood, or aesthetic";
+      case "interest": return `your passion for: ${featuredInterest}`;
+      case "quirk": return context.quirk ? `this quirk: ${context.quirk}` : "something unusual about yourself";
+      case "question": return "a question or challenge to the reader";
+      case "confession": return "an admission, hot take, or confession";
+      default: return "something interesting about yourself";
+    }
+  };
+
+  const leadInstruction = numHighlights === 1
+    ? `Lead with ${getLeadInstruction(leadTypes[0])}.`
+    : `Highlight TWO things: ${getLeadInstruction(leadTypes[0])} AND ${getLeadInstruction(leadTypes[1])}.`;
 
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
@@ -412,8 +407,8 @@ FORMAT:
 - Never use em dashes.
 
 RULES:
-- This is a TEASER, not a resume. Pick ONE thing to highlight.
-- Do NOT list multiple traits or interests.
+- This is a TEASER, not a resume. Highlight only what's specified above.
+- Do NOT list more than what's asked.
 - Leave mystery for conversation.
 - Grounded and human, not surreal.
 - No labels like "Interests:" or "About me:"
