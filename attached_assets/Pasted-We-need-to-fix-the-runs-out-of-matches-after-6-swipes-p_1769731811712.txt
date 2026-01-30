@@ -1,0 +1,71 @@
+We need to fix the “runs out of matches after ~6 swipes” problem and make All Matches capable of indefinitely generating new profiles with strong variety.
+
+Constraints:
+- Keep existing routes working
+- Make minimal, surgical changes
+- No big rewrites
+- Ensure the app compiles and runs
+
+PART A: Indefinite Matches
+1) Find why matches stop after ~6 swipes. Likely causes include:
+   - limited seed profiles
+   - swipe endpoint returns from a fixed array
+   - query limits without pagination
+   - not generating new profiles when pool is exhausted
+   - userMatch table preventing reuse but not replenishing pool
+2) Implement an “always available” profile supply:
+   - When the client requests the next card(s), the server must ensure there are at least N unseen profiles available for that user (N=20 buffer).
+   - If the unseen pool is low, generate and insert new profiles automatically.
+   - Do not generate on every request. Generate only when buffer drops under threshold.
+3) Add pagination or infinite scroll behavior to the API that serves profiles:
+   - Return next profile(s) based on “not yet swiped by this user”
+   - Make it deterministic and stable
+4) Update the swipe flow so that swiping never hard-stops due to an empty pool.
+   - If the pool is empty, server generates more profiles, then continues.
+
+PART B: Profile Generation Engine
+5) Create a server-side profile generator that produces:
+   - name
+   - age 21+
+   - bio (specific, interesting, non-generic)
+   - interests list
+   - location vibe (optional)
+   - personality spec (archetype, goal/angle, intelligence vibe, morality flavor, texting style, signature bits, boundaries)
+6) Variety requirements:
+   - Use a diverse archetype library (at least 40 archetypes) with different energies and goals.
+   - Use weighted randomization with constraints so profiles do not collapse into the same voice.
+   - Ensure bios are not repetitive. Add a uniqueness check. Reject and regenerate if too similar to recent bios.
+   - Allow a range of morality and intelligence, but never hateful, illegal, or explicit sexual content.
+7) Make personaSpec deterministic per profile:
+   - Store personaSpec on the profile record as JSON text (or structured fields).
+   - If you cannot add schema right now, store it in an existing JSON field, but persistence is preferred.
+
+PART C: Image Generation
+8) Profiles must have images. Implement a scalable approach:
+   - If there is already an image generation or placeholder system, extend it so newly generated profiles have an image URL.
+   - If you cannot generate images live, implement a “generate on demand” placeholder pipeline:
+     - assign each new profile an imagePrompt and a placeholder image URL immediately
+     - queue or trigger image generation later without blocking swiping
+   - All generated people must be 21+.
+   - Images should look like real people by default (not cartoons), but allow occasional mythical creature profiles as an optional mode flag.
+9) Do not break existing UI. Return the same fields the client expects.
+
+PART D: Chat Personality Tightening
+10) Tighten openai.ts prompt to enforce distinct voices:
+   - Inject personaSpec into system prompt
+   - Add a distinctiveness rewrite rule: if reply could fit any person, rewrite to be more specific to this persona
+   - Force replies to reference user last message and ask relevant questions
+   - Keep replies short like texting
+
+DELIVERABLES
+A) Explain exactly why matches stopped at ~6 swipes and what you changed.
+B) Show file-by-file changes.
+C) Show the new profile generation code.
+D) Confirm there is now no hard limit on swipes because the server replenishes the pool.
+E) Provide a quick test checklist:
+   - swipe 30 times without running out
+   - confirm profiles differ in bio and voice
+   - confirm new profiles are saved and appear in DB
+   - confirm chat uses personaSpec consistently
+
+Important: do this in a practical way. If image generation is not available, implement placeholder plus prompt storage so we can add real generation next, without blocking the core swipe loop.
