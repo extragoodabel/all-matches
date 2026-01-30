@@ -301,8 +301,6 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               { bg: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='40' height='40' fill='%23FFF8E7'/%3E%3Cpath d='M20 30l-1.5-1.4C12 22.7 8 19.2 8 15c0-3.3 2.7-6 6-6 1.9 0 3.7.9 4.8 2.3L20 12.5l1.2-1.2C22.3 9.9 24.1 9 26 9c3.3 0 6 2.7 6 6 0 4.2-4 7.7-10.5 13.6L20 30z' fill='%23FF1493'/%3E%3C/svg%3E")`, size: undefined },
               // confetti
               { bg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='%23FFF8E7'/%3E%3Crect x='5' y='5' width='8' height='8' fill='%23FF1493' transform='rotate(15 9 9)'/%3E%3Crect x='35' y='25' width='6' height='6' fill='%23FFDC00' transform='rotate(-20 38 28)'/%3E%3Crect x='15' y='40' width='7' height='7' fill='%2300D9A5' transform='rotate(45 18.5 43.5)'/%3E%3Ccircle cx='45' cy='10' r='4' fill='%23B388FF'/%3E%3Crect x='48' y='42' width='5' height='5' fill='%23FF4136' transform='rotate(30 50 44)'/%3E%3C/svg%3E")`, size: undefined },
-              // love birds
-              { bg: `url("data:image/svg+xml,%3Csvg width='80' height='40' viewBox='0 0 80 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='80' height='40' fill='%23FFF8E7'/%3E%3Cellipse cx='20' cy='22' rx='8' ry='6' fill='%23FF1493'/%3E%3Ccircle cx='16' cy='18' r='4' fill='%23FF1493'/%3E%3Cpolygon points='12,18 8,17 12,16' fill='%23FFDC00'/%3E%3Ccircle cx='14' cy='17' r='1' fill='%231A1A1A'/%3E%3Cellipse cx='60' cy='22' rx='8' ry='6' fill='%2300D9A5'/%3E%3Ccircle cx='64' cy='18' r='4' fill='%2300D9A5'/%3E%3Cpolygon points='68,18 72,17 68,16' fill='%23FFDC00'/%3E%3Ccircle cx='66' cy='17' r='1' fill='%231A1A1A'/%3E%3Cpath d='M28 20 Q40 10 52 20' stroke='%23FF1493' stroke-width='2' fill='none'/%3E%3C/svg%3E")`, size: undefined },
               // pills rare (only used ~10% of time via modulo)
               { bg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='%23FFF8E7'/%3E%3Crect x='10' y='20' width='16' height='8' rx='4' fill='%23FF1493'/%3E%3Crect x='18' y='20' width='8' height='8' rx='0' fill='%23B388FF'/%3E%3Crect x='35' y='35' width='16' height='8' rx='4' fill='%2300D9A5'/%3E%3Crect x='43' y='35' width='8' height='8' rx='0' fill='%23FFDC00'/%3E%3C/svg%3E")`, size: undefined },
             ];
@@ -313,8 +311,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               { primary: '#00BFFF', secondary: '#FFF8E7' },
               { primary: '#FF1493', secondary: '#FFDC00' },
             ];
-            // Pills pattern (index 10) appears rarely - skip it most of the time
-            const availablePatterns = stackPatternStyles.filter((_, idx) => idx !== 10 || (currentProfile.id % 10 === 0));
+            // Pills pattern (index 9) appears rarely - skip it most of the time
+            const availablePatterns = stackPatternStyles.filter((_, idx) => idx !== 9 || (currentProfile.id % 10 === 0));
             const patternIdx = (currentProfile.id + i) % availablePatterns.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
             const pattern = availablePatterns[patternIdx];
