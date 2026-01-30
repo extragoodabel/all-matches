@@ -56,6 +56,11 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to fetch profiles");
       return res.json();
     },
+    staleTime: 1000 * 60 * 5,      // Data stays fresh for 5 minutes (no refetch)
+    gcTime: 1000 * 60 * 10,        // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,   // Don't refetch when tab regains focus
+    refetchOnMount: false,         // Don't refetch when component remounts (e.g., returning from chat)
+    refetchOnReconnect: false,     // Don't refetch on network reconnect
   });
 
   const shuffledProfiles = useMemo(() => {
