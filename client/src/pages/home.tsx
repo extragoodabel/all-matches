@@ -153,7 +153,7 @@ export default function Home() {
   return (
     <PatternBackground baseColor={palette.background} patternIndex={bgPatternIndex}>
       <div 
-        className="h-dvh flex flex-col overflow-hidden"
+        className="h-dvh flex flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+12px)] sm:pt-0"
         style={{
           '--eg-primary': palette.primary,
           '--eg-secondary': palette.secondary,
