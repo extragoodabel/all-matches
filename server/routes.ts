@@ -328,22 +328,13 @@ function isBadBio(text: string): boolean {
   const lines = t.split("\n").filter(Boolean);
   if (lines.length > 4) return true;
 
-  // Avoid surreal phrases and overused patterns
+  // Only reject truly surreal/broken bios
   const banned = [
     "mothership", "prophecy", "third eye", "the council",
-    "summon", "destiny", "time traveler", "string board",
-    "enthusiast", "aficionado", "connoisseur", "lover of",
-    "confession:", "hot take:", "warning:", "fact:",
-    "usually found", "secret talent", "about me:",
-    "interests:", "looking for:"
+    "summon", "destiny", "time traveler", "string board"
   ];
   const lower = t.toLowerCase();
   if (banned.some(b => lower.includes(b))) return true;
-  
-  // Reject if too many generic filler words
-  const fillerWords = ["passionate", "adventurous", "down-to-earth", "easy-going", "laid-back"];
-  const fillerCount = fillerWords.filter(w => lower.includes(w)).length;
-  if (fillerCount >= 2) return true;
 
   return false;
 }
@@ -432,14 +423,12 @@ ${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
 FORMAT: ${targetLines} line(s) max. 0-2 emojis. No em dashes.
 
-BANNED WORDS/PHRASES (do not use):
-- "enthusiast", "aficionado", "connoisseur", "lover of"
-- "coffee" (unless specifically in their interest)
-- "confession:", "hot take:", "warning:" (no labels)
-- "I'm a", "Usually found", "Secret talent"
-- "Interests:", "About me:", "Looking for:"
+AVOID OVERUSING:
+- Labels like "enthusiast", "aficionado", "connoisseur"
+- Generic openers: "I'm a", "Usually found", "Secret talent"
+- Crutch topics like coffee unless it's genuinely their thing
 
-Write like a real person, not a template. Be specific, not generic.
+Write like a real person texting a friend, not filling out a form.
 Output ONLY the bio text.`;
 
   try {
