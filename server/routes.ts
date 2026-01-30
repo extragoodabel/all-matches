@@ -1,3 +1,4 @@
+// server/routes.ts
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -42,16 +43,6 @@ function chance(p: number): boolean {
 
 function randInt(min: number, max: number): number {
   return Math.floor(min + Math.random() * (max - min + 1));
-}
-
-function weightedPick<T extends { weight: number }>(items: T[]): T {
-  const total = items.reduce((sum, it) => sum + it.weight, 0);
-  let r = Math.random() * total;
-  for (const it of items) {
-    r -= it.weight;
-    if (r <= 0) return it;
-  }
-  return items[0];
 }
 
 // ------------------------------------------------------------
@@ -123,195 +114,229 @@ function generateUniqueName(firstNames: string[], lastInitials: string[]): strin
 }
 
 // ------------------------------------------------------------
-// Persona expansion
-// We generate MANY personas by combining role + vibe + obsession,
-// while also including specific hard-coded archetypes you requested.
+// Trait frequency control
+// Goal: with 100+ traits, no single trait should exceed ~2%
+// We enforce a rolling cap over a window of recent profiles.
+// ------------------------------------------------------------
+const TRAIT_WINDOW = 500;
+const TRAIT_CAP = 0.02;
+
+const recentTraits: string[] = [];
+const traitCounts = new Map<string, number>();
+
+function recordTrait(trait: string) {
+  recentTraits.push(trait);
+  traitCounts.set(trait, (traitCounts.get(trait) || 0) + 1);
+
+  if (recentTraits.length > TRAIT_WINDOW) {
+    const removed = recentTraits.shift();
+    if (removed) {
+      const c = (traitCounts.get(removed) || 1) - 1;
+      if (c <= 0) traitCounts.delete(removed);
+      else traitCounts.set(removed, c);
+    }
+  }
+}
+
+function traitAllowed(trait: string): boolean {
+  const total = Math.max(1, recentTraits.length);
+  const c = traitCounts.get(trait) || 0;
+  return (c / total) < TRAIT_CAP;
+}
+
+function pickTraitWithCap(traits: PersonaTemplate[]): PersonaTemplate {
+  // Try multiple times to satisfy cap. If not possible, return random.
+  for (let i = 0; i < 50; i++) {
+    const t = pick(traits);
+    if (traitAllowed(t.label)) return t;
+  }
+  return pick(traits);
+}
+
+// ------------------------------------------------------------
+// Persona templates (single primary trait only)
+// No stacking "rollerblading caveman tarot reader" style combos.
 // ------------------------------------------------------------
 type PersonaTemplate = {
   label: string;
-  interests: string[];
-  quirkHints?: string[];
-  flirtBias?: number;           // additive to flirtPercent
-  chaosBias?: number;           // increases chance of chaos flag
-  paranoidBucket?: boolean;     // counts toward the 10% combined cap
-  valentinesBias?: boolean;     // nudges valentinesEager
+  interests: string[];         // keep to 1-2 used in bio, not a list of 5
+  flirtBias?: number;          // additive to flirtPercent
+  chaosBias?: number;          // small chance only
+  quirkHint?: string;          // optional
 };
 
-const ROLE_ARCHETYPES: PersonaTemplate[] = [
-  { label: "Sports Guy", interests: ["fantasy leagues", "stadium nachos", "arguing about refs"], flirtBias: 10 },
-  { label: "Sports Girl", interests: ["WNBA hot takes", "tailgates", "jersey collecting"], flirtBias: 10 },
-  { label: "Anti-Sports Person", interests: ["bookstores", "quiet restaurants", "not knowing who anyone is"], flirtBias: 0 },
+const PRIMARY_TRAITS: PersonaTemplate[] = [
+  { label: "Caveman", interests: ["meat sticks", "going for walks"], flirtBias: 6, chaosBias: 0.03, quirkHint: "I communicate primarily in vibes and gestures." },
+  { label: "Fish Holding Boat Guy", interests: ["boats", "holding fish"], flirtBias: 10, chaosBias: 0.02, quirkHint: "If I am not holding a fish, assume I am about to be holding a fish." },
+  { label: "Hypochondriac", interests: ["vitamins", "air purifiers"], flirtBias: -5, chaosBias: 0.02, quirkHint: "I have WebMD open, but I am trying to grow." },
 
-  { label: "Animal Lover", interests: ["fostering pets", "pet costumes", "animal facts"], flirtBias: 10 },
-  { label: "Lizard Person (Literal)", interests: ["gecko tanks", "heat lamps", "feeding crickets"], flirtBias: 5, chaosBias: 0.1 },
-  { label: "Bird Watcher", interests: ["binoculars", "rare sightings", "bird call apps"], flirtBias: 5 },
+  { label: "Sports Guy", interests: ["fantasy leagues", "stadium nachos"], flirtBias: 10 },
+  { label: "Sports Girl", interests: ["WNBA takes", "tailgates"], flirtBias: 10 },
+  { label: "Anti Sports Person", interests: ["bookstores", "quiet restaurants"], flirtBias: 0 },
 
-  { label: "Keto and CrossFit", interests: ["macros", "PRs", "cold plunges"], flirtBias: 5 },
-  { label: "Aggro Gym Rat", interests: ["preworkout", "lifting straps", "mirror selfies"], flirtBias: 15 },
-  { label: "Aerobics Dance Goblin", interests: ["80s cardio", "sweatbands", "dance breaks"], flirtBias: 10, chaosBias: 0.15 },
+  { label: "Comedian", interests: ["bits", "banter"], flirtBias: 15 },
+  { label: "Art Film Lover", interests: ["film festivals", "arguing about movies"], flirtBias: 5 },
 
-  { label: "Geologist", interests: ["cool rocks", "fault lines", "national parks"], flirtBias: 5 },
-  { label: "Architect", interests: ["weird buildings", "models", "design arguments"], flirtBias: 5 },
-  { label: "Mechanic", interests: ["engine swaps", "tool organization", "fixing anything"], flirtBias: 10 },
-  { label: "Pilot", interests: ["airport lounges", "cloud photos", "clean checklists"], flirtBias: 10 },
-  { label: "Engineer", interests: ["over-optimizing", "spreadsheets", "problem solving"], flirtBias: 5 },
+  { label: "Punk", interests: ["shows", "patched jackets"], flirtBias: 10, chaosBias: 0.03 },
+  { label: "Goth", interests: ["dark playlists", "late night walks"], flirtBias: 10, chaosBias: 0.03 },
+  { label: "Witchy", interests: ["tarot", "candles"], flirtBias: 10, chaosBias: 0.04 },
 
-  { label: "Cop", interests: ["night shifts", "coffee", "true crime avoidance"], flirtBias: 0 },
-  { label: "Soldier", interests: ["discipline", "boots", "structured routines"], flirtBias: 0 },
+  { label: "Bird Watcher", interests: ["binoculars", "rare sightings"], flirtBias: 4 },
+  { label: "Animal Lover", interests: ["fostering pets", "animal facts"], flirtBias: 8 },
 
-  { label: "Timid and Shy", interests: ["soft playlists", "quiet bars", "texts over calls"], flirtBias: -10 },
-  { label: "Opera Singer", interests: ["rehearsals", "dramatic entrances", "applause"], flirtBias: 10 },
-  { label: "Orchestra Musician", interests: ["practice rooms", "concert black fits", "nerding out"], flirtBias: 5 },
+  { label: "Chef", interests: ["food spots", "hosting"], flirtBias: 8 },
+  { label: "Bartender", interests: ["nightlife", "people watching"], flirtBias: 10 },
+  { label: "Nurse", interests: ["comfort shows", "daytime naps"], flirtBias: 4 },
+  { label: "Teacher", interests: ["weekend resets", "coffee"], flirtBias: 4 },
 
-  { label: "Delusional Actor", interests: ["auditions", "self tapes", "being discovered"], flirtBias: 15, chaosBias: 0.2 },
-  { label: "Historian", interests: ["archives", "long walks", "very specific opinions"], flirtBias: 0 },
-  { label: "Linguist Who Corrects You", interests: ["syntax", "phonetics", "being right"], flirtBias: 0, chaosBias: 0.1 },
+  { label: "Architect", interests: ["weird buildings", "design arguments"], flirtBias: 5 },
+  { label: "Engineer", interests: ["over optimizing", "problem solving"], flirtBias: 3 },
+  { label: "Mechanic", interests: ["fixing anything", "tool organization"], flirtBias: 7 },
+  { label: "Pilot", interests: ["airport lounges", "cloud photos"], flirtBias: 8 },
 
-  { label: "Sloth Mode", interests: ["naps", "delivery apps", "soft clothes"], flirtBias: 0 },
-  { label: "Greedy Great Gatsby Type", interests: ["status", "champagne", "exclusive invites"], flirtBias: 10, chaosBias: 0.1 },
+  { label: "Timid and Shy", interests: ["soft playlists", "texts over calls"], flirtBias: -10 },
+  { label: "Serial Dater", interests: ["first date spots", "banter"], flirtBias: 15, chaosBias: 0.03 },
+  { label: "Hopeless Romantic", interests: ["romcoms", "cute dates"], flirtBias: 10 },
 
-  { label: "Religious", interests: ["Sunday routines", "values", "community events"], flirtBias: 0 },
-  { label: "Punk", interests: ["shows", "patched jackets", "anti-establishment jokes"], flirtBias: 10, chaosBias: 0.1 },
-  { label: "Goth", interests: ["black eyeliner", "graveyard walks", "dark playlists"], flirtBias: 10, chaosBias: 0.1 },
-  { label: "Witchy", interests: ["tarot", "candles", "moon phases"], flirtBias: 10, chaosBias: 0.15 },
+  { label: "Gym Rat", interests: ["lifting", "protein snacks"], flirtBias: 12 },
+  { label: "Keto and CrossFit", interests: ["macros", "PRs"], flirtBias: 6 },
 
-  { label: "Superhero Nerd", interests: ["comics", "lore debates", "collectibles"], flirtBias: 5 },
-  { label: "Hustle Bro", interests: ["grindset quotes", "cold emails", "side hustles"], flirtBias: 10, chaosBias: 0.1 },
-  { label: "Basic", interests: ["brunch", "espresso martinis", "group trips"], flirtBias: 10 },
-  { label: "Boss", interests: ["boundaries", "wins", "not tolerating nonsense"], flirtBias: 10 },
+  { label: "Gardening Person", interests: ["tomatoes", "propagating cuttings"], flirtBias: 3 },
+  { label: "Vintage Camera Person", interests: ["film photos", "thrifting"], flirtBias: 6 },
 
-  { label: "Comedian", interests: ["bits", "crowd work", "banter"], flirtBias: 15 },
-  { label: "Art Film Lover", interests: ["A24 arguments", "slow cinema", "film festivals"], flirtBias: 5, chaosBias: 0.1 },
+  { label: "History Nerd", interests: ["museums", "long walks"], flirtBias: 2 },
+  { label: "Linguist", interests: ["words", "being right"], flirtBias: 0, chaosBias: 0.02 },
 
-  { label: "Does Drag On Weekends", interests: ["stage looks", "lip syncs", "afterparties"], flirtBias: 15, chaosBias: 0.1 },
-  { label: "Gardening Obsessed", interests: ["soil", "tomatoes", "propagating cuttings"], flirtBias: 5 },
+  { label: "Basic (But Fun)", interests: ["brunch", "group trips"], flirtBias: 10 },
+  { label: "Boss Energy", interests: ["boundaries", "wins"], flirtBias: 10 },
 
-  { label: "Fashionista", interests: ["runway clips", "thrifting", "fit checks"], flirtBias: 10 },
-  { label: "Designer", interests: ["typefaces", "moodboards", "color fights"], flirtBias: 5 },
+  { label: "Chronically Unemployed", interests: ["daytime errands", "big plans"], flirtBias: 6, chaosBias: 0.03 },
+  { label: "Hustle Bro", interests: ["side hustles", "cold emails"], flirtBias: 8, chaosBias: 0.02 },
 
-  { label: "Chronically Unemployed", interests: ["daytime errands", "big plans", "mysterious income"], flirtBias: 5, chaosBias: 0.2 },
-  { label: "Serial Dater", interests: ["first date spots", "exit strategies", "banter"], flirtBias: 15, chaosBias: 0.1 },
-  { label: "Playboy or Playgirl", interests: ["flirting", "late nights", "being a problem"], flirtBias: 20, chaosBias: 0.15 },
-
-  // Required: hypochondriac
-  { label: "Hypochondriac", interests: ["symptom checking", "vitamins", "air purifiers"], flirtBias: 0, chaosBias: 0.1 },
-
-  // Required: fish guy
-  { label: "Fish Holding Boat Guy", interests: ["boats", "holding fish", "bigger fish"], flirtBias: 10, chaosBias: 0.1 },
-
-  // Whimsical paranoia bucket (cap combined around 10%)
-  { label: "Whimsical Conspiracy Theorist", interests: ["string boards", "vibes-based evidence", "mysterious coincidences"], chaosBias: 0.35, paranoidBucket: true },
-  { label: "Suspicious Doomsday Prep (Cute)", interests: ["flashlights", "go-bags", "emergency snacks"], chaosBias: 0.25, paranoidBucket: true },
+  // Add volume to exceed 100+ distinct traits
+  // Keep these grounded and single trait labels
+  ...Array.from({ length: 120 }).map((_, idx) => {
+    const n = idx + 1;
+    const labels = [
+      "Coffee Snob", "Museum Person", "Runner", "Hiker", "Beach Person", "City Planner",
+      "Accountant", "Therapist", "Tattoo Artist", "UX Researcher", "Data Analyst",
+      "Product Manager", "Set Designer", "Sound Engineer", "Flight Attendant",
+      "Librarian", "Park Ranger", "Biologist", "Chemist", "Translator",
+      "Real Estate Agent", "Sommelier", "Coffee Roaster", "Wedding Planner",
+      "Event Producer", "Pastry Chef", "Yoga Instructor", "Firefighter",
+      "Public Defender", "Plumber", "Electrician", "Stunt Performer",
+      "Geologist", "Orchestra Musician", "Opera Singer", "Fashionista", "Designer"
+    ];
+    const l = labels[idx % labels.length];
+    const interestsByLabel: Record<string, string[]> = {
+      "Coffee Snob": ["espresso", "walking to coffee"],
+      "Museum Person": ["museums", "weekend plans"],
+      "Runner": ["running", "podcasts"],
+      "Hiker": ["hikes", "views"],
+      "Beach Person": ["sun", "snacks"],
+      "City Planner": ["neighborhoods", "walkability"],
+      "Accountant": ["budgets", "treats"],
+      "Therapist": ["communication", "soft honesty"],
+      "Tattoo Artist": ["art", "late nights"],
+      "UX Researcher": ["people watching", "why we do things"],
+      "Data Analyst": ["patterns", "little charts"],
+      "Product Manager": ["planning", "decision making"],
+      "Set Designer": ["visuals", "making things"],
+      "Sound Engineer": ["music", "tiny details"],
+      "Flight Attendant": ["travel", "people stories"],
+      "Librarian": ["books", "quiet"],
+      "Park Ranger": ["parks", "animals"],
+      "Biologist": ["nature facts", "walks"],
+      "Chemist": ["experiments", "coffee"],
+      "Translator": ["languages", "travel"],
+      "Real Estate Agent": ["neighborhoods", "architecture"],
+      "Sommelier": ["wine", "snacks"],
+      "Coffee Roaster": ["coffee", "smells"],
+      "Wedding Planner": ["events", "logistics"],
+      "Event Producer": ["events", "energy"],
+      "Pastry Chef": ["dessert", "coffee"],
+      "Yoga Instructor": ["stretching", "calm"],
+      "Firefighter": ["shift life", "food"],
+      "Public Defender": ["opinions", "justice"],
+      "Plumber": ["fixing stuff", "being useful"],
+      "Electrician": ["solving problems", "tools"],
+      "Stunt Performer": ["adrenaline", "movies"],
+      "Geologist": ["rocks", "national parks"],
+      "Orchestra Musician": ["music", "practice"],
+      "Opera Singer": ["music", "drama"],
+      "Fashionista": ["fits", "thrifting"],
+      "Designer": ["type", "color"],
+    };
+    return {
+      label: `${l} ${n}`,
+      interests: interestsByLabel[l] || ["weekend plans", "food spots"],
+      flirtBias: randInt(0, 10),
+      chaosBias: 0.01
+    } as PersonaTemplate;
+  })
 ];
 
-const JOB_ROLES = [
-  "Newscaster", "Beat Reporter", "Teacher", "Gym Teacher", "Construction Worker",
-  "Day Trader", "Drop Shipper", "Rancher", "Oil Tycoon", "Beef Tycoon",
-  "College Professor", "Bartender", "Nurse", "Paramedic", "Yoga Instructor",
-  "Chef", "Pastry Chef", "Tattoo Artist", "Firefighter", "Public Defender",
-  "Real Estate Agent", "Flight Attendant", "Museum Docent", "Librarian",
-  "Wedding Planner", "Event Producer", "Accountant", "Therapist", "Plumber",
-  "Electrician", "Sound Engineer", "Set Designer", "Stunt Performer", "Park Ranger",
-  "Biologist", "Chemist", "Data Analyst", "Product Manager", "Sales Closer",
-  "Car Salesperson", "Sommelier", "Coffee Roaster", "Local Politician",
-  "City Planner", "Translator", "Interpreter", "UX Researcher",
-  "Disgraced Tech Founder", "30 Under 30 To Prison Pipeline",
+// ------------------------------------------------------------
+// Bio generation (grounded, max 4 lines)
+// 5% mention what they are looking for or why they are on the app.
+// ------------------------------------------------------------
+const LOOKING_FOR_LINES = [
+  "Let’s try this out.",
+  "I caved, sigh.",
+  "Looking for my knight in shining Reeboks.",
+  "Here for something real, but fun.",
+  "Not here for pen pals.",
+  "If we laugh on the first date, we’re basically married.",
+  "Looking for someone who can pick a spot and commit.",
+  "Open to a slow burn, not a sprint.",
+  "I’m here to meet someone I actually like.",
+  "I am normal about this app. I swear.",
+  "Looking for a plus one to real life.",
+  "I want a crush that turns into plans.",
 ];
 
-const WEIRD_OBSESSIONS = [
-  "rollerblading", "kombucha brewing", "urban foraging", "competitive karaoke",
-  "ant farms", "handwriting analysis", "perfume sampling", "mushroom IDs",
-  "train schedules", "airport codes", "microplastics rants",
-  "facial hair grooming", "mustache wax", "collecting keychains",
-  "unreasonably specific ramen opinions", "making spreadsheets for fun",
-  "whale facts", "volcano documentaries", "weather radar",
-  "haunted hotels", "escape rooms", "lockpicking (legal, hobby)",
-  "architecture tours", "medieval history", "ice cream rankings",
-  "obscure board games", "plant propagation", "vintage cameras",
+const BIO_DETAILS = [
+  "two coffees before I’m human",
+  "walks that turn into 90 minutes",
+  "I will order dessert first if the vibe is right",
+  "I keep a running list of date spots",
+  "I’m picky about lighting in restaurants",
+  "I will actually plan the itinerary",
+  "I’m the friend who shows up early",
+  "I take photos like it’s a documentary",
+  "I can cook one meal extremely well",
+  "I will steal a fry politely",
+  "I’m competitive about games I pretend not to care about",
+  "I own at least one outfit that’s just for errands",
 ];
 
-// Rare obsessions (~5% chance to appear)
-const RARE_OBSESSIONS = [
-  "maps", "tiny spoons", "taxidermy appreciation",
-];
+function countEmojis(s: string): number {
+  return (s.match(/[\u{1F300}-\u{1FAFF}]/gu) || []).length;
+}
 
-const VIBES = [
-  "coquettish", "feral", "mysterious", "sweet", "menace-flirty",
-  "golden retriever", "black cat", "chaotic good", "pseudo-intellectual",
-  "sycophant (Bonfire of the Vanities)", "philosopher", "anarchist (cartoon)",
-  "silly communist (jokes only)", "time traveler", "caveman", "nun (unhinged but harmless)",
-];
+function isBadBio(text: string): boolean {
+  const t = text.trim();
+  if (!t) return true;
 
-function buildExpandedPersonaLibrary(): PersonaTemplate[] {
-  const generated: PersonaTemplate[] = [];
+  // No em dashes
+  if (t.includes("—")) return true;
 
-  // Generate lots of combos to get variety without hand-writing 200 lines
-  for (const job of JOB_ROLES) {
-    const vibe = pick(VIBES);
-    // 5% chance for a rare obsession, otherwise pick from common
-    const obsession = chance(0.05) ? pick(RARE_OBSESSIONS) : pick(WEIRD_OBSESSIONS);
+  // Limit emojis
+  if (countEmojis(t) > 2) return true;
 
-    generated.push({
-      label: `${job} (${vibe})`,
-      interests: [
-        `${job.toLowerCase()} lore`,
-        obsession,
-        pick(["late-night texts", "first-date banter", "weird little treats", "people watching"])
-      ],
-      flirtBias: randInt(0, 12),
-      chaosBias: chance(0.2) ? 0.1 : 0,
-    });
-  }
+  // Max 4 lines
+  const lines = t.split("\n").filter(Boolean);
+  if (lines.length > 4) return true;
 
-  // Add a few extra “anti” or “villain” flavors
-  const extras: PersonaTemplate[] = [
-    { label: "Organic Head", interests: ["farmers markets", "supplement stacks", "wild theories about seed oils"], chaosBias: 0.1, flirtBias: 5 },
-    { label: "Vegan Evangelist (But Hot)", interests: ["vegan tasting menus", "animal rights", "calling you out (playfully)"], flirtBias: 10, chaosBias: 0.1 },
-    { label: "Pseudo-Intellectual", interests: ["name-dropping authors", "debating definitions", "saying 'interesting' a lot"], flirtBias: 5, chaosBias: 0.15 },
-    { label: "Hypocrite With Confidence", interests: ["rules for you", "exceptions for me", "still charming somehow"], flirtBias: 15, chaosBias: 0.15 },
-    { label: "Sycophant Social Climber", interests: ["being seen", "networking", "VIP wristbands"], flirtBias: 10, chaosBias: 0.1 },
-    { label: "Nun (Off-Duty)", interests: ["forbidden jokes", "wholesome chaos", "mysterious vows"], flirtBias: 5, chaosBias: 0.25 },
-    { label: "Local Politician Seeking Side Quest", interests: ["handshakes", "damage control", "secrets"], flirtBias: 15, chaosBias: 0.15 },
+  // Avoid obvious surreal phrases in bios
+  const banned = [
+    "mothership", "prophecy", "third eye", "the council",
+    "summon", "destiny", "time traveler", "string board"
   ];
+  const lower = t.toLowerCase();
+  if (banned.some(b => lower.includes(b))) return true;
 
-  return [...ROLE_ARCHETYPES, ...generated, ...extras];
-}
-
-const EXPANDED_PERSONAS = buildExpandedPersonaLibrary();
-
-// ------------------------------------------------------------
-// Bio generation modes (expanded)
-// Every character gets a bio. No "no intro at all" mode.
-// ------------------------------------------------------------
-const BIO_MODES = [
-  { mode: "one_liner", weight: 12, desc: "Single punchy sentence, confident or mysterious" },
-  { mode: "hot_takes", weight: 10, desc: "2-3 spicy opinions, punchy" },
-  { mode: "micro_story", weight: 10, desc: "Tiny vivid scene like a movie moment" },
-  { mode: "prompt_answers", weight: 12, desc: "Dating app prompt answers, natural tone" },
-  { mode: "manifesto", weight: 6, desc: "Mini manifesto, intense but funny" },
-  { mode: "requirements_list", weight: 7, desc: "Playful requirements but not mean" },
-  { mode: "self_aware", weight: 10, desc: "Meta about dating apps and validation" },
-  { mode: "sincere", weight: 10, desc: "Warm and genuine, wants connection" },
-  { mode: "weird_flex", weight: 8, desc: "Odd accomplishment or strange brag" },
-  { mode: "question", weight: 8, desc: "Ends with a question that sparks convo" },
-  { mode: "scenario_invite", weight: 9, desc: "Invites you into a specific plan" },
-  { mode: "red_flags_joke", weight: 8, desc: "Jokes about their own red flags" },
-  { mode: "short_but_specific", weight: 10, desc: "2-3 short lines, dense specifics" },
-];
-
-function pickWeightedMode(): { mode: string; desc: string } {
-  const total = BIO_MODES.reduce((sum, m) => sum + m.weight, 0);
-  let r = Math.random() * total;
-  for (const m of BIO_MODES) {
-    r -= m.weight;
-    if (r <= 0) return { mode: m.mode, desc: m.desc };
-  }
-  return { mode: BIO_MODES[0].mode, desc: BIO_MODES[0].desc };
-}
-
-function randomMugColor(): string {
-  const colors = ["green", "orange", "black", "clear glass", "ceramic", "metal", "pink", "yellow", "white"];
-  return pick(colors);
+  return false;
 }
 
 async function generateBioWithOpenAI(context: {
@@ -320,92 +345,92 @@ async function generateBioWithOpenAI(context: {
   gender: string;
   archetypeLabel: string;
   interests: string[];
-  quirk: string;
+  quirk: string | null;
   flirtPercent: number;
   valentinesEager: boolean;
+  lookingForLine?: string | null;
 }): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY) return null;
 
-  const modeInfo = pickWeightedMode();
-  const valentinesLine = context.valentinesEager ? "They are actively looking for a Valentine's date (playful, not desperate)." : "No special holiday urgency.";
-
-  // Randomize bio length preference
-  const lengthRoll = Math.random();
-  let lengthInstruction: string;
-  if (lengthRoll < 0.30) {
-    lengthInstruction = "VERY SHORT: 1 line only. Punchy, cryptic, or minimal.";
-  } else if (lengthRoll < 0.55) {
-    lengthInstruction = "SHORT: 1-2 lines. Tight and focused.";
-  } else if (lengthRoll < 0.80) {
-    lengthInstruction = "MEDIUM: 2-3 lines. Some personality but not verbose.";
-  } else {
-    lengthInstruction = "LONGER: 3-5 lines. More detail, but still natural.";
-  }
-
-  // Randomize structure
-  const structureRoll = Math.random();
-  let structureInstruction: string;
-  if (structureRoll < 0.4) {
-    structureInstruction = "Focused and cohesive.";
-  } else if (structureRoll < 0.7) {
-    structureInstruction = "Slightly disjointed, like random thoughts.";
-  } else {
-    structureInstruction = "Stream of consciousness, jumpy but charming.";
-  }
+  const targetLines = chance(0.35) ? 1 : chance(0.55) ? 2 : chance(0.80) ? 3 : 4;
+  const chosenInterests = pickN(context.interests, Math.min(2, context.interests.length));
+  const chosenDetail = pick(BIO_DETAILS);
 
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+, not a real person, not a celebrity).
+
 Character:
 - Name: ${context.name}
-- Age: ${context.age} (must read 21+)
+- Age: ${context.age}
 - Gender: ${context.gender}
-- Archetype: ${context.archetypeLabel}
-- Interests: ${context.interests.join(", ")}
-- Quirk: ${context.quirk}
-- Flirt intensity: ${context.flirtPercent}/100
-- Valentine's urgency: ${valentinesLine}
+- Primary trait: ${context.archetypeLabel}
+- Flirt intensity: ${context.flirtPercent}/100 (PG-13, non-explicit)
 
-Bio style: ${modeInfo.mode.replace(/_/g, " ")} - ${modeInfo.desc}
-Length: ${lengthInstruction}
-Structure: ${structureInstruction}
+You MUST include these exact specifics, naturally:
+- Interest #1: ${chosenInterests[0] || context.interests[0]}
+- Interest #2: ${chosenInterests[1] || chosenInterests[0] || context.interests[0]}
+- One grounded detail: ${chosenDetail}
+${context.quirk ? `- Quirk: ${context.quirk}` : ""}
 
-RULES:
-- Follow the LENGTH instruction strictly
-- Make it feel like a real dating profile, not marketing copy
-- Do NOT start with: "I'm a", "Usually found", "Secret talent"
-- Do NOT use labels like "Interests:" or "About me:"
-- 0-2 emojis max
-- AVOID emdashes (—). Use periods, commas, or line breaks instead.
-- Include 1-3 specific details woven naturally
-- Vary sentence structure: some fragments OK, some full sentences
-- Output ONLY the bio text, no quotes, no explanation`;
+${context.lookingForLine ? `Also include this exact line about why they are on the app or what they want:\n- ${context.lookingForLine}\n` : ""}
+
+FORMAT:
+- Exactly ${targetLines} line(s). Use line breaks.
+- Max 4 lines total.
+- 0-2 emojis max.
+- Never use em dashes.
+
+TONE:
+- Grounded and human, not surreal, not random, not marketing copy.
+- No labels like "Interests:" or "About me:"
+- Do not start with: "I'm a", "Usually found", "Secret talent"
+
+Output ONLY the bio text.`;
 
   try {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 170,
-      temperature: 0.95,
-    });
 
-    const text = response.choices?.[0]?.message?.content?.trim();
-    return text || null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 110,
+        temperature: 0.65,
+        presence_penalty: 0.7,
+        frequency_penalty: 0.6,
+      });
+
+      const text = response.choices?.[0]?.message?.content?.trim();
+      if (!text) continue;
+      if (!isBadBio(text)) return text;
+    }
+
+    return null;
   } catch (error) {
     console.error("OpenAI bio generation failed:", error);
     return null;
   }
 }
 
-function generateFallbackBio(interests: string[], quirk: string): string {
-  const templates = [
-    `I get weird about ${pick(interests)}. ${quirk}`,
-    `Two truths: ${pick(interests)} matters. ${pick(interests)} matters more. ${quirk}`,
-    `If you bring opinions about ${pick(interests)}, I will respect you. ${quirk}`,
-    `I will absolutely talk your ear off about ${pick(interests)}. ${quirk}`,
-    `Come with me: ${pick(interests)} and then ${pick(interests)}. ${quirk}`,
-  ];
-  return pick(templates);
+function generateFallbackBio(interests: string[], quirk: string | null, lookingForLine?: string | null): string {
+  const i1 = interests[0] || "good food";
+  const i2 = interests[1] || interests[0] || "weekend plans";
+  const d = pick(BIO_DETAILS);
+
+  const lines: string[] = [];
+
+  const roll = Math.random();
+  if (roll < 0.33) lines.push(`${i1}, ${i2}.`);
+  else if (roll < 0.66) lines.push(`Into ${i1} and ${i2}.`);
+  else lines.push(`Here for ${i1} and ${i2}.`);
+
+  if (chance(0.75)) lines.push(`${d}.`);
+  if (quirk && chance(0.45)) lines.push(quirk);
+
+  if (lookingForLine) lines.push(lookingForLine);
+
+  // Max 4 lines
+  return lines.slice(0, 4).join("\n");
 }
 
 async function generateUniqueBio(context: {
@@ -414,9 +439,10 @@ async function generateUniqueBio(context: {
   gender: string;
   archetypeLabel: string;
   interests: string[];
-  quirk: string;
+  quirk: string | null;
   flirtPercent: number;
   valentinesEager: boolean;
+  lookingForLine?: string | null;
 }): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const bio = await generateBioWithOpenAI(context);
@@ -428,13 +454,14 @@ async function generateUniqueBio(context: {
       }
     }
   }
-  const fallback = generateFallbackBio(context.interests, context.quirk);
+
+  const fallback = generateFallbackBio(context.interests, context.quirk, context.lookingForLine || null);
   storage.usedBioHashes.add(hashBio(fallback));
   return fallback;
 }
 
 // ------------------------------------------------------------
-// Character spec generation (now includes flirtPercent, flirtStyle, valentinesEager, chaos flags)
+// Character spec generation
 // ------------------------------------------------------------
 function generateCharacterSpec(context: {
   name: string;
@@ -452,48 +479,33 @@ function generateCharacterSpec(context: {
   const seed = crypto.createHash("md5").update(context.name + context.archetypeLabel + context.quirk).digest("hex");
   const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
 
-  const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend", "vibes only"];
-  const intelligenceVibes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical", "creative", "chill"];
-  const moralityFlavors = ["kind", "neutral", "messy", "blunt", "slightly toxic", "overly honest", "wholesome", "chaotic good"];
-  const attachmentStyles = ["secure", "anxious", "avoidant", "chaotic", "unknown"];
-  const conflictStyles = ["direct", "avoidant", "joking", "stonewalling", "diplomatic"];
-  const humorTypes = ["dry", "absurdist", "roast", "dad-jokes", "sardonic", "chaotic", "wholesome"];
-  const energyLevels = ["low", "medium", "high", "unhinged"];
+  const goals = ["flirt", "relationship", "validation", "debate", "sincere", "making a friend", "vibes only"];
+  const intelligenceVibes = ["academic", "street smart", "chill", "witty", "creative", "philosophical"];
+  const moralityFlavors = ["kind", "neutral", "blunt", "messy", "overly honest", "wholesome", "chaotic good"];
+  const attachmentStyles = ["secure", "anxious", "avoidant", "unknown"];
+  const conflictStyles = ["direct", "avoidant", "joking", "diplomatic"];
+  const humorTypes = ["dry", "absurdist", "roast", "sardonic", "wholesome"];
+  const energyLevels = ["low", "medium", "high"];
 
   const stylePool = [
-    { emojis: "frequent", punctuation: "loose", slang: "high", caps: "minimal", length: "short" },
-    { emojis: "rare", punctuation: "perfect", slang: "low", caps: "proper", length: "moderate" },
-    { emojis: "moderate", punctuation: "none", slang: "moderate", caps: "lowercase", length: "punchy" },
-    { emojis: "frequent", punctuation: "excessive!!!", slang: "internet speak", caps: "all caps for emphasis", length: "varied" },
+    { emojis: "rare", punctuation: "normal", slang: "moderate", caps: "minimal", length: "short" },
     { emojis: "occasional", punctuation: "minimal", slang: "gen-z", caps: "no caps ever", length: "short bursts" },
-    { emojis: "none", punctuation: "proper", slang: "none", caps: "normal", length: "thoughtful" }
+    { emojis: "none", punctuation: "proper", slang: "low", caps: "normal", length: "thoughtful" },
+    { emojis: "moderate", punctuation: "loose", slang: "high", caps: "minimal", length: "punchy" },
   ];
 
   const bits = [
-    "teasing the user relentlessly",
-    "asking weird would-you-rather questions",
-    "using overly dramatic metaphors",
-    "sending one-word replies then a long follow-up",
-    "constantly referencing a secret project",
-    "predicting the user's future",
-    "correcting the user's grammar as a joke",
-    "describing imaginary voice notes",
-    "making everything into a competition",
-    "dropping random facts",
-    "being suspiciously specific about niche topics",
-    "using a signature catchphrase",
-    "referencing obscure movies nobody knows",
-    "replying in questions",
-    "being mysteriously vague",
+    "teasing the user (lightly)",
+    "asking a specific question",
+    "being blunt in a funny way",
+    "dropping one random fact sometimes",
+    "turning things into a playful challenge",
   ];
 
   const chaosTypes = [
-    "cartoon villain energy",
-    "main character syndrome",
-    "harmless conspiracy brain",
-    "time traveler logic",
-    "dramatic opera monologue",
-    "prophecy speaker",
+    "extra dramatic",
+    "mildly unhinged",
+    "main character energy",
     "romcom menace",
   ];
 
@@ -537,18 +549,16 @@ function generateCharacterSpec(context: {
 // Profile generation config
 // ------------------------------------------------------------
 const PROFILE_BUFFER_TARGET = 45;
-const PROFILE_GEN_BATCH_SIZE = 12;      // smaller batch to keep UI feeling fast
+const PROFILE_GEN_BATCH_SIZE = 12;
 const PROFILE_LOW_THRESHOLD = 15;
 
-// Track if background generation is already running
 let isGeneratingProfiles = false;
 
-// Chaos tuning
-const CHAOS_OVERALL_RATE = 0.30;        // ~30% chaos overall
-const PARANOID_BUCKET_CAP = 0.10;       // combined paranoid/suspicious/doomsday around 10%
+// Tone down chaos
+const CHAOS_OVERALL_RATE = 0.12;
 
+// Flirt tuning
 function generateFlirtPercent(): number {
-  // Majority over 50%
   const roll = Math.random();
   if (roll < 0.70) return randInt(55, 95);
   if (roll < 0.90) return randInt(35, 55);
@@ -559,8 +569,8 @@ function pickFlirtStyle(flirtPercent: number): string {
   const high = flirtPercent >= 70;
   const mid = flirtPercent >= 50;
 
-  const stylesHigh = ["coquettish", "horny", "feral", "menace-flirty", "playful"];
-  const stylesMid = ["playful", "coquettish", "bold", "teasing"];
+  const stylesHigh = ["coquettish", "bold", "teasing", "playful"];
+  const stylesMid = ["playful", "coquettish", "teasing"];
   const stylesLow = ["shy", "awkward", "friendly", "guarded"];
 
   if (high) return pick(stylesHigh);
@@ -568,53 +578,44 @@ function pickFlirtStyle(flirtPercent: number): string {
   return pick(stylesLow);
 }
 
-function pickPersonaWithCaps(): PersonaTemplate {
-  // Keep paranoidBucket around cap by limiting selection probability
-  const paranoid = EXPANDED_PERSONAS.filter(p => p.paranoidBucket);
-  const normal = EXPANDED_PERSONAS.filter(p => !p.paranoidBucket);
+// Quirk control: not every profile gets one
+function pickQuirk(): string | null {
+  // Only 35% of profiles get any quirk at all
+  if (!chance(0.35)) return null;
 
-  // Select paranoid only with capped chance
-  if (chance(PARANOID_BUCKET_CAP) && paranoid.length > 0) return pick(paranoid);
-  return pick(normal);
-}
+  const mugColor = pick(["green", "orange", "black", "clear glass", "ceramic", "metal", "pink", "yellow", "white"]);
+  const pool: { text: string; weight: number }[] = [
+    { text: "I make playlists for every mood.", weight: 14 },
+    { text: "I name all my houseplants.", weight: 12 },
+    { text: "I have opinions about font kerning.", weight: 10 },
+    { text: "I've memorized way too many movie quotes.", weight: 10 },
+    { text: "I'm a semi-pro at GeoGuessr.", weight: 8 },
+    { text: "I still have a flip phone for the aesthetic.", weight: 6 },
+    { text: "I can't eat pizza without ranch.", weight: 10 },
+    { text: "I sleep with a fan on, even in winter.", weight: 10 },
+    { text: "I've never seen Star Wars. Be gentle.", weight: 8 },
+    { text: "I have a notes app full of first-date ideas.", weight: 8 },
+    { text: "I keep emergency snacks in every bag I own.", weight: 8 },
 
-function pickQuirk(): string {
-  const mugColor = randomMugColor();
-  
-  // Regular quirks (common)
-  const commonQuirks = [
-    "I make playlists for every mood.",
-    "I name all my houseplants.",
-    "I have opinions about font kerning.",
-    "I've memorized way too many movie quotes.",
-    "I'm a semi-pro at GeoGuessr.",
-    "I still have a flip phone for the aesthetic.",
-    "I can't eat pizza without ranch.",
-    "I sleep with a fan on, even in winter.",
-    "I've never seen Star Wars. Be gentle.",
-    "I have a notes app full of first-date ideas.",
-    "I will absolutely judge your grocery cart (lovingly).",
-    "I keep emergency snacks in every bag I own.",
-    "I take selfies like it's a hostage situation.",
-    "I have a very intense opinion about fonts and will not apologize.",
-  ];
-  
-  // Rare quirks (~3% each)
-  const rareQuirks = [
-    `I only drink coffee from one specific ${mugColor} mug. No exceptions.`,
-    "I collect tiny spoons like it's an Olympic sport.",
-    "I'm weirdly good at naming pets.",
+    // Ultra rare specifics
+    { text: `I only drink coffee from one specific ${mugColor} mug. No exceptions.`, weight: 0.35 },
+    { text: "I collect tiny spoons like it's an Olympic sport.", weight: 0.20 },
+    { text: "I'm weirdly good at naming pets.", weight: 0.20 },
+    { text: "I am weirdly into maps.", weight: 0.18 },
   ];
 
-  // 3% chance for each rare quirk
-  if (chance(0.03)) return rareQuirks[0]; // mug
-  if (chance(0.03)) return rareQuirks[1]; // spoons
-  if (chance(0.03)) return rareQuirks[2]; // naming pets
-  
-  return pick(commonQuirks);
+  const total = pool.reduce((s, p) => s + p.weight, 0);
+  let r = Math.random() * total;
+  for (const item of pool) {
+    r -= item.weight;
+    if (r <= 0) return item.text;
+  }
+  return pool[0].text;
 }
 
+// ------------------------------------------------------------
 // Background profile generation
+// ------------------------------------------------------------
 async function generateProfilesInBackground(
   genderPref: string,
   minAge: number,
@@ -655,7 +656,6 @@ async function generateProfilesInBackground(
 
     const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-    // Generate profiles in parallel batches of 5
     const batchSize = 5;
     for (let batchStart = 0; batchStart < count; batchStart += batchSize) {
       const batchEnd = Math.min(batchStart + batchSize, count);
@@ -663,8 +663,7 @@ async function generateProfilesInBackground(
 
       for (let i = batchStart; i < batchEnd; i++) {
         batchPromises.push((async () => {
-          const persona = pickPersonaWithCaps();
-          const age = generateAge(minAge, maxAge);
+          const persona = pickTraitWithCap(PRIMARY_TRAITS);
 
           let gender: string;
           if (genderPref === "male") gender = "male";
@@ -677,29 +676,29 @@ async function generateProfilesInBackground(
             else gender = "other";
           }
 
+          const age = generateAge(minAge, maxAge);
           const firstNames = gender === "male" ? maleFirstNames : gender === "female" ? femaleFirstNames : otherFirstNames;
           const name = generateUniqueName(firstNames, lastInitials);
+
+          // Record the primary trait after selection
+          recordTrait(persona.label);
 
           const flirtBase = generateFlirtPercent();
           const flirtPercent = clamp(flirtBase + (persona.flirtBias || 0), 0, 100);
           const flirtStyle = pickFlirtStyle(flirtPercent);
 
-          const valentinesEager = chance(0.10) || Boolean(persona.valentinesBias);
-
-          // Chaos selection
-          const chaosChance = clamp(CHAOS_OVERALL_RATE + (persona.chaosBias || 0), 0, 0.85);
+          // Low chaos, and only if persona nudges it
+          const chaosChance = clamp(CHAOS_OVERALL_RATE + (persona.chaosBias || 0), 0, 0.35);
           const isChaos = chance(chaosChance);
 
-          const quirk = pickQuirk();
+          // Looking for line in 5% of bios
+          const lookingForLine = chance(0.05) ? pick(LOOKING_FOR_LINES) : null;
 
-          // Fish guy needs stronger quirk and interests
-          const finalQuirk = persona.label === "Fish Holding Boat Guy"
-            ? "If I am not holding a fish, assume I am about to be holding a fish."
-            : quirk;
+          // Interests: keep it simple, 2 max
+          const interests = pickN(persona.interests, Math.min(2, persona.interests.length));
 
-          const interests = persona.label === "Fish Holding Boat Guy"
-            ? ["holding fish", "boats", "holding fish on boats", "telling you it was THIS big"]
-            : persona.interests;
+          // Quirk: optional
+          const quirk = persona.quirkHint && chance(0.25) ? persona.quirkHint : pickQuirk();
 
           const bio = await generateUniqueBio({
             name,
@@ -707,9 +706,10 @@ async function generateProfilesInBackground(
             gender,
             archetypeLabel: persona.label,
             interests,
-            quirk: finalQuirk,
+            quirk,
             flirtPercent,
-            valentinesEager,
+            valentinesEager: false,
+            lookingForLine,
           });
 
           const charSpec = generateCharacterSpec({
@@ -718,28 +718,39 @@ async function generateProfilesInBackground(
             gender,
             archetypeLabel: persona.label,
             interests,
-            quirk: finalQuirk,
+            quirk: quirk || "No weird quirks. Just vibes.",
             flirtPercent,
             flirtStyle,
-            valentinesEager,
+            valentinesEager: false,
             isChaos,
           });
 
-          const nextProfileId = storage["currentId"].profiles + i;
           const imageId = storage.getUniqueImageId(gender as "male" | "female" | "other");
-          const imageUrl = buildImageUrl(imageId, nextProfileId);
 
+          // Create profile first so we have the real profile.id for the image URL
           const profile = await storage.createProfile({
             name,
             age,
             bio,
             gender,
-            imageUrl,
+            imageUrl: "",
             isAI: true,
             characterSpec: charSpec,
           });
 
-          console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age}) -> ${persona.label}`);
+          const imageUrl = buildImageUrl(imageId, profile.id);
+
+          // Prefer an explicit storage update method if it exists
+          if (typeof (storage as any).updateProfileImageUrl === "function") {
+            await (storage as any).updateProfileImageUrl(profile.id, imageUrl);
+          } else if (typeof (storage as any).updateProfile === "function") {
+            await (storage as any).updateProfile(profile.id, { imageUrl });
+          } else {
+            // Fallback: mutate if storage returns live object references
+            (profile as any).imageUrl = imageUrl;
+          }
+
+          console.log(`[BG Gen] Created profile: ${name} (${gender}, ${age}) trait=${persona.label}`);
           return profile;
         })());
       }
@@ -771,7 +782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const minAge = Math.max(21, Math.min(99, rawMinAge));
     const maxAge = Math.max(21, Math.min(99, rawMaxAge));
 
-    console.log(`[Profiles] Request start - gender=${genderPref}, age=${minAge}-${maxAge}`);
+    console.log(`[Profiles] Request start gender=${genderPref}, age=${minAge}-${maxAge}`);
 
     const fetchStart = Date.now();
     let unseen = await storage.getUnseenProfiles(userId);
@@ -874,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Profile not found" });
       }
 
-      console.log(`[GET /api/matches/by-id/${matchId}] Success - match.id=${match.id}, profile.id=${profile.id}, profile.name=${profile.name}`);
+      console.log(`[GET /api/matches/by-id/${matchId}] Success match.id=${match.id}, profile.id=${profile.id}, profile.name=${profile.name}`);
       res.json({ match, profile });
     } catch (error) {
       console.error("[GET /api/matches/by-id] Error:", error);
@@ -888,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
 
       const matches = await storage.getMatches(userId);
-      console.log(`[GET /api/matches/${userId}] Returning ${matches.length} matches: [${matches.map(m => `{id:${m.id},profileId:${m.profileId}}`).join(", ")}]`);
+      console.log(`[GET /api/matches/${userId}] Returning ${matches.length} matches`);
       res.json(matches);
     } catch (error) {
       console.error("[GET /api/matches] Error:", error);
@@ -945,13 +956,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     let match = matches.find(m => m.id === incomingId);
     if (match) {
-      console.log(`[Resolver] ID ${incomingId} resolved as matchId -> match.id=${match.id}, profileId=${match.profileId}`);
+      console.log(`[Resolver] ID ${incomingId} resolved as matchId match.id=${match.id}, profileId=${match.profileId}`);
       return { match, matchId: match.id };
     }
 
     match = matches.find(m => m.profileId === incomingId);
     if (match) {
-      console.log(`[Resolver] ID ${incomingId} resolved as profileId -> match.id=${match.id}, profileId=${match.profileId}`);
+      console.log(`[Resolver] ID ${incomingId} resolved as profileId match.id=${match.id}, profileId=${match.profileId}`);
       return { match, matchId: match.id };
     }
 
@@ -964,7 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const incoming = parseInt(req.params.id);
       if (isNaN(incoming)) return res.status(400).json({ error: "Invalid id" });
 
-      console.log(`[GET /api/messages/${incoming}] Resolving ID...`);
+      console.log(`[GET /api/messages/${incoming}] Resolving ID`);
       const resolved = await resolveMatchId(incoming);
 
       if (!resolved) {
@@ -984,15 +995,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req, res) => {
     try {
       const message = insertMessageSchema.parse(req.body);
-      console.log(`[POST /api/messages] Incoming matchId: ${message.matchId}, content: "${message.content.substring(0, 30)}..."`);
+      console.log(`[POST /api/messages] Incoming matchId: ${message.matchId}`);
 
       const resolved = await resolveMatchId(message.matchId);
       if (!resolved) {
         console.log(`[POST /api/messages] Match not found for id=${message.matchId}`);
         return res.status(404).json({ error: "Match not found" });
       }
-
-      console.log(`[POST /api/messages] Resolved to matchId=${resolved.matchId}`);
 
       const createdMessage = await storage.createMessage({
         ...message,
@@ -1073,7 +1082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log(`[Admin] Returning ${allImages.length} unique images (${MEN_PORTRAIT_IDS.length} male, ${WOMEN_PORTRAIT_IDS.length} female, ${ANDROGYNOUS_PORTRAIT_IDS.length} other)`);
+      console.log(`[Admin] Returning ${allImages.length} unique images`);
       res.json(allImages);
     } catch (error) {
       console.error("[Admin] Error fetching images:", error);
@@ -1120,7 +1129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changes.toOther.forEach(id => console.log(`  "${id}",`));
       }
       if (changes.broken.length > 0) {
-        console.log("\nBROKEN - Remove from all arrays:");
+        console.log("\nBROKEN remove from all arrays:");
         changes.broken.forEach(id => console.log(`  "${id}",`));
       }
       console.log("\n=== END CHANGES ===\n");

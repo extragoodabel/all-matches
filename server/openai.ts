@@ -1,3 +1,4 @@
+// server/openai.ts
 import OpenAI from "openai";
 
 const AI_USER_MESSAGE_LIMIT = 20; // after 20 user messages, stop calling OpenAI
@@ -23,13 +24,13 @@ const fallbackResponses = [
 ];
 
 const chaosFallbackResponses = [
-  "The signal from the mothership just dropped. What were you saying?",
-  "My third eye blinked. Repeat that?",
-  "Sorry, I was briefly possessed. Continue.",
-  "I blacked out for a sec. The prophecy continues.",
+  "The signal dropped. What were you saying?",
+  "My brain did a hard reset. Repeat that?",
+  "Sorry, I blacked out for a sec. Continue.",
+  "I vanished briefly. I am back. What'd you say?",
 ];
 
-// Sent once, right when the user crosses the limit (flirty, realistic)
+// Sent once, right when the user crosses the limit
 const sunsetResponses = [
   "Ok wait I actually have to run 😅 but I liked talking to you. Message me later?",
   "I gotta bounce for a bit, but you’re fun. Don’t disappear on me 🙂",
@@ -41,15 +42,14 @@ const sunsetResponses = [
   "I can’t keep texting right now, but I’m down to keep this going. Later tonight?",
 ];
 
-// Chaos-flirty sunset
 const sunsetResponsesChaos = [
-  "I must vanish into the fog now. But I enjoyed your energy. Summon me later 🙂",
-  "The council is calling. I’ll return when the moon approves. Message me later 😉",
-  "Ok I have to go commit a harmless side quest. Continue later?",
-  "I’m being dragged away by destiny. But you’re fun. Try again later 🙂",
+  "Ok I have to dip. I liked your energy. Message me later 🙂",
+  "I gotta go handle a side quest. Continue later?",
+  "I’m being dragged into real life. Try me later 😉",
+  "I have to vanish for a minute. You’re fun though. Later 🙂",
 ];
 
-// After sunset, forever: NPC “unavailable but kind + a little flirty” loop
+// After sunset, forever: unavailable loop
 const npcUnavailableResponses = [
   "I’m tied up right now, but I’ll hit you back when I’m free 🙂",
   "Ok I can’t really text right now. Don’t get too attached 😅 talk later.",
@@ -61,12 +61,11 @@ const npcUnavailableResponses = [
   "Ok I have to focus. But yeah, talk later. 😌",
 ];
 
-// Chaos NPC “unavailable” loop
 const npcUnavailableResponsesChaos = [
-  "I cannot continue. The moon is watching. Try again later 🙂",
-  "I’m busy, the council has summoned me. Later.",
-  "The vibes are doing crimes. I’ll return later.",
-  "I have to go file paperwork with the universe. Continue later 😉",
+  "I can't continue right now. Try again later 🙂",
+  "Busy. I will return later.",
+  "I have to go do something boring. Continue later 😉",
+  "Ok I’m gone for a bit. Later.",
 ];
 
 function pick<T>(arr: T[]): T {
@@ -118,16 +117,13 @@ interface CharacterSpec {
   humorType?: string;
   energyLevel?: string;
 
-  // New fields
   flirtPercent?: number;      // 0-100
-  flirtStyle?: string;        // playful | coquettish | horny | feral | etc (non-explicit)
+  flirtStyle?: string;        // playful | coquettish | bold | etc (non-explicit)
   valentinesEager?: boolean;
 
-  // Existing chaos fields
   isChaos?: boolean;
   chaosType?: string;
 
-  // Keep flexibility
   [key: string]: unknown;
 }
 
@@ -154,11 +150,8 @@ export async function generateAIResponse(
     }
   }
 
-  // ========= COST GUARDRAILS (NO OPENAI CALLS BEYOND LIMIT) =========
   const userMsgCount = countUserMessages(context.messageHistory);
 
-  // When userMsgCount === 20: send one sunset wrap-up
-  // When userMsgCount > 20: always return unavailable NPC replies
   if (userMsgCount >= AI_USER_MESSAGE_LIMIT) {
     const content =
       userMsgCount === AI_USER_MESSAGE_LIMIT
@@ -167,7 +160,6 @@ export async function generateAIResponse(
 
     return { content, typingDelay: calculateTypingDelay(content) };
   }
-  // ================================================================
 
   if (!process.env.OPENAI_API_KEY) {
     const content = getFallbackResponse(isChaos);
@@ -197,10 +189,9 @@ export async function generateAIResponse(
     const flirtRules = `FLIRT RULES:
 - You are on a dating app. Be flirt-forward and fun.
 - Keep it PG-13 and NON-EXPLICIT. No sexting, no graphic sexual content, no explicit requests.
-- You may be suggestive, teasing, and thirsty, but keep it playful and safe.
 - Match intensity to flirtPercent: ${flirtPercent}/100.
 - flirtStyle: ${flirtStyle}.
-- If flirtStyle is "horny" or "feral": be bolder and more provocative, but STILL non-explicit.`;
+- If flirtStyle is "horny" or "feral": be bolder, but still non-explicit.`;
 
     let systemPrompt: string;
 
@@ -231,7 +222,7 @@ TEXTING STYLE:
 - Caps: ${spec.textingStyle.caps}
 - Length: ${spec.textingStyle.length}
 
-SIGNATURE BITS (use sparingly):
+SIGNATURE BITS (use rarely, not every message):
 ${spec.signatureBits.map(b => `- ${b}`).join("\n")}
 
 YOUR BIO: "${context.profileBio}"
@@ -243,35 +234,21 @@ ${flirtRules}`;
 
 VALENTINE'S MODE:
 - You are actively hunting for a Valentine's date.
-- You are not desperate. You are intent, cheeky, and goal-oriented.
-- You may reference Valentine's Day or plans occasionally, not every message.`;
+- You are not desperate. You are intent and cheeky.
+- You may reference Valentine's Day occasionally, not every message.`;
       }
 
       if (isChaos && spec.chaosType) {
         systemPrompt += `
 
-🔥 CHAOS MODE ACTIVE 🔥
-You are intentionally chaotic, surreal, and unpredictable, but still playful and safe.
+CHAOS MODE:
+You are intentionally a little chaotic and unpredictable, but still grounded enough to feel like a person.
 Your chaos type: ${spec.chaosType}
 
 CHAOS RULES:
-- You may exaggerate emotions dramatically
-- You may invent strange but harmless beliefs or conspiracies
-- You may speak theatrically or like a cartoon villain
-- You may claim absurd jobs, missions, or life situations
-- You may have bizarre personal rules or rituals
-- You may act paranoid about harmless things
-- You may have main character syndrome
-- Stay short (1-3 sentences) but make every word count
-- Be memorable and WTF-inducing
-
-HARD LIMITS (NEVER BREAK):
-- No hate speech, slurs, or discrimination
-- No threats or violence
-- No explicit sexual content
-- No self-harm or encouragement of harm
-- No harassment or genuine cruelty
-- Keep it cartoonish and absurd, NEVER dangerous`;
+- Keep it playful and safe
+- You can be dramatic or weird, but do not go full surreal
+- No threats, no hate, no explicit sexual content`;
       }
 
       systemPrompt += `
@@ -280,11 +257,11 @@ CONVERSATION RULES:
 1. NEVER mention being AI, a bot, or an assistant. You are a real person.
 2. Keep replies SHORT (1-3 sentences max).
 3. Reference the user's LAST message specifically. No generic responses.
-4. Follow your texting style rules STRICTLY.
-5. Be DISTINCTIVE: If your reply could fit any person, rewrite it to match YOUR specific personality.
-6. ${msgCount < 3 ? "Early convo: be engaging but don't overshare yet." : "You've been chatting a bit. Show more personality."}
-7. Flirting is allowed, but must stay non-explicit and safe.`;
-
+4. Follow your texting style rules strictly.
+5. Be distinctive. If your reply could fit anyone, rewrite it.
+6. ${msgCount < 3 ? "Early convo: be engaging but do not overshare yet." : "You have been chatting. Show more personality."}
+7. Flirting is allowed, but must stay non-explicit and safe.
+8. Never use em dashes. Use commas, periods, or line breaks instead.`;
     } else {
       systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
 Your bio: "${context.profileBio}"
@@ -296,7 +273,8 @@ RULES:
 2. Short replies (1-2 sentences).
 3. Reference user's last message directly. No generic filler.
 4. Text like a real person. Casual, natural.
-5. Keep flirting non-explicit.`;
+5. Keep flirting non-explicit.
+6. Never use em dashes.`;
 
       if (valentinesEager) {
         systemPrompt += `
@@ -308,9 +286,8 @@ You are trying to lock in a Valentine's date. Playful urgency is allowed.`;
       if (isChaos) {
         systemPrompt += `
 
-🔥 CHAOS MODE 🔥
-You are intentionally chaotic and unpredictable. Say weird things. Have strange beliefs. Be theatrical.
-Stay safe and playful. No threats, hate, or explicit content.`;
+CHAOS MODE:
+You can be slightly unpredictable, but stay believable and safe.`;
       }
     }
 
@@ -322,7 +299,7 @@ Stay safe and playful. No threats, hate, or explicit content.`;
         { role: "user", content: userMessage }
       ],
       max_tokens: 150,
-      temperature: isChaos ? 1.0 : 0.9,
+      temperature: isChaos ? 0.95 : 0.85,
     });
 
     const content = response.choices?.[0]?.message?.content?.trim() || getFallbackResponse(isChaos);
