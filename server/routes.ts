@@ -308,9 +308,9 @@ function generateCharacterSpec(context: {
 }
 
 // ============ PROFILE GENERATION CONFIG ============
-const PROFILE_BUFFER_TARGET = 30;        // Target number of unseen profiles to maintain
-const PROFILE_GEN_BATCH_SIZE = 20;       // How many profiles to generate per background batch
-const PROFILE_LOW_THRESHOLD = 10;        // Trigger background generation when below this
+const PROFILE_BUFFER_TARGET = 50;        // Target number of unseen profiles to maintain
+const PROFILE_GEN_BATCH_SIZE = 25;       // How many profiles to generate per background batch
+const PROFILE_LOW_THRESHOLD = 20;        // Trigger background generation when below this
 const IMAGE_VALIDATION_TIMEOUT = 1500;   // Image validation timeout (ms)
 
 // Track if background generation is already running to prevent duplicate runs

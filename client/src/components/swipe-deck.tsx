@@ -175,8 +175,29 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
   const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
+  const [lastProfileIds, setLastProfileIds] = useState<string>("");
 
   const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
+  
+  // Reset seen profiles when we get a fresh batch from the server
+  useEffect(() => {
+    const currentIds = profiles.map(p => p.id).sort().join(',');
+    if (currentIds !== lastProfileIds && profiles.length > 0) {
+      // New profiles arrived - only keep seen IDs that are still in the new batch
+      setSeenProfileIds(prev => {
+        const profileIdSet = new Set(profiles.map(p => p.id));
+        const newSet = new Set<number>();
+        prev.forEach(id => {
+          if (profileIdSet.has(id)) {
+            newSet.add(id);
+          }
+        });
+        return newSet;
+      });
+      setLastProfileIds(currentIds);
+      setCurrentIndex(0);
+    }
+  }, [profiles, lastProfileIds]);
   
   useEffect(() => {
     if (currentIndex >= profiles.length && profiles.length > 0) {
