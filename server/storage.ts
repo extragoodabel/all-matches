@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
 import crypto from "crypto";
-import { MALE_PHOTO_POOL, FEMALE_PHOTO_POOL, shufflePool } from "./photoPools";
+import { MALE_PHOTO_POOL, FEMALE_PHOTO_POOL, shufflePool, getImageUrl } from "./photoPools";
 
 function generateMockCharacterSpec(name: string, bio: string, age: number, gender: string): string {
   const seed = crypto.createHash('md5').update(name + bio).digest('hex');
@@ -86,11 +86,11 @@ export class MemStorage implements IStorage {
   public usedNames: Set<string>;
   public usedBioHashes: Set<string>;
   
-  // Image pools with non-reuse tracking
-  public maleImagePool: string[];
-  public femaleImagePool: string[];
-  public usedMaleImageIds: Set<string>;
-  public usedFemaleImageIds: Set<string>;
+  // Image pools with non-reuse tracking (using numeric indices now)
+  public maleImagePool: number[];
+  public femaleImagePool: number[];
+  public usedMaleImageIds: Set<number>;
+  public usedFemaleImageIds: Set<number>;
 
   constructor() {
     this.users = new Map();
@@ -100,7 +100,7 @@ export class MemStorage implements IStorage {
     this.usedNames = new Set();
     this.usedBioHashes = new Set();
     
-    // Initialize shuffled image pools
+    // Initialize shuffled image pools (now arrays of numbers 0-99)
     this.maleImagePool = shufflePool(MALE_PHOTO_POOL);
     this.femaleImagePool = shufflePool(FEMALE_PHOTO_POOL);
     this.usedMaleImageIds = new Set();
@@ -116,9 +116,8 @@ export class MemStorage implements IStorage {
     // Initialize with mock profiles (with generated character specs and unique images)
     INITIAL_PROFILES.forEach((profile) => {
       const charSpec = generateMockCharacterSpec(profile.name, profile.bio, profile.age, profile.gender);
-      const imageId = this.getUniqueImageId(profile.gender);
-      const imageUrl = `https://images.unsplash.com/photo-${imageId}?auto=format&fit=crop&w=400&h=600&q=80`;
-      console.log(`[Image] Mock profile ${profile.id} (${profile.gender}): ${imageId}`);
+      const imageUrl = this.getUniqueImageUrl(profile.gender as 'male' | 'female');
+      console.log(`[Image] Mock profile ${profile.id} (${profile.gender}): ${imageUrl}`);
       this.profiles.set(profile.id, {
         ...profile,
         imageUrl,
@@ -131,7 +130,7 @@ export class MemStorage implements IStorage {
     console.log(`[Image] Pools initialized: ${this.maleImagePool.length} male, ${this.femaleImagePool.length} female`);
   }
   
-  getUniqueImageId(gender: string): string {
+  getUniqueImageUrl(gender: 'male' | 'female'): string {
     const isMale = gender === "male";
     const pool = isMale ? this.maleImagePool : this.femaleImagePool;
     const usedSet = isMale ? this.usedMaleImageIds : this.usedFemaleImageIds;
@@ -153,14 +152,14 @@ export class MemStorage implements IStorage {
       const newPool = isMale ? this.maleImagePool : this.femaleImagePool;
       const selected = newPool[0];
       usedSet.add(selected);
-      return selected;
+      return getImageUrl(gender, selected);
     }
     
     // Select random from available
     const selected = available[Math.floor(Math.random() * available.length)];
     usedSet.add(selected);
-    console.log(`[Image] Selected ${gender}: ${selected} (${available.length - 1} remaining)`);
-    return selected;
+    console.log(`[Image] Selected ${gender}: index ${selected} (${available.length - 1} remaining)`);
+    return getImageUrl(gender, selected);
   }
 
   hashBio(bio: string): string {

@@ -336,10 +336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quirk,
         });
 
-        // Get unique image from pool BEFORE creating profile
-        const imageId = storage.getUniqueImageId(gender);
-        const imageUrl = `https://images.unsplash.com/photo-${imageId}?auto=format&fit=crop&w=400&h=600&q=80`;
-        console.log(`[Profile] Created profile ${name} (${gender}, ${age}): image=${imageId}`);
+        // Get unique image URL from pool
+        const imageUrl = storage.getUniqueImageUrl(gender as 'male' | 'female');
+        console.log(`[Profile] Created profile ${name} (${gender}, ${age}): image=${imageUrl}`);
 
         await storage.createProfile({
           name,
