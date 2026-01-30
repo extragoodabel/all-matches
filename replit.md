@@ -37,6 +37,16 @@ Preferred communication style: Simple, everyday language.
 - **API Client**: Centralized `apiRequest` function in `queryClient.ts` for all HTTP requests
 - **Component Structure**: Feature components in `client/src/components/`, UI primitives in `client/src/components/ui/`
 
+### Design System (Jan 2026)
+- **Location**: `client/src/styles/theme.ts` and `client/src/styles/patterns.ts`
+- **Color Palettes**: 6 named palettes (hotshot, citrus, ocean, berry, tropical, sunset)
+- **Patterns**: 12 CSS/SVG patterns (checker, stripes, dots, squiggle, halftone, stars, hearts, zigzag, waves, grid, confetti, diamonds)
+- **Profile Theming**: Each profile gets a deterministic palette and pattern based on profile ID via `getProfileTheme(profileId)`
+- **Session Theming**: `getSessionPalette()` returns a random palette for the session
+- **CSS Variables**: `--eg-primary`, `--eg-secondary`, `--eg-accent`, `--eg-background`, `--eg-text`
+- **Utility Classes**: `.eg-card`, `.eg-button`, `.eg-chip`, `.eg-modal`, `.eg-shadow-offset`, `.eg-outline`, `.eg-chat-bubble-*`
+- **Design Preview**: Available at `/design` route for visual verification
+
 ### Database Schema
 - **users**: Basic user authentication (id, username, password)
 - **profiles**: Dating profiles with name, age, bio, imageUrl, and isAI flag
