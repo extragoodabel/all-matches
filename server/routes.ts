@@ -711,7 +711,7 @@ ${context.quirk ? `- Quirk: ${context.quirk}` : ""}
 
 ${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
-FORMAT: ${targetLines} line(s) max. 0-2 emojis. No em dashes.
+FORMAT: STRICT ${targetLines} line(s) max. Short punchy lines. 0-2 emojis. No em dashes.
 
 VARIETY IS KEY:
 Be original. Don't default to common dating app topics. Surprise the reader with something they haven't seen before.
@@ -727,14 +727,21 @@ Output ONLY the bio text.`;
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 110,
+        max_tokens: 80,
         temperature: 0.65,
         presence_penalty: 0.7,
         frequency_penalty: 0.6,
       });
 
-      const text = response.choices?.[0]?.message?.content?.trim();
+      let text = response.choices?.[0]?.message?.content?.trim();
       if (!text) continue;
+      
+      // Enforce 4 line max by truncating
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length > 4) {
+        text = lines.slice(0, 4).join('\n');
+      }
+      
       if (!isBadBio(text)) return text;
     }
 
