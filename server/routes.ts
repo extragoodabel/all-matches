@@ -520,6 +520,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark a profile as having a bad image (so it won't be returned again)
+  app.post("/api/profiles/:id/bad-image", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid profile ID" });
+
+      console.log(`[Bad Image] Profile ${id} reported as having broken image`);
+      
+      // Delete the profile so it won't be served again
+      const deleted = await storage.deleteProfile(id);
+      if (deleted) {
+        console.log(`[Bad Image] Profile ${id} deleted successfully`);
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[Bad Image] Error:", error);
+      res.status(500).json({ error: "Failed to mark bad image" });
+    }
+  });
+
   app.post("/api/matches", async (req, res) => {
     try {
       console.log(`[POST /api/matches] Incoming body:`, req.body);

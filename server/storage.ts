@@ -69,6 +69,7 @@ export interface IStorage {
   getProfiles(): Promise<Profile[]>;
   createProfile(profile: InsertProfile): Promise<Profile>;
   updateProfile(id: number, updates: Partial<Profile>): Promise<Profile | undefined>;
+  deleteProfile(id: number): Promise<boolean>;
   createMatch(match: InsertMatch): Promise<Match>;
   getMatches(userId: number): Promise<Match[]>;
   createMessage(message: InsertMessage): Promise<Message>;
@@ -254,6 +255,10 @@ export class MemStorage implements IStorage {
     const updated = { ...profile, ...updates };
     this.profiles.set(id, updated);
     return updated;
+  }
+
+  async deleteProfile(id: number): Promise<boolean> {
+    return this.profiles.delete(id);
   }
 
   async createMatch(insertMatch: InsertMatch): Promise<Match> {

@@ -124,24 +124,43 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
   };
 }
 
+// Report bad image to server (fire and forget)
+function reportBadImage(profileId: number) {
+  fetch(`/api/profiles/${profileId}/bad-image`, { method: "POST" })
+    .catch(() => {}); // Ignore errors
+}
+
 export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
+  const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
 
-  // Find the first unseen profile in the current array
-  const currentProfile = profiles.find(p => !seenProfileIds.has(p.id));
+  // Find the first unseen profile that doesn't have a bad image
+  const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
   // Reset index if we've gone past the end but new profiles arrived
   useEffect(() => {
     if (currentIndex >= profiles.length && profiles.length > 0) {
-      // Check if there are any unseen profiles
-      const unseenProfiles = profiles.filter(p => !seenProfileIds.has(p.id));
+      // Check if there are any unseen profiles without bad images
+      const unseenProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
       if (unseenProfiles.length > 0) {
         setCurrentIndex(0);
       }
     }
-  }, [profiles.length, currentIndex, seenProfileIds]);
+  }, [profiles.length, currentIndex, seenProfileIds, badImageIds]);
+
+  const handleImageError = useCallback((profileId: number) => {
+    console.log(`[SwipeDeck] Image error for profile ${profileId}, skipping...`);
+    // Mark this profile as having a bad image
+    setBadImageIds(prev => {
+      const newSet = new Set(Array.from(prev));
+      newSet.add(profileId);
+      return newSet;
+    });
+    // Report to server
+    reportBadImage(profileId);
+  }, []);
 
   const handleSwipe = useCallback((swipeDirection: "left" | "right") => {
     if (!currentProfile || direction) return;
@@ -180,8 +199,8 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
     );
   }
 
-  // Check if there are any unseen profiles
-  const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id));
+  // Check if there are any unseen profiles without bad images
+  const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
   if (!currentProfile || remainingProfiles.length === 0) {
     return (
@@ -224,7 +243,10 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
             {...handlers}
           >
             <div className="relative pointer-events-none">
-              <ProfileCard profile={currentProfile} />
+              <ProfileCard 
+                profile={currentProfile} 
+                onImageError={() => handleImageError(currentProfile.id)}
+              />
               
               {swipeIndicator === "like" && (
                 <div className="absolute inset-0 bg-green-500/20 rounded-2xl flex items-center justify-center">
