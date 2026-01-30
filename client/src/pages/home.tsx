@@ -159,8 +159,8 @@ export default function Home() {
           '--eg-background': palette.background,
         } as React.CSSProperties}
       >
-        <div className="flex-shrink-0 px-4 pt-3 pb-2">
-        <div className="flex justify-between items-center relative z-50">
+        <div className="flex-shrink-0 px-3 sm:px-4 pt-3 pb-2">
+        <div className="flex justify-between items-center relative z-50 gap-2">
           <button 
             onClick={() => setLocation("/inbox")}
             className="p-3 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--eg-accent)] transition-all"
