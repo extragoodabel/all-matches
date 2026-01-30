@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
@@ -8,6 +8,14 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
 import { Settings2, MessageCircle, RotateCcw, X, Heart } from "lucide-react";
 import { HeartKiss, StarFirework } from "@/components/easter-eggs";
+import { 
+  MeansNothingGlitch, 
+  ValidationAcquired, 
+  ToughCrowdEffect,
+  useLogoLongPress,
+  useToughCrowd,
+  useHeaderClickSpam,
+} from "@/components/valentine-easter-eggs";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
 import { getSessionPalette } from "@/styles/theme";
@@ -23,6 +31,18 @@ export default function Home() {
   const patternStyle = getPatternStyle('stripes');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Easter egg states
+  const [meansNothingActive, setMeansNothingActive] = useState(false);
+  const [validationActive, setValidationActive] = useState(false);
+  const { recordSwipe: recordToughCrowdSwipe, isActive: toughCrowdActive } = useToughCrowd();
+  const { recordClick: recordHeaderClick, showAlternate: showValidationVending } = useHeaderClickSpam();
+  
+  const handleLogoLongPress = useCallback(() => {
+    setValidationActive(true);
+  }, []);
+  
+  const { startPress: logoStartPress, endPress: logoEndPress, isPressed: logoIsPressed } = useLogoLongPress(handleLogoLongPress);
   
   const [draftAgeRange, setDraftAgeRange] = useState<[number, number]>([
     preferences.minAge,
@@ -83,7 +103,15 @@ export default function Home() {
   }, [shuffledProfiles, profiles, preferences]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
+    // Easter egg: track swipes for tough crowd
+    recordToughCrowdSwipe(direction);
+    
     if (direction === "right") {
+      // Easter egg: 1% chance of "means nothing" glitch
+      if (Math.random() < 0.01) {
+        setMeansNothingActive(true);
+      }
+      
       setCurrentMatch({ profile, matchId: null });
       
       try {
@@ -170,17 +198,30 @@ export default function Home() {
           </button>
           
           <div className="flex-1 text-center min-w-0">
-            <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
+            <h1 
+              className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl select-none"
+              onMouseDown={logoStartPress}
+              onMouseUp={logoEndPress}
+              onMouseLeave={logoEndPress}
+              onTouchStart={logoStartPress}
+              onTouchEnd={logoEndPress}
+              onClick={recordHeaderClick}
+              style={{ 
+                cursor: 'pointer',
+                transform: logoIsPressed ? 'scale(1.05)' : validationActive ? 'scale(1)' : 'scale(1)',
+                animation: validationActive ? 'heartbeat 0.6s ease-in-out infinite' : 'none',
+              }}
+            >
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 transition-all duration-300"
                 style={{ 
                   color: palette.background,
                   background: palette.primary,
                   boxShadow: `4px 4px 0 ${palette.accent}`,
                 }}
               >
-                All Matches!
+                {showValidationVending ? "Validation Vending Machine" : "All Matches!"}
               </span>
               <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>
@@ -323,6 +364,26 @@ export default function Home() {
             isPending={currentMatch.matchId === null}
           />
         )}
+        
+        {/* Easter Egg Overlays */}
+        <MeansNothingGlitch 
+          isActive={meansNothingActive} 
+          onComplete={() => setMeansNothingActive(false)} 
+        />
+        <ValidationAcquired 
+          isActive={validationActive} 
+          onComplete={() => setValidationActive(false)} 
+        />
+        <ToughCrowdEffect isActive={toughCrowdActive} />
+        
+        <style>{`
+          @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.08); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.05); }
+          }
+        `}</style>
       </div>
     </PatternBackground>
   );

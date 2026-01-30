@@ -1,0 +1,181 @@
+VALENTINE’S EASTER EGGS (CONTROLLED CHAOS)
+
+We want to add intentional, playful Easter eggs to the app. These should not break core functionality, should feel discoverable, and should disappear cleanly after playing.
+
+Implement the following Easter eggs exactly as described.
+
+🧪 EASTER EGG #1 — 1% “MEANS NOTHING” MATCH
+
+Trigger
+
+On any successful match, there is a 1% random chance this Easter egg activates.
+
+Behavior
+
+When triggered:
+
+The screen briefly glitches for ~150–250ms (scanlines, jitter, slight RGB offset).
+
+Large bold text flashes at center:
+
+“THIS MEANS NOTHING”
+
+Immediately after:
+
+The normal “It’s a Match!” celebration plays as usual.
+
+No disruption to navigation or chat.
+
+Rules
+
+Extremely rare (1%).
+
+Must feel blink-and-you-miss-it.
+
+Never blocks buttons or user flow.
+
+❤️ EASTER EGG #2 — LONG-PRESS ALL MATCHES LOGO
+
+Trigger
+
+Long-press (mobile) or click-and-hold (desktop) on the ALL MATCHES header for ~700ms.
+
+Behavior
+
+Logo pulses like a heartbeat (scale up/down smoothly).
+
+Screen gets a subtle pink/red tint overlay (very light, ~10–15% opacity).
+
+Small caption fades in below header:
+
+“validation acquired”
+
+After ~1.5 seconds:
+
+Everything fades back to normal.
+
+No state changes.
+
+Rules
+
+Non-blocking.
+
+Subtle, affectionate, not flashy.
+
+Should feel intimate, not loud.
+
+🔥 EASTER EGG #3 — RAPID-TAP HEART / YES BUTTON
+
+Trigger
+
+Tap the heart (Yes) button 5–7 times rapidly without swiping.
+
+Behavior
+
+Heart starts to overheat:
+
+Slight red glow
+
+Tiny heat waves or wobble
+
+Small smoke puffs emit from the button.
+
+Tooltip appears briefly:
+
+“please pace yourself”
+
+Heart cools back to normal state after ~1 second.
+
+Rules
+
+Does NOT auto-swipe or trigger extra matches.
+
+Resets cleanly.
+
+Lightly comedic, not shaming.
+
+🩸 EASTER EGG #4 — 10 LEFT SWIPES IN A ROW
+
+Trigger
+
+User swipes left (X) 10 times consecutively without a right swipe.
+
+Behavior
+
+UI goes grayscale for ~400ms.
+
+Tiny modal/toast appears:
+
+“tough crowd”
+
+Heart icon briefly drips blood (stylized, cartoon, non-graphic).
+
+Color instantly returns to normal.
+
+Rules
+
+Blood should be symbolic and playful, not realistic.
+
+Effect should feel like a wink, not a punishment.
+
+Do not interrupt swiping momentum.
+
+🏭 EASTER EGG #5 — CLICK-SPAM HEADER TEXT CHANGE
+
+Trigger
+
+Repeatedly click/tap the ALL MATCHES header (e.g. 7–10 times).
+
+Behavior
+
+Header text smoothly morphs into:
+
+“VALIDATION VENDING MACHINE”
+
+Holds for ~2 seconds.
+
+Smoothly transitions back to ALL MATCHES.
+
+Rules
+
+No layout shift.
+
+Font size and alignment remain consistent.
+
+Text animation should feel intentional (not glitchy).
+
+⚙️ IMPLEMENTATION NOTES
+
+All Easter eggs must:
+
+Be non-blocking
+
+Be ephemeral
+
+Clean up after themselves (no lingering state)
+
+Use animation libraries already in the project (Framer Motion if present).
+
+Avoid excessive CPU usage or re-renders.
+
+Do not introduce new routes or API calls.
+
+These should feel hand-authored, not random chaos.
+
+🎨 TONE CHECK
+
+Overall vibe:
+
+Maximalist
+
+Self-aware
+
+Dopamine satire
+
+Warm, funny, slightly unhinged
+
+Never cruel, never scary
+
+If any Easter egg risks interfering with usability, tone it down rather than removing it.
+
+Deliver full updated component code for any files you touch.
