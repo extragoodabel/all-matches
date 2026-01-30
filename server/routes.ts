@@ -6,7 +6,6 @@ import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/sche
 import { z } from "zod";
 import crypto from "crypto";
 import { buildImageUrl } from "./portrait-library";
-import { getUsageStats, COST_CONFIG } from "./cost-config";
 
 async function validateImageUrl(url: string): Promise<boolean> {
   try {
@@ -308,13 +307,163 @@ function generateCharacterSpec(context: {
   return JSON.stringify(spec);
 }
 
-// ============ COST-SAFE MODE ============
-// In cost-safe mode, NO background generation happens.
-// Profiles are served from existing storage only.
-// See server/cost-config.ts for configuration.
+// ============ PROFILE GENERATION CONFIG ============
+const PROFILE_BUFFER_TARGET = 30;        // Target number of unseen profiles to maintain
+const PROFILE_GEN_BATCH_SIZE = 15;       // How many profiles to generate per background batch
+const PROFILE_LOW_THRESHOLD = 10;        // Trigger background generation when below this
+const IMAGE_VALIDATION_TIMEOUT = 1500;   // Image validation timeout (ms)
+
+// Track if background generation is already running to prevent duplicate runs
+let isGeneratingProfiles = false;
+
+// Background profile generation (fire-and-forget, doesn't block requests)
+async function generateProfilesInBackground(
+  genderPref: string, 
+  minAge: number, 
+  maxAge: number,
+  count: number
+): Promise<void> {
+  if (isGeneratingProfiles) {
+    console.log(`[BG Gen] Already generating, skipping`);
+    return;
+  }
+  
+  isGeneratingProfiles = true;
+  const startTime = Date.now();
+  console.log(`[BG Gen] Starting background generation of ${count} profiles for gender=${genderPref}`);
+  
+  try {
+    const archetypes = [
+      { label: "Chaotic Art Kid", interests: ["analog photography", "DIY synthesizers", "street art"] },
+      { label: "Aspiring DJ", interests: ["vinyl collecting", "techno", "club hopping"] },
+      { label: "Burned Out Grad Student", interests: ["research rabbit holes", "sourdough experiments", "late-night debates"] },
+      { label: "Sweet Golden Retriever Energy", interests: ["dog parks", "cozy movie nights", "sunny brunch"] },
+      { label: "Cynical but Funny", interests: ["dark comedy", "people watching", "urban exploration"] },
+      { label: "Mysterious", interests: ["occult history", "stargazing", "poetry"] },
+      { label: "Hyper-Competent Techie", interests: ["open source", "cybersecurity", "mechanical keyboards"] },
+      { label: "Spiritual Nomad", interests: ["reiki", "crystals", "van life"] },
+      { label: "High-Energy Athlete", interests: ["crossfit", "meal prep", "mountain trails"] },
+      { label: "Old Soul Librarian", interests: ["classic literature", "tea blending", "quiet museums"] },
+      { label: "Socialite with an Edge", interests: ["fashion design", "cocktail mixing", "modern art"] },
+      { label: "Corporate Rebel", interests: ["investing", "skydiving", "poker"] },
+      { label: "Indie Musician", interests: ["songwriting", "thrift shopping", "coffee"] },
+      { label: "Gamer", interests: ["speedrunning", "co-op games", "streaming"] },
+      { label: "Plant Parent", interests: ["botany", "interior design", "organic gardening"] },
+      { label: "Street Photographer", interests: ["architecture", "film processing", "night walks"] },
+      { label: "Foodie", interests: ["hole-in-the-wall spots", "tasting menus", "food photography"] },
+    ];
+
+    const maleFirstNames = [
+      "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
+      "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+      "Jamie", "Sam", "Cameron", "Drew", "Kai", "Logan", "Noah", "Remy",
+      "Evan", "Owen", "Miles", "Eli", "Theo", "Max", "Jonah", "Isaac", "Leo", "Caleb",
+      "Marcus", "Derek", "Jason", "Tyler", "Ryan", "Kevin", "Brandon", "Justin"
+    ];
+    
+    const femaleFirstNames = [
+      "Morgan", "Avery", "Hayden", "Emerson", "Sasha",
+      "Leah", "Maya", "Nina", "Zoe", "Iris", "Lena", "Aria", "Jules", "Tessa", "Mina",
+      "Sophie", "Emma", "Olivia", "Ava", "Isabella", "Mia", "Charlotte", "Amelia",
+      "Harper", "Evelyn", "Luna", "Camila", "Gianna", "Penelope", "Riley", "Layla"
+    ];
+    
+    const otherFirstNames = [
+      "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
+      "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
+      "Jamie", "Sam", "Cameron", "Drew", "Kai", "Morgan", "Avery", "Hayden",
+      "Emerson", "Sasha", "Jules", "Remy", "Phoenix", "River", "Sage", "Eden"
+    ];
+    
+    const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const quirks = [
+      "I make playlists for every mood.",
+      "I name all my houseplants.",
+      "I have opinions about font kerning.",
+      "I've memorized way too many movie quotes.",
+      "I'm weirdly good at naming pets.",
+      "I'm a semi-pro at GeoGuessr.",
+      "I still have a flip phone for the aesthetic.",
+      "I only drink coffee from blue mugs. No exceptions.",
+      "I can't eat pizza without ranch.",
+      "I sleep with a fan on, even in winter.",
+      "I've never seen Star Wars. Don't hurt me.",
+      "I collect vintage spoons like it's an Olympic sport.",
+    ];
+
+    for (let i = 0; i < count; i++) {
+      const arch = pick(archetypes);
+      const age = generateAge(minAge, maxAge);
+      
+      let gender: string;
+      if (genderPref === "male") {
+        gender = "male";
+      } else if (genderPref === "female") {
+        gender = "female";
+      } else if (genderPref === "other") {
+        gender = "other";
+      } else {
+        const rand = Math.random();
+        if (rand < 0.4) gender = "male";
+        else if (rand < 0.8) gender = "female";
+        else gender = "other";
+      }
+      
+      const quirk = pick(quirks);
+      const firstNames = gender === "male" ? maleFirstNames : 
+                        gender === "female" ? femaleFirstNames : otherFirstNames;
+      const name = generateUniqueName(firstNames, lastInitials);
+
+      // Generate bio (fast, no AI call in current implementation)
+      const bio = await generateUniqueBio({
+        name,
+        age,
+        gender,
+        archetypeLabel: arch.label,
+        interests: arch.interests,
+        quirk,
+      });
+
+      const charSpec = generateCharacterSpec({
+        name,
+        age,
+        gender,
+        archetypeLabel: arch.label,
+        interests: arch.interests,
+        quirk,
+      });
+
+      // Get image - skip validation to speed up (we'll accept some broken images)
+      const nextProfileId = storage['currentId'].profiles;
+      const imageGender = gender === "other" 
+        ? (Math.random() > 0.5 ? "male" : "female") 
+        : gender;
+      const imageId = storage.getUniqueImageId(imageGender as 'male' | 'female');
+      const imageUrl = buildImageUrl(imageId, nextProfileId);
+
+      await storage.createProfile({
+        name,
+        age,
+        bio,
+        gender,
+        imageUrl,
+        isAI: true,
+        characterSpec: charSpec,
+      });
+      
+      console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age})`);
+    }
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`[BG Gen] Completed ${count} profiles in ${elapsed}ms`);
+  } catch (error) {
+    console.error(`[BG Gen] Error:`, error);
+  } finally {
+    isGeneratingProfiles = false;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // GET /api/profiles - Returns profiles from storage only (NO AI generation)
   app.get("/api/profiles", async (req, res) => {
     const requestStart = Date.now();
     const userId = 1;
@@ -327,34 +476,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const minAge = Math.max(21, Math.min(99, rawMinAge));
     const maxAge = Math.max(21, Math.min(99, rawMaxAge));
     
-    console.log(`[Profiles] Request - gender=${genderPref}, age=${minAge}-${maxAge}`);
+    console.log(`[Profiles] Request start - gender=${genderPref}, age=${minAge}-${maxAge}`);
 
-    // Fetch unseen profiles from storage (fast - no AI calls)
+    // Fetch unseen profiles (fast - just reads from memory)
+    const fetchStart = Date.now();
     let unseen = await storage.getUnseenProfiles(userId);
+    console.log(`[Profiles] getUnseenProfiles took ${Date.now() - fetchStart}ms, found ${unseen.length}`);
 
     // Apply filters
     if (genderPref !== "all") {
       unseen = unseen.filter(p => p.gender === genderPref);
     }
     unseen = unseen.filter(p => p.age >= minAge && p.age <= maxAge);
+    console.log(`[Profiles] After filtering: ${unseen.length} profiles`);
 
-    // COST-SAFE: If no profiles match, return ALL profiles shuffled (no generation)
-    if (unseen.length === 0) {
-      console.log(`[Profiles] No unseen profiles, returning all profiles shuffled`);
-      const allProfiles = await storage.getProfiles();
-      let filtered = allProfiles;
-      if (genderPref !== "all") {
-        filtered = filtered.filter(p => p.gender === genderPref);
-      }
-      filtered = filtered.filter(p => p.age >= minAge && p.age <= maxAge);
-      
-      const elapsed = Date.now() - requestStart;
-      console.log(`[Profiles] Completed in ${elapsed}ms, returning ${filtered.length} profiles (recycled)`);
-      return res.json(shuffle(filtered));
+    // If running low, trigger background generation (fire-and-forget)
+    if (unseen.length < PROFILE_LOW_THRESHOLD) {
+      const needed = PROFILE_BUFFER_TARGET - unseen.length;
+      console.log(`[Profiles] Low buffer (${unseen.length}), triggering background generation of ${needed}`);
+      // Fire and forget - don't await
+      generateProfilesInBackground(genderPref, minAge, maxAge, Math.min(needed, PROFILE_GEN_BATCH_SIZE))
+        .catch(err => console.error('[BG Gen] Unhandled error:', err));
     }
 
+    // Return immediately with whatever we have
     const elapsed = Date.now() - requestStart;
-    console.log(`[Profiles] Completed in ${elapsed}ms, returning ${unseen.length} profiles`);
+    console.log(`[Profiles] Request completed in ${elapsed}ms, returning ${unseen.length} profiles`);
     
     res.json(shuffle(unseen));
   });
@@ -526,7 +673,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             profileName: profile.name,
             profileBio: profile.bio,
             characterSpec: profile.characterSpec,
-            isChaos: profile.isChaos,
             messageHistory: currentMessages.map((m) => ({
               content: m.content,
               isAI: m.isAI,
@@ -562,20 +708,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to create message" });
       }
     }
-  });
-
-  // ============ USAGE STATS ENDPOINT ============
-  app.get("/api/usage-stats", async (_req, res) => {
-    const stats = getUsageStats();
-    res.json({
-      config: {
-        costSafeMode: COST_CONFIG.COST_SAFE_MODE,
-        enableChatAI: COST_CONFIG.ENABLE_CHAT_AI,
-        enableImageAI: COST_CONFIG.ENABLE_IMAGE_AI,
-        maxChatCallsPerHour: COST_CONFIG.MAX_CHAT_CALLS_PER_HOUR,
-      },
-      usage: stats,
-    });
   });
 
   const httpServer = createServer(app);
