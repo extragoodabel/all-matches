@@ -1,0 +1,43 @@
+BUG/UX ISSUE: Match Preferences modal has two problems:
+1) Age slider only supports setting a minimum age. We need BOTH min and max.
+2) There is no Save button. Clicking outside saves changes, but users need explicit confirmation.
+
+GOAL:
+- Replace the single-thumb slider with a two-thumb range slider so user can set minAge AND maxAge.
+- Add a primary “Save” button that commits changes and closes the modal.
+- Add a “Cancel” button that closes the modal WITHOUT saving changes.
+- Clicking outside the modal should behave like Cancel (discard), not auto-save.
+
+REQUIREMENTS:
+A) Age range slider (two-thumb)
+- Use the existing Slider component if it supports arrays (Radix Slider does).
+- The slider value should be a tuple: [minAge, maxAge]
+- Enforce minAge <= maxAge at all times
+- Clamp to allowed bounds (21–50)
+- Display label as “Age Range: {min} - {max}”
+
+B) Modal state handling (draft vs saved)
+- When modal opens: initialize local draft state from saved preferences (minAge/maxAge/genderPreference).
+- While modal is open: only update DRAFT state (do not persist on every change).
+- Save button:
+  - Persist draft values (update the user preferences state and any server/local storage persistence that currently exists)
+  - Close modal
+- Cancel button:
+  - Discard draft changes (revert to last saved)
+  - Close modal
+
+C) Persistence
+- Wherever preferences currently live, keep that system (do not redesign architecture).
+- If preferences are stored in user profile via API, use the same endpoint and update it only on Save.
+- If preferences are stored locally (React state or localStorage), commit only on Save.
+
+D) UX
+- Save button should be primary and obvious, and should close modal.
+- Cancel should be secondary.
+- Disable Save if draft values are invalid (only possible if slider breaks, but implement guard anyway).
+- Do not auto-save on overlay click or escape key. Those should cancel.
+
+DELIVERABLE:
+- Provide full replacement code for the Match Preferences modal component file (the file that renders the slider + “Show me” dropdown).
+- If any other files must change (state store, hook, or API), provide full replacement code for those too.
+- Do not ask me to edit single lines. I will copy/paste whole files.

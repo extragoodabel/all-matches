@@ -1,0 +1,51 @@
+ISSUE: Profile images are being reused repeatedly. The Unsplash image pool is too small and selection logic allows reuse.
+
+GOAL:
+- Have AT LEAST 100 unique male images and 100 unique female images available per session.
+- Do NOT reuse an image until the entire pool for that gender + age bucket is exhausted.
+- Once exhausted, reshuffle and reuse (like a deck of cards).
+
+REQUIREMENTS:
+
+1) Expand the Unsplash image pool
+- Create two large, explicit pools:
+  - MALE_PHOTO_POOL (100+ Unsplash photo IDs or URLs)
+  - FEMALE_PHOTO_POOL (100+ Unsplash photo IDs or URLs)
+- Optional: subdivide into age buckets (21–25, 26–32, 33–40, 41–50), but pool size per bucket must still be large enough.
+- Do NOT rely on live Unsplash search queries at runtime (they return repeated images).
+- Use curated, hard-coded photo ID lists.
+
+2) Enforce non-reuse logic
+- In server storage (MemStorage), add:
+  - usedMaleImageIds: Set<string>
+  - usedFemaleImageIds: Set<string>
+- When generating a new profile:
+  - Select gender first
+  - Filter the appropriate pool to only images NOT in the used set
+  - Randomly select one
+  - Mark it as used
+- If no unused images remain in that pool:
+  - Clear the used set
+  - Reshuffle the pool
+  - Start reuse only after exhaustion
+
+3) Image selection must be deterministic per profile
+- Once a profile is created, its imageUrl must NEVER change.
+- Do not reassign images on refresh or filter change.
+- No modulo indexing, no cycling by profile id.
+
+4) Debug visibility
+- Add console logs when:
+  - An image is selected
+  - A pool is exhausted and reset
+  - A profile is created with { profileId, gender, imageId }
+
+DELIVERABLE:
+- Provide full replacement code for:
+  - server/storage.ts (if image tracking is added there)
+  - server/routes.ts (profile generation logic)
+- Do NOT touch client code unless absolutely necessary.
+- Do NOT switch to AI image generation.
+- Do NOT downgrade pool size or “temporarily” reduce requirements.
+
+This is NOT an optimization task. This is correctness and realism.

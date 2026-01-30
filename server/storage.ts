@@ -1,30 +1,6 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
 import crypto from "crypto";
-
-const MALE_PHOTOS: Record<string, string[]> = {
-  "21-25": ["1500648767791-00dcc994a43e", "1507003211169-0a1dd7228f2d", "1519345182560-3f2917c472ef"],
-  "26-32": ["1506794778202-cad84cf45f1d", "1560250097-0b93528c311a", "1463453091185-61582044d556"],
-  "33-40": ["1552374196-c4e7ffc6e12e", "1472099645785-5658abf4ff4e", "1502323777036-f29e3972d82f"],
-};
-
-const FEMALE_PHOTOS: Record<string, string[]> = {
-  "21-25": ["1534528741775-53994a69daeb", "1544005313-94ddf0286df2", "1531746020798-e6953c6e8e04"],
-  "26-32": ["1524504388940-b1c1722653e1", "1489424731084-a5d8b219a5bb", "1508214751196-bcfd4ca60f91"],
-  "33-40": ["1503235930437-8c6293ba41f5", "1533636721434-0e2d61030955", "1438761681033-6461ffad8d80"],
-};
-
-function getAgeBucketForMock(age: number): string {
-  if (age <= 25) return "21-25";
-  if (age <= 32) return "26-32";
-  return "33-40";
-}
-
-function getMockPhotoUrl(gender: string, age: number, id: number): string {
-  const bucket = getAgeBucketForMock(age);
-  const pool = gender === "male" ? MALE_PHOTOS[bucket] : FEMALE_PHOTOS[bucket];
-  const photoId = pool[id % pool.length];
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=400&h=600&q=80&v=${id}`;
-}
+import { MALE_PHOTO_POOL, FEMALE_PHOTO_POOL, shufflePool } from "./photoPools";
 
 function generateMockCharacterSpec(name: string, bio: string, age: number, gender: string): string {
   const seed = crypto.createHash('md5').update(name + bio).digest('hex');
@@ -106,10 +82,15 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message>;
   private currentId: { [key: string]: number };
   
-  // Track used names, image indices, and bio hashes to prevent duplicates
+  // Track used names and bio hashes to prevent duplicates
   public usedNames: Set<string>;
-  public usedImageIndices: Set<number>;
   public usedBioHashes: Set<string>;
+  
+  // Image pools with non-reuse tracking
+  public maleImagePool: string[];
+  public femaleImagePool: string[];
+  public usedMaleImageIds: Set<string>;
+  public usedFemaleImageIds: Set<string>;
 
   constructor() {
     this.users = new Map();
