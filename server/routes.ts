@@ -380,17 +380,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req, res) => {
     try {
       const message = insertMessageSchema.parse(req.body);
-      const createdMessage = await storage.createMessage(message);
+      
+      // Debug logging
+      console.log(`[Message] Incoming matchId: ${message.matchId}`);
+      
+      const matches = await storage.getMatches(1);
+      let match = matches.find((m) => m.id === message.matchId);
+      console.log(`[Message] Match found by id: ${!!match}${match ? `, profileId: ${match.profileId}` : ''}`);
+      
+      // Fallback: treat matchId as profileId if no match found
+      let actualMatchId = message.matchId;
+      if (!match) {
+        console.log(`[Message] Trying fallback: treating ${message.matchId} as profileId`);
+        match = matches.find((m) => m.profileId === message.matchId);
+        if (match) {
+          console.log(`[Message] Fallback success: found match.id=${match.id} for profileId=${message.matchId}`);
+          actualMatchId = match.id;
+        }
+      }
+      
+      // Create message with the correct matchId
+      const createdMessage = await storage.createMessage({
+        ...message,
+        matchId: actualMatchId
+      });
 
       if (!message.isAI) {
-        const matches = await storage.getMatches(1);
-        const match = matches.find((m) => m.id === message.matchId);
         if (!match) return res.status(404).json({ error: "Match not found" });
 
         const profile = await storage.getProfile(match.profileId);
         if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-        const currentMessages = await storage.getMessages(message.matchId);
+        const currentMessages = await storage.getMessages(actualMatchId);
 
         generateAIResponse(
           {
@@ -409,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
 
               await storage.createMessage({
-                matchId: message.matchId,
+                matchId: actualMatchId,
                 content: aiResponse.content,
                 isAI: true
               });
