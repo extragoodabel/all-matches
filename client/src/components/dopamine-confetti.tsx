@@ -178,7 +178,7 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
       setPhase("done");
       setVisible(false);
       onComplete?.();
-    }, 7000);
+    }, 8000);
 
     return () => {
       clearTimeout(pulseTimer);
