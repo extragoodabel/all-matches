@@ -1,20 +1,22 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 
 const PRIMARY_ICONS = [
-  "❤️", "💘", "💕", "💗", "💖", "💝", "🩷", "🧡", "💛", "💚", "💙", "🩵", "💜", "🖤", "🤍", "🤎",
-  "✨", "⭐", "💫", "🎈", "👅", "😘", "💋", "💄", "👠", "💍", "🌹", "💐", "🍬", "🍫", "🍾"
+  "❤️", "💘", "💕", "💗", "💖", "💝", "🩷", "💜", "✨", "⭐", "💫", 
+  "💊", "💊", "💊", "🍾", "🍾", "🍾", "😬", "😬", "💋", "💋",
+  "🔗", "🔗", "💄", "👠", "💍", "🌹", "🍬", "🍫"
 ];
 const SECONDARY_ICONS = [
-  "💊", "🧪", "🧠", "🔥", "⚡", "🎯", "💥", "🦩", "🍄", "🥭", "🍒", "🌶️", "🍆", "💦", "🧨", "🩸", "🌡️"
+  "💊", "💊", "💊", "💉", "💉", "🍾", "🍾", "😬", "😬", 
+  "🧪", "🧠", "🔥", "⚡", "💥", "🦩", "🍄", "🍒", "🌶️", "🍆", "💦", "🧨", "🩸", "🔗", "🔗"
 ];
-const RARE_ICONS = ["💉", "🧬", "👁️", "🪞", "🧿", "🫀", "🎭"];
+const RARE_ICONS = ["💉", "💉", "🧬", "👁️", "🪞", "🧿", "🫀", "🎭", "🔗"];
 const SUBLIMINAL_WORDS = ["MATCH", "VALIDATED", "SEEN", "REWARDED", "DOPAMINE", "SEROTONIN"];
 
 function getRandomIcon(allowRare: boolean = true): string {
   const roll = Math.random();
-  if (allowRare && roll < 0.08) {
+  if (allowRare && roll < 0.12) {
     return RARE_ICONS[Math.floor(Math.random() * RARE_ICONS.length)];
-  } else if (roll < 0.25) {
+  } else if (roll < 0.45) {
     return SECONDARY_ICONS[Math.floor(Math.random() * SECONDARY_ICONS.length)];
   }
   return PRIMARY_ICONS[Math.floor(Math.random() * PRIMARY_ICONS.length)];
@@ -61,19 +63,21 @@ interface BalloonParticle {
 function generateFireworks(count: number): FireworkParticle[] {
   const particles: FireworkParticle[] = [];
   for (let i = 0; i < count; i++) {
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
-    const speed = 4 + Math.random() * 6;
+    const burstIndex = Math.floor(i / (count / 3));
+    const burstDelay = burstIndex * 250;
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+    const speed = 8 + Math.random() * 10;
     particles.push({
       id: i,
-      emoji: getRandomIcon(false),
-      startX: 30 + Math.random() * 40,
-      startY: 75 + Math.random() * 15,
-      velocityX: Math.cos(angle) * speed,
+      emoji: getRandomIcon(true),
+      startX: 20 + Math.random() * 60,
+      startY: 85 + Math.random() * 10,
+      velocityX: Math.cos(angle) * speed * (0.3 + Math.random() * 0.7),
       velocityY: Math.sin(angle) * speed,
-      size: 18 + Math.random() * 14,
+      size: 16 + Math.random() * 18,
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 300,
-      delay: Math.random() * 200,
+      rotationSpeed: (Math.random() - 0.5) * 400,
+      delay: burstDelay + Math.random() * 150,
     });
   }
   return particles;
@@ -101,7 +105,7 @@ function generateConfetti(count: number, allowRare: boolean): ConfettiParticle[]
 
 function generateBalloons(count: number): BalloonParticle[] {
   const particles: BalloonParticle[] = [];
-  const balloonEmojis = ["🎈", "🎈", "🎈", "🦩", "🍄", "💊", "🧠", "🍾"];
+  const balloonEmojis = ["🎈", "🎈", "💊", "💊", "🍾", "🍾", "💉", "🦩", "🍄", "🧠", "🔗", "😬"];
   for (let i = 0; i < count; i++) {
     const side = Math.random() > 0.5;
     particles.push({
@@ -135,9 +139,9 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
 
-  const fireworkCount = prefersReducedMotion ? 8 : 30 + Math.floor(Math.random() * 10);
-  const confettiCount = prefersReducedMotion ? 30 : 150 + Math.floor(Math.random() * 70);
-  const balloonCount = prefersReducedMotion ? 3 : 8 + Math.floor(Math.random() * 4);
+  const fireworkCount = prefersReducedMotion ? 10 : 60 + Math.floor(Math.random() * 30);
+  const confettiCount = prefersReducedMotion ? 40 : 180 + Math.floor(Math.random() * 80);
+  const balloonCount = prefersReducedMotion ? 4 : 12 + Math.floor(Math.random() * 6);
 
   const fireworks = useMemo(() => generateFireworks(fireworkCount), [fireworkCount]);
   const confetti = useMemo(() => generateConfetti(confettiCount, !prefersReducedMotion), [confettiCount, prefersReducedMotion]);
@@ -254,22 +258,22 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
     let lastTime = performance.now();
 
     const animate = (currentTime: number) => {
-      const dt = Math.min((currentTime - lastTime) / 1000, 0.05);
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.04);
       lastTime = currentTime;
 
       setVel((v) => ({
-        x: v.x * 0.985,
-        y: v.y + 0.25,
+        x: v.x * 0.992,
+        y: v.y + 0.12,
       }));
 
       setPos((p) => ({
-        x: p.x + vel.x * dt * 30,
-        y: p.y + vel.y * dt * 30,
+        x: p.x + vel.x * dt * 25,
+        y: p.y + vel.y * dt * 25,
       }));
 
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (pos.y > 120) {
+      if (pos.y > 130) {
         return;
       }
 
