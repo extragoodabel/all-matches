@@ -674,6 +674,10 @@ async function generateBioWithOpenAI(context: {
     "Dry deadpan delivery.",
     "Enthusiastic and exclamatory.",
     "Mysterious and vague.",
+    "Open with a cringy famous quote, then your actual vibe.",
+    "Reluctant first-timer energy: skeptical about apps but here anyway.",
+    "Recently single, ready to mingle tone.",
+    "Here for a good time, not a long time energy.",
   ];
   const structureHint = pick(structures);
 
