@@ -157,7 +157,10 @@ export function HeartKiss({ color, accentColor }: HeartKissProps) {
     <>
       <div 
         className="relative inline-flex items-center justify-center cursor-pointer"
-        onClick={triggerAnimation}
+        onClick={(e) => {
+          e.stopPropagation();
+          triggerAnimation();
+        }}
       >
         <motion.div
           animate={isAnimating ? { scale: [1, 1.3, 1] } : {}}
