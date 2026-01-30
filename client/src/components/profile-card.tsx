@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useMemo } from "react";
 import { type Profile } from "@shared/schema";
+import { getProfileTheme } from "@/styles/theme";
+import { getPatternStyle } from "@/styles/patterns";
+import { Sparkles } from "lucide-react";
 
 interface ProfileCardProps {
   profile: Profile;
@@ -13,38 +15,92 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
   const [imageSrc, setImageSrc] = useState(profile.imageUrl);
   const [hasError, setHasError] = useState(false);
 
+  const theme = useMemo(() => getProfileTheme(profile.id), [profile.id]);
+  const patternStyle = useMemo(
+    () => getPatternStyle(theme.patternName),
+    [theme.patternName]
+  );
+
   const handleImageError = () => {
     if (!hasError) {
       setHasError(true);
       setImageSrc(FALLBACK_IMAGE);
-      // Notify parent to skip this profile
       onImageError?.();
     }
   };
 
   return (
-    <Card className="w-full max-w-sm mx-auto bg-white rounded-xl overflow-hidden shadow-lg select-none">
-      <div className="relative aspect-[3/4]">
-        <img
-          src={imageSrc}
-          alt={profile.name}
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover select-none"
+    <div
+      className="relative"
+      style={{
+        '--eg-primary': theme.palette.primary,
+        '--eg-secondary': theme.palette.secondary,
+        '--eg-accent': theme.palette.accent,
+        '--eg-background': theme.palette.background,
+      } as React.CSSProperties}
+    >
+      <div
+        className="absolute inset-0 -z-10 rounded-2xl opacity-60"
+        style={{
+          ...patternStyle,
+          transform: 'rotate(-2deg) scale(1.05)',
+        }}
+      />
+      
+      <div className="eg-card w-full max-w-sm mx-auto select-none">
+        <div className="relative aspect-[3/4] overflow-hidden">
+          <img
+            src={imageSrc}
+            alt={profile.name}
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover select-none"
+            style={{
+              WebkitUserDrag: "none",
+              userSelect: "none",
+              pointerEvents: "none",
+            } as React.CSSProperties}
+            onDragStart={(e) => e.preventDefault()}
+            onError={handleImageError}
+          />
+          
+          {profile.isChaos && (
+            <div 
+              className="absolute top-3 right-3 px-3 py-1.5 rounded-full eg-outline-thick flex items-center gap-1.5 font-bold text-sm uppercase tracking-wide"
+              style={{ background: theme.palette.secondary }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Chaos
+            </div>
+          )}
+        </div>
+        
+        <div 
+          className="p-4"
+          style={{ background: theme.palette.background }}
+        >
+          <h2 
+            className="text-3xl font-black tracking-tight"
+            style={{ color: theme.palette.text }}
+          >
+            {profile.name}, {profile.age}
+          </h2>
+        </div>
+        
+        <div 
+          className="eg-caption-block"
           style={{ 
-            WebkitUserDrag: "none",
-            userSelect: "none",
-            pointerEvents: "none",
-          } as React.CSSProperties}
-          onDragStart={(e) => e.preventDefault()}
-          onError={handleImageError}
-        />
+            background: theme.palette.secondary,
+            borderColor: theme.palette.accent,
+          }}
+        >
+          <p 
+            className="text-sm font-medium leading-relaxed"
+            style={{ color: theme.palette.text }}
+          >
+            {profile.bio}
+          </p>
+        </div>
       </div>
-      <CardContent className="p-4">
-        <h2 className="text-2xl font-bold">
-          {profile.name}, {profile.age}
-        </h2>
-        <p className="mt-2 text-gray-600">{profile.bio}</p>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

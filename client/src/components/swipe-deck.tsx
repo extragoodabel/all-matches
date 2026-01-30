@@ -2,28 +2,22 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProfileCard } from "./profile-card";
 import type { Profile } from "@shared/schema";
-import { Heart, X } from "lucide-react";
+import { Heart, X, Sparkles } from "lucide-react";
+import { getSessionPalette } from "@/styles/theme";
+import { getPatternStyle } from "@/styles/patterns";
 
-// ============ SWIPE TUNING CONSTANTS ============
-// Adjust these values to tune the swipe feel
-
-const SWIPE_THRESHOLD_PX = 80;           // Minimum px to trigger swipe (or use percentage below)
-const SWIPE_THRESHOLD_PERCENT = 0.18;    // Alternate: 18% of card width
-const USE_PERCENT_THRESHOLD = false;     // Set true to use percentage instead of fixed px
-
-const ROTATION_MULTIPLIER = 0.08;        // How much the card rotates while dragging (deg per px)
-const MAX_ROTATION = 25;                 // Maximum rotation angle in degrees
-const OPACITY_DECAY = 400;               // Higher = slower opacity fade during drag
-const MIN_OPACITY = 0.7;                 // Minimum opacity when dragging far
-
-const INTENT_RATIO = 1.2;                // abs(dx) must be > abs(dy) * this to count as horizontal swipe
-const VERTICAL_DAMPING = 0.15;           // How much vertical movement is allowed (0 = none, 1 = full)
-
-const INDICATOR_SHOW_PX = 40;            // Show LIKE/NOPE indicator after this many px
-const EXIT_DISTANCE = 400;               // How far card flies off screen on swipe
-const SWIPE_ANIMATION_MS = 300;          // Duration of exit animation
-
-// ================================================
+const SWIPE_THRESHOLD_PX = 80;
+const SWIPE_THRESHOLD_PERCENT = 0.18;
+const USE_PERCENT_THRESHOLD = false;
+const ROTATION_MULTIPLIER = 0.08;
+const MAX_ROTATION = 25;
+const OPACITY_DECAY = 400;
+const MIN_OPACITY = 0.7;
+const INTENT_RATIO = 1.2;
+const VERTICAL_DAMPING = 0.15;
+const INDICATOR_SHOW_PX = 40;
+const EXIT_DISTANCE = 400;
+const SWIPE_ANIMATION_MS = 300;
 
 interface SwipeDeckProps {
   profiles: Profile[];
@@ -51,13 +45,11 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
     const deltaX = e.clientX - startPos.current.x;
     const deltaY = e.clientY - startPos.current.y;
     
-    // Detect swipe intent on first significant movement
     if (isHorizontalSwipe === null && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
       const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY) * INTENT_RATIO;
       setIsHorizontalSwipe(isHorizontal);
     }
     
-    // Only move card if horizontal swipe intent detected (or not yet determined)
     if (isHorizontalSwipe !== false) {
       setDragOffset({ 
         x: deltaX, 
@@ -78,7 +70,6 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
       // Pointer may already be released
     }
 
-    // Calculate threshold
     const cardWidth = cardRef.current?.offsetWidth || 300;
     const threshold = USE_PERCENT_THRESHOLD 
       ? cardWidth * SWIPE_THRESHOLD_PERCENT 
@@ -104,7 +95,6 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
     }
   }, []);
 
-  // Calculate visual feedback
   const rawRotation = dragOffset.x * ROTATION_MULTIPLIER;
   const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, rawRotation));
   const opacity = Math.max(MIN_OPACITY, 1 - Math.abs(dragOffset.x) / OPACITY_DECAY);
@@ -124,10 +114,59 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
   };
 }
 
-// Report bad image to server (fire and forget)
 function reportBadImage(profileId: number) {
   fetch(`/api/profiles/${profileId}/bad-image`, { method: "POST" })
-    .catch(() => {}); // Ignore errors
+    .catch(() => {});
+}
+
+function LoadingCard({ message, submessage }: { message: string; submessage?: string }) {
+  const palette = getSessionPalette();
+  const patternStyle = getPatternStyle('confetti');
+  
+  return (
+    <div 
+      className="flex flex-col items-center justify-center h-[600px] relative"
+      style={{
+        '--eg-primary': palette.primary,
+        '--eg-secondary': palette.secondary,
+        '--eg-accent': palette.accent,
+      } as React.CSSProperties}
+    >
+      <div 
+        className="absolute inset-0 rounded-2xl opacity-40"
+        style={patternStyle}
+      />
+      
+      <div className="relative eg-card p-8 text-center max-w-sm w-full">
+        <div className="flex justify-center gap-2 mb-6">
+          <Sparkles 
+            className="w-8 h-8 eg-bounce" 
+            style={{ color: palette.primary, animationDelay: '0ms' }} 
+          />
+          <Heart 
+            className="w-8 h-8 eg-bounce" 
+            style={{ color: palette.secondary, animationDelay: '150ms' }} 
+          />
+          <Sparkles 
+            className="w-8 h-8 eg-bounce" 
+            style={{ color: palette.primary, animationDelay: '300ms' }} 
+          />
+        </div>
+        
+        <h2 
+          className="text-2xl md:text-3xl font-black tracking-tight mb-2"
+          style={{ color: palette.text }}
+        >
+          {message}
+          <span className="eg-loading-dots" />
+        </h2>
+        
+        {submessage && (
+          <p className="text-gray-600 font-medium">{submessage}</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
@@ -136,13 +175,10 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
   const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
 
-  // Find the first unseen profile that doesn't have a bad image
   const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
-  // Reset index if we've gone past the end but new profiles arrived
   useEffect(() => {
     if (currentIndex >= profiles.length && profiles.length > 0) {
-      // Check if there are any unseen profiles without bad images
       const unseenProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
       if (unseenProfiles.length > 0) {
         setCurrentIndex(0);
@@ -152,13 +188,11 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
 
   const handleImageError = useCallback((profileId: number) => {
     console.log(`[SwipeDeck] Image error for profile ${profileId}, skipping...`);
-    // Mark this profile as having a bad image
     setBadImageIds(prev => {
       const newSet = new Set(Array.from(prev));
       newSet.add(profileId);
       return newSet;
     });
-    // Report to server
     reportBadImage(profileId);
   }, []);
 
@@ -166,7 +200,6 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
     if (!currentProfile || direction) return;
     setDirection(swipeDirection);
     
-    // Mark this profile as seen
     setSeenProfileIds(prev => {
       const newSet = new Set(Array.from(prev));
       newSet.add(currentProfile.id);
@@ -183,7 +216,6 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
 
   const { cardRef, dragOffset, isDragging, rotation, opacity, handlers } = useSwipeGesture(handleSwipe);
 
-  // Show indicator after threshold
   const swipeIndicator = dragOffset.x > INDICATOR_SHOW_PX 
     ? "like" 
     : dragOffset.x < -INDICATOR_SHOW_PX 
@@ -191,24 +223,17 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
       : null;
 
   if (profiles.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[600px]">
-        <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-2xl font-bold text-gray-700">Finding matches...</h2>
-      </div>
-    );
+    return <LoadingCard message="Finding matches" />;
   }
 
-  // Check if there are any unseen profiles without bad images
   const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
   if (!currentProfile || remainingProfiles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px]">
-        <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-2xl font-bold text-gray-700">Finding more matches...</h2>
-        <p className="mt-2 text-gray-600">New profiles are being loaded</p>
-      </div>
+      <LoadingCard 
+        message="Finding more matches" 
+        submessage="New profiles are being loaded"
+      />
     );
   }
 
@@ -249,17 +274,17 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
               />
               
               {swipeIndicator === "like" && (
-                <div className="absolute inset-0 bg-green-500/20 rounded-2xl flex items-center justify-center">
-                  <div className="bg-green-500 text-white px-6 py-2 rounded-full text-2xl font-bold rotate-[-15deg] border-4 border-white shadow-lg">
-                    LIKE
+                <div className="absolute inset-0 rounded-2xl flex items-center justify-center">
+                  <div className="bg-[#00D9A5] text-[#1A1A1A] px-8 py-3 rounded-full text-3xl font-black rotate-[-15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
+                    Like!
                   </div>
                 </div>
               )}
               
               {swipeIndicator === "nope" && (
-                <div className="absolute inset-0 bg-red-500/20 rounded-2xl flex items-center justify-center">
-                  <div className="bg-red-500 text-white px-6 py-2 rounded-full text-2xl font-bold rotate-[15deg] border-4 border-white shadow-lg">
-                    NOPE
+                <div className="absolute inset-0 rounded-2xl flex items-center justify-center">
+                  <div className="bg-[#FF4136] text-white px-8 py-3 rounded-full text-3xl font-black rotate-[15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
+                    Nope
                   </div>
                 </div>
               )}
@@ -271,17 +296,17 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
       <div className="flex gap-6 mt-4">
         <button
           onClick={() => handleSwipe("left")}
-          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+          className="p-5 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
           aria-label="Dislike profile"
         >
-          <X className="w-8 h-8 text-red-500" />
+          <X className="w-8 h-8 text-[#FF4136]" />
         </button>
         <button
           onClick={() => handleSwipe("right")}
-          className="p-4 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400"
+          className="p-5 bg-[#00D9A5] rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
           aria-label="Like profile"
         >
-          <Heart className="w-8 h-8 text-green-500" />
+          <Heart className="w-8 h-8 text-[#1A1A1A]" />
         </button>
       </div>
     </div>

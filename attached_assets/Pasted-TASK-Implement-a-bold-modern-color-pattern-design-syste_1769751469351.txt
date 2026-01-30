@@ -1,0 +1,109 @@
+TASK: Implement a bold, modern “color + pattern” design system across the entire app UI. The current design is bland. I want maximal, graphic, packaging-level visual energy (Milly: Color Lover by &Walsh, Herefor Studio packaging, Graza energy but expanded beyond just pink/red, Sun Noodle packaging vibrancy, A24-level typographic confidence). This must feel modern, playful, editorial, and intentional.
+
+IMPORTANT CONSTRAINTS:
+- Do NOT break existing functionality.
+- Do NOT remove existing components unless replaced with equivalent working versions.
+- Prefer small, contained changes: centralized theme tokens + reusable components.
+- Use Tailwind (already in project). If you add any dependency, justify it and keep minimal.
+- Everything must remain responsive and mobile-first.
+
+GOAL:
+Create a modular design system with:
+1) A multi-palette color system (not just one palette) that can rotate by screen or by profile.
+2) A pattern system (checker, stripes, dots, squiggles, halftone blocks, repeating icons) used as backgrounds/accents.
+3) A typography system that feels poster-like: big headlines, strong labels, playful but clean.
+4) Buttons that look like stickers/labels, not default rounded SaaS buttons.
+5) Cards that feel like posters: strong borders, offset shadows, slight tilt options.
+6) Match modal and loading states that feel like celebratory packaging moments.
+
+DELIVERABLES:
+A) Add a new file: client/src/styles/theme.ts that exports:
+- color palettes (4-6 palettes)
+- pattern definitions (as CSS background strings or SVG data URIs)
+- type scale tokens
+- helper functions for selecting palette/pattern deterministically per profileId AND randomly per session
+
+B) Add a new file: client/src/styles/patterns.ts that defines 10+ patterns:
+- checkerboard
+- bold stripes
+- polka dots
+- squiggle repeat
+- halftone blocks
+- star/heart micro icons repeat
+Patterns must be lightweight and not require external fetches.
+
+C) Add a new Tailwind layer in client/src/index.css (or equivalent) defining:
+- .eg-card
+- .eg-button
+- .eg-chip
+- .eg-modal
+- .eg-bg-pattern
+- .eg-shadow-offset
+- .eg-outline
+These classes should implement the look consistently.
+
+D) Update these UI areas to use the design system:
+1. Swipe cards (profile photo + bio card):
+   - Add bold border
+   - Add offset shadow
+   - Add a patterned background behind the card
+   - Use strong typography for name/age
+   - Make bio look like a caption block with color fill
+2. Filters modal (gender selection + age slider):
+   - Make it a bold modal: pattern header, big title, clear “Save” button that closes modal
+   - Chips for Men/Women/Everyone should look like sticker labels
+3. Match confirmation modal:
+   - Make it a “packaging moment”: full-bleed color/pattern with huge type
+   - Buttons: “Start chat” and “Keep swiping” styled as stickers
+4. Chat screen:
+   - Keep readable, but not bland.
+   - Add colored header bar with pattern strip.
+   - Chat bubbles: user vs AI distinct, with brand colors.
+   - Typing indicator styled with playful dots.
+5. Loading state (“Finding matches”):
+   - Replace basic spinner with a fun loading card: bold type + animated ellipsis + pattern.
+
+E) Palette + Pattern Rules:
+- Never more than 3-4 colors per screen, but overall app uses many colors.
+- Each profile should deterministically get a palette and pattern based on profile.id (so it feels consistent for that character).
+- The overall “session” can also choose a global accent palette, but profile palettes override on their cards.
+
+F) Provide a “Design Preview Page” route:
+- Add a route at /design that shows:
+  - palette swatches
+  - pattern swatches
+  - sample buttons
+  - sample card
+  - sample chips
+This page is for me to visually verify quickly.
+
+STYLE SPEC (what it should look like):
+- Color: hot pink + tomato red + lemon yellow + electric lavender + mint + sky blue + cream + ink black
+- Patterns: bold, flat, graphic. No gradients. No faux textures.
+- Borders: thick black or ink outlines, slightly imperfect feel.
+- Shadows: offset shadows (like screenprinted poster), not soft blur.
+- Typography: strong hierarchy; big name headlines; small label text in capsules.
+
+IMPLEMENTATION NOTES:
+- Use CSS variables for palette values so switching is easy.
+- Patterns can be:
+  - CSS repeating-linear-gradient backgrounds, OR
+  - SVG background-image via data URI.
+- Add a helper: getProfileTheme(profileId) -> { palette, pattern, accentClass }
+- Update components to consume theme data (do not hardcode random colors per render, it must be stable).
+
+OUTPUT REQUIREMENT:
+- Make the changes directly in code.
+- Ensure app still runs.
+- If you need to adjust specific component files, do it and keep diffs clean.
+- Do NOT leave “TODO” placeholders—implement the full system.
+
+Proceed step-by-step:
+1) Create theme tokens + patterns
+2) Add utility classes in CSS
+3) Update swipe UI
+4) Update filters modal + add Save button
+5) Update match modal
+6) Update chat
+7) Add /design preview route
+8) Smoke test all routes

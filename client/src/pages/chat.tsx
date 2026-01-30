@@ -1,8 +1,11 @@
+import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ChatInterface } from "@/components/chat-interface";
 import type { Message, Profile, Match } from "@shared/schema";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart } from "lucide-react";
+import { getProfileTheme } from "@/styles/theme";
+import { getPatternStyle } from "@/styles/patterns";
 
 interface MatchWithProfile {
   match: Match;
@@ -11,7 +14,7 @@ interface MatchWithProfile {
 
 interface ChatProps {
   params: {
-    id: string; // this is matchId from the URL
+    id: string;
   };
 }
 
@@ -20,7 +23,6 @@ export default function Chat({ params }: ChatProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  // Fetch match and profile together using the dedicated endpoint
   const { data, isLoading, error } = useQuery<MatchWithProfile>({
     queryKey: ["/api/matches/by-id", matchId],
     queryFn: async () => {
@@ -36,14 +38,23 @@ export default function Chat({ params }: ChatProps) {
       return data;
     },
     enabled: !isNaN(matchId),
-    retry: 3, // Retry a few times in case of race conditions
+    retry: 3,
     retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
   });
 
   const match = data?.match;
   const profile = data?.profile;
 
-  // Load messages for this match
+  const theme = useMemo(
+    () => profile ? getProfileTheme(profile.id) : null,
+    [profile?.id]
+  );
+  
+  const patternStyle = useMemo(
+    () => theme ? getPatternStyle(theme.patternName) : {},
+    [theme?.patternName]
+  );
+
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: [`/api/messages/${matchId}`],
     enabled: !!matchId && !!match,
@@ -59,60 +70,86 @@ export default function Chat({ params }: ChatProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4" style={{ background: '#FFF8E7' }}>
+        <div className="flex gap-2">
+          <Heart className="w-8 h-8 text-[#FF1493] eg-bounce" style={{ animationDelay: '0ms' }} />
+          <Sparkles className="w-8 h-8 text-[#FFDC00] eg-bounce" style={{ animationDelay: '150ms' }} />
+          <Heart className="w-8 h-8 text-[#FF1493] eg-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+        <p className="text-xl font-bold">Loading chat<span className="eg-loading-dots" /></p>
       </div>
     );
   }
 
-  if (error || !match) {
+  if (error || !match || !profile || !theme) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="mb-4">Match not found</p>
-        <button
-          onClick={handleBack}
-          className="px-4 py-2 bg-pink-500 text-white rounded-lg"
-        >
-          Back to Messages
-        </button>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="mb-4">Profile not found</p>
-        <button
-          onClick={handleBack}
-          className="px-4 py-2 bg-pink-500 text-white rounded-lg"
-        >
-          Back to Messages
-        </button>
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: '#FFF8E7' }}
+      >
+        <div className="eg-card p-8 text-center max-w-sm">
+          <p className="text-xl font-bold mb-6">Match not found</p>
+          <button
+            onClick={handleBack}
+            className="eg-button rounded-full"
+          >
+            Back to Messages
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-2xl h-screen flex flex-col">
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b">
-        <button
-          onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <img
-          src={profile.imageUrl}
-          alt={profile.name}
-          className="w-10 h-10 rounded-full object-cover"
+    <div 
+      className="min-h-screen flex flex-col"
+      style={{
+        '--eg-primary': theme.palette.primary,
+        '--eg-secondary': theme.palette.secondary,
+        '--eg-accent': theme.palette.accent,
+        '--eg-background': theme.palette.background,
+        background: theme.palette.background,
+      } as React.CSSProperties}
+    >
+      <div 
+        className="relative overflow-hidden"
+        style={{ background: theme.palette.primary }}
+      >
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={patternStyle}
         />
-        <div>
-          <h2 className="font-semibold">{profile.name}, {profile.age}</h2>
+        
+        <div className="relative container mx-auto px-4 py-4 flex items-center gap-4">
+          <button
+            onClick={handleBack}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          
+          <img
+            src={profile.imageUrl}
+            alt={profile.name}
+            className="w-12 h-12 rounded-full object-cover border-3 border-white"
+            style={{ border: '3px solid white' }}
+          />
+          
+          <div className="flex-1">
+            <h2 className="font-bold text-white text-lg">
+              {profile.name}, {profile.age}
+            </h2>
+            {profile.isChaos && (
+              <div className="flex items-center gap-1 text-white/80 text-sm">
+                <Sparkles className="w-3 h-3" />
+                <span>Chaos Mode</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col overflow-hidden">
         <ChatInterface matchId={matchId} messages={messages} onNewMessage={handleNewMessage} />
       </div>
     </div>
