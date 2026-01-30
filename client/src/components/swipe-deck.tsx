@@ -213,6 +213,16 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
       // Don't reset seen profiles or currentIndex - just update the lastProfileIds tracker
     }
   }, [profiles, lastProfileIds]);
+
+  // Preload images for upcoming profiles to eliminate loading delay
+  useEffect(() => {
+    const unseenProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
+    // Preload next 5 profiles' images
+    unseenProfiles.slice(0, 5).forEach(profile => {
+      const img = new Image();
+      img.src = profile.imageUrl;
+    });
+  }, [profiles, seenProfileIds, badImageIds]);
   
   useEffect(() => {
     if (currentIndex >= profiles.length && profiles.length > 0) {

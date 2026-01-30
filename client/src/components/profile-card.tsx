@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { type Profile } from "@shared/schema";
 import { getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
@@ -14,6 +14,14 @@ const FALLBACK_IMAGE = "/images/fallback.png";
 export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
   const [imageSrc, setImageSrc] = useState(profile.imageUrl);
   const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Reset loading state when profile changes
+  useEffect(() => {
+    setImageSrc(profile.imageUrl);
+    setIsLoaded(false);
+    setHasError(false);
+  }, [profile.id, profile.imageUrl]);
 
   const theme = useMemo(() => getProfileTheme(profile.id), [profile.id]);
   const patternStyle = useMemo(
@@ -49,17 +57,26 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
       
       <div className="eg-card w-full max-w-sm mx-auto select-none flex flex-col max-h-full">
         <div className="relative w-full overflow-hidden flex-shrink-0" style={{ aspectRatio: '3/4', maxHeight: 'min(55vh, 400px)' }}>
+          {/* Loading placeholder */}
+          {!isLoaded && (
+            <div 
+              className="absolute inset-0 animate-pulse"
+              style={{ background: theme.palette.secondary }}
+            />
+          )}
           <img
             src={imageSrc}
             alt={profile.name}
             draggable={false}
-            className="absolute inset-0 w-full h-full object-cover select-none"
+            className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-200"
             style={{
               WebkitUserDrag: "none",
               userSelect: "none",
               pointerEvents: "none",
+              opacity: isLoaded ? 1 : 0,
             } as React.CSSProperties}
             onDragStart={(e) => e.preventDefault()}
+            onLoad={() => setIsLoaded(true)}
             onError={handleImageError}
           />
           
