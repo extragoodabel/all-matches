@@ -158,7 +158,8 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
           style={{ color: palette.text }}
         >
           {message}
-          <span className="eg-loading-dots" />
+          <br />
+          <span>matches<span className="eg-loading-dots" /></span>
         </h2>
         
         {submessage && (
@@ -223,7 +224,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
       : null;
 
   if (profiles.length === 0) {
-    return <LoadingCard message="Finding matches" />;
+    return <LoadingCard message="Finding" />;
   }
 
   const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
@@ -231,7 +232,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   if (!currentProfile || remainingProfiles.length === 0) {
     return (
       <LoadingCard 
-        message="Finding more matches" 
+        message="Finding more" 
         submessage="New profiles are being loaded"
       />
     );
