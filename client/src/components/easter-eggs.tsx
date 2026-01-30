@@ -60,7 +60,7 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
   }, [isAnimating, color, secondaryColor, prefersReducedMotion]);
 
   return (
-    <div className="relative inline-flex items-center justify-center cursor-pointer" onClick={triggerAnimation}>
+    <div className="relative inline-flex items-center justify-center cursor-pointer" onClick={(e) => { e.stopPropagation(); triggerAnimation(); }}>
       <motion.div
         animate={
           phase === "spinning"
@@ -73,7 +73,7 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
             : { duration: 0.3 }
         }
       >
-        <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9" style={{ color: secondaryColor }} />
+        <Sparkles className="w-7 h-7 md:w-9 md:h-9" style={{ color: secondaryColor }} />
       </motion.div>
       
       <AnimatePresence>
@@ -166,7 +166,7 @@ export function HeartKiss({ color, accentColor }: HeartKissProps) {
           animate={isAnimating ? { scale: [1, 1.3, 1] } : {}}
           transition={{ duration: 0.3 }}
         >
-          <Heart className="w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10" style={{ color }} />
+          <Heart className="w-8 h-8 md:w-10 md:h-10" style={{ color }} />
         </motion.div>
       </div>
 
@@ -196,17 +196,17 @@ export function HeartKiss({ color, accentColor }: HeartKissProps) {
               💋
             </motion.div>
 
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               {words.map((word, index) => (
                 <AnimatePresence key={word}>
                   {currentWord >= index && (
                     <motion.span
-                      className="text-7xl sm:text-8xl md:text-9xl font-black uppercase tracking-tight"
+                      className="text-5xl md:text-7xl font-black uppercase tracking-tight"
                       style={{ 
                         fontFamily: "var(--font-display)",
                         color: color,
-                        textShadow: `6px 6px 0 ${accentColor}, -3px -3px 0 white, 3px -3px 0 white, -3px 3px 0 white, 8px 8px 20px rgba(0,0,0,0.3)`,
-                        WebkitTextStroke: `3px ${accentColor}`,
+                        textShadow: `4px 4px 0 ${accentColor}, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white`,
+                        WebkitTextStroke: `2px ${accentColor}`,
                       }}
                       initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0, y: 50, opacity: 0 }}
                       animate={prefersReducedMotion ? { opacity: 1 } : { scale: [0, 1.3, 1], y: 0, opacity: 1 }}
