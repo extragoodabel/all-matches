@@ -7,12 +7,19 @@ interface ProfileCardProps {
 
 export function ProfileCard({ profile }: ProfileCardProps) {
   return (
-    <Card className="w-full max-w-sm mx-auto bg-white rounded-xl overflow-hidden shadow-lg">
+    <Card className="w-full max-w-sm mx-auto bg-white rounded-xl overflow-hidden shadow-lg select-none">
       <div className="relative aspect-[3/4]">
         <img
           src={profile.imageUrl}
           alt={profile.name}
-          className="absolute inset-0 w-full h-full object-cover"
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          style={{ 
+            WebkitUserDrag: "none",
+            userSelect: "none",
+            pointerEvents: "none",
+          } as React.CSSProperties}
+          onDragStart={(e) => e.preventDefault()}
         />
       </div>
       <CardContent className="p-4">

@@ -4,59 +4,110 @@ import { ProfileCard } from "./profile-card";
 import type { Profile } from "@shared/schema";
 import { Heart, X } from "lucide-react";
 
+// ============ SWIPE TUNING CONSTANTS ============
+// Adjust these values to tune the swipe feel
+
+const SWIPE_THRESHOLD_PX = 80;           // Minimum px to trigger swipe (or use percentage below)
+const SWIPE_THRESHOLD_PERCENT = 0.18;    // Alternate: 18% of card width
+const USE_PERCENT_THRESHOLD = false;     // Set true to use percentage instead of fixed px
+
+const ROTATION_MULTIPLIER = 0.08;        // How much the card rotates while dragging (deg per px)
+const MAX_ROTATION = 25;                 // Maximum rotation angle in degrees
+const OPACITY_DECAY = 400;               // Higher = slower opacity fade during drag
+const MIN_OPACITY = 0.7;                 // Minimum opacity when dragging far
+
+const INTENT_RATIO = 1.2;                // abs(dx) must be > abs(dy) * this to count as horizontal swipe
+const VERTICAL_DAMPING = 0.15;           // How much vertical movement is allowed (0 = none, 1 = full)
+
+const INDICATOR_SHOW_PX = 40;            // Show LIKE/NOPE indicator after this many px
+const EXIT_DISTANCE = 400;               // How far card flies off screen on swipe
+const SWIPE_ANIMATION_MS = 300;          // Duration of exit animation
+
+// ================================================
+
 interface SwipeDeckProps {
   profiles: Profile[];
   onSwipe: (profile: Profile, direction: "left" | "right") => void;
 }
 
-// Hook to handle drag-to-swipe gesture
 function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Swipe threshold: 25% of card width triggers a swipe
-  const SWIPE_THRESHOLD_PERCENT = 0.25;
-
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
     setIsDragging(true);
+    setIsHorizontalSwipe(null);
     startPos.current = { x: e.clientX, y: e.clientY };
-    // Capture pointer for smooth tracking outside element
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
+    
     const deltaX = e.clientX - startPos.current.x;
     const deltaY = e.clientY - startPos.current.y;
-    setDragOffset({ x: deltaX, y: deltaY * 0.1 }); // Minimal vertical movement
-  }, [isDragging]);
+    
+    // Detect swipe intent on first significant movement
+    if (isHorizontalSwipe === null && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+      const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY) * INTENT_RATIO;
+      setIsHorizontalSwipe(isHorizontal);
+    }
+    
+    // Only move card if horizontal swipe intent detected (or not yet determined)
+    if (isHorizontalSwipe !== false) {
+      setDragOffset({ 
+        x: deltaX, 
+        y: deltaY * VERTICAL_DAMPING 
+      });
+    }
+  }, [isDragging, isHorizontalSwipe]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
+    
     setIsDragging(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    setIsHorizontalSwipe(null);
+    
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Pointer may already be released
+    }
 
-    // Calculate threshold based on card width
+    // Calculate threshold
     const cardWidth = cardRef.current?.offsetWidth || 300;
-    const threshold = cardWidth * SWIPE_THRESHOLD_PERCENT;
+    const threshold = USE_PERCENT_THRESHOLD 
+      ? cardWidth * SWIPE_THRESHOLD_PERCENT 
+      : SWIPE_THRESHOLD_PX;
 
     if (dragOffset.x > threshold) {
-      // Swiped right - Like
       onSwipeComplete("right");
     } else if (dragOffset.x < -threshold) {
-      // Swiped left - Dislike
       onSwipeComplete("left");
     }
     
-    // Reset offset (snap back if threshold not met)
     setDragOffset({ x: 0, y: 0 });
   }, [isDragging, dragOffset.x, onSwipeComplete]);
 
-  // Calculate visual feedback values
-  const rotation = dragOffset.x * 0.05; // Subtle rotation during drag
-  const opacity = Math.max(0.6, 1 - Math.abs(dragOffset.x) / 500); // Slight fade
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    setIsDragging(false);
+    setIsHorizontalSwipe(null);
+    setDragOffset({ x: 0, y: 0 });
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Pointer may already be released
+    }
+  }, []);
+
+  // Calculate visual feedback
+  const rawRotation = dragOffset.x * ROTATION_MULTIPLIER;
+  const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, rawRotation));
+  const opacity = Math.max(MIN_OPACITY, 1 - Math.abs(dragOffset.x) / OPACITY_DECAY);
 
   return {
     cardRef,
@@ -68,7 +119,7 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
       onPointerUp: handlePointerUp,
-      onPointerCancel: handlePointerUp, // Handle cancel same as up
+      onPointerCancel: handlePointerCancel,
     },
   };
 }
@@ -80,21 +131,24 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   const currentProfile = profiles[currentIndex];
 
   const handleSwipe = useCallback((swipeDirection: "left" | "right") => {
-    if (!currentProfile || direction) return; // Prevent double-swipe
+    if (!currentProfile || direction) return;
     setDirection(swipeDirection);
     onSwipe(currentProfile, swipeDirection);
 
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
       setDirection(null);
-    }, 300);
+    }, SWIPE_ANIMATION_MS);
   }, [currentProfile, direction, onSwipe]);
 
-  // Initialize swipe gesture hook
-  const { cardRef, dragOffset, isDragging, rotation, handlers } = useSwipeGesture(handleSwipe);
+  const { cardRef, dragOffset, isDragging, rotation, opacity, handlers } = useSwipeGesture(handleSwipe);
 
-  // Determine swipe direction indicator for visual feedback
-  const swipeIndicator = dragOffset.x > 50 ? "like" : dragOffset.x < -50 ? "nope" : null;
+  // Show indicator after threshold
+  const swipeIndicator = dragOffset.x > INDICATOR_SHOW_PX 
+    ? "like" 
+    : dragOffset.x < -INDICATOR_SHOW_PX 
+      ? "nope" 
+      : null;
 
   if (profiles.length === 0) {
     return (
@@ -121,40 +175,42 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
           <motion.div
             ref={cardRef}
             key={currentProfile.id}
-            initial={{ scale: 1 }}
+            initial={{ scale: 1, opacity: 1 }}
             animate={{
               scale: 1,
-              // If animating out, use direction; otherwise use drag offset
-              x: direction === "left" ? -300 : direction === "right" ? 300 : dragOffset.x,
-              rotate: direction === "left" ? -20 : direction === "right" ? 20 : rotation,
+              x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
+              y: direction ? 0 : dragOffset.y,
+              rotate: direction === "left" ? -MAX_ROTATION : direction === "right" ? MAX_ROTATION : rotation,
+              opacity: direction ? 0 : opacity,
             }}
             exit={{ scale: 0.5, opacity: 0 }}
             transition={{ 
-              duration: direction ? 0.3 : 0, // Instant during drag, animated on swipe
+              duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
               type: direction ? "tween" : "spring",
+              ease: "easeOut",
             }}
+            className="select-none"
             style={{ 
               cursor: isDragging ? "grabbing" : "grab",
-              touchAction: "none", // Prevent scroll interference on touch
-            }}
+              touchAction: "none",
+              WebkitUserDrag: "none",
+              userSelect: "none",
+            } as React.CSSProperties}
             {...handlers}
           >
-            {/* Visual feedback overlay during drag */}
-            <div className="relative">
+            <div className="relative pointer-events-none">
               <ProfileCard profile={currentProfile} />
               
-              {/* Like indicator (shown when dragging right) */}
               {swipeIndicator === "like" && (
-                <div className="absolute inset-0 bg-green-500/20 rounded-2xl flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-green-500/20 rounded-2xl flex items-center justify-center">
                   <div className="bg-green-500 text-white px-6 py-2 rounded-full text-2xl font-bold rotate-[-15deg] border-4 border-white shadow-lg">
                     LIKE
                   </div>
                 </div>
               )}
               
-              {/* Nope indicator (shown when dragging left) */}
               {swipeIndicator === "nope" && (
-                <div className="absolute inset-0 bg-red-500/20 rounded-2xl flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-red-500/20 rounded-2xl flex items-center justify-center">
                   <div className="bg-red-500 text-white px-6 py-2 rounded-full text-2xl font-bold rotate-[15deg] border-4 border-white shadow-lg">
                     NOPE
                   </div>
@@ -165,7 +221,6 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
         </AnimatePresence>
       </div>
 
-      {/* Existing buttons - unchanged functionality */}
       <div className="flex gap-6 mt-4">
         <button
           onClick={() => handleSwipe("left")}
