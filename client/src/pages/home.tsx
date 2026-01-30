@@ -164,6 +164,24 @@ export default function Home() {
           '--eg-background': palette.background,
         } as React.CSSProperties}
       >
+        {/* Centered easter egg overlay */}
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none transition-opacity duration-300"
+          style={{ opacity: secretText ? 1 : 0 }}
+        >
+          <span 
+            className="px-4 sm:px-6 py-2 sm:py-3 text-xl sm:text-3xl md:text-4xl font-black tracking-wider uppercase"
+            style={{ 
+              color: palette.background,
+              background: palette.primary,
+              boxShadow: `6px 6px 0 ${palette.accent}`,
+              transform: secretText ? 'scale(1)' : 'scale(0.8)',
+              transition: 'transform 0.3s ease-out',
+            }}
+          >
+            Validation Vending Machine
+          </span>
+        </div>
         <div className="flex-shrink-0 px-4 sm:px-4 pt-3 pb-2">
         <div className="flex justify-between items-center relative z-50 gap-3">
           <button 
@@ -203,12 +221,7 @@ export default function Home() {
                   }
                 }}
               >
-                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 0 : 1, position: secretText ? 'absolute' : 'relative' }}>
-                  All Matches!
-                </span>
-                <span className="transition-opacity duration-300 tracking-wider" style={{ opacity: secretText ? 1 : 0, position: secretText ? 'relative' : 'absolute' }}>
-                  Validation Vending Machine
-                </span>
+                All Matches!
               </span>
               <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>
