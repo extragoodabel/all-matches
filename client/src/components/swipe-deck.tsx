@@ -31,35 +31,17 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
-  const pointerIdRef = useRef<number | null>(null);
-  const currentOffsetRef = useRef({ x: 0, y: 0 });
-
-  const resetDragState = useCallback(() => {
-    setIsDragging(false);
-    setIsHorizontalSwipe(null);
-    setDragOffset({ x: 0, y: 0 });
-    currentOffsetRef.current = { x: 0, y: 0 };
-    pointerIdRef.current = null;
-  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (pointerIdRef.current !== null) return;
     e.preventDefault();
-    e.stopPropagation();
-    
-    pointerIdRef.current = e.pointerId;
     setIsDragging(true);
     setIsHorizontalSwipe(null);
     startPos.current = { x: e.clientX, y: e.clientY };
-    currentOffsetRef.current = { x: 0, y: 0 };
-    
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {}
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging || e.pointerId !== pointerIdRef.current) return;
+    if (!isDragging) return;
     
     const deltaX = e.clientX - startPos.current.x;
     const deltaY = e.clientY - startPos.current.y;
@@ -70,41 +52,49 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
     }
     
     if (isHorizontalSwipe !== false) {
-      const newOffset = { x: deltaX, y: deltaY * VERTICAL_DAMPING };
-      currentOffsetRef.current = newOffset;
-      setDragOffset(newOffset);
+      setDragOffset({ 
+        x: deltaX, 
+        y: deltaY * VERTICAL_DAMPING 
+      });
     }
   }, [isDragging, isHorizontalSwipe]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (e.pointerId !== pointerIdRef.current) return;
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    setIsHorizontalSwipe(null);
     
     try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Pointer may already be released
+    }
 
-    const finalOffsetX = currentOffsetRef.current.x;
     const cardWidth = cardRef.current?.offsetWidth || 300;
     const threshold = USE_PERCENT_THRESHOLD 
       ? cardWidth * SWIPE_THRESHOLD_PERCENT 
       : SWIPE_THRESHOLD_PX;
 
-    if (finalOffsetX > threshold) {
+    if (dragOffset.x > threshold) {
       onSwipeComplete("right");
-    } else if (finalOffsetX < -threshold) {
+    } else if (dragOffset.x < -threshold) {
       onSwipeComplete("left");
     }
     
-    resetDragState();
-  }, [onSwipeComplete, resetDragState]);
+    setDragOffset({ x: 0, y: 0 });
+  }, [isDragging, dragOffset.x, onSwipeComplete]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
-    if (e.pointerId !== pointerIdRef.current) return;
+    setIsDragging(false);
+    setIsHorizontalSwipe(null);
+    setDragOffset({ x: 0, y: 0 });
     try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
-    resetDragState();
-  }, [resetDragState]);
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Pointer may already be released
+    }
+  }, []);
 
   const rawRotation = dragOffset.x * ROTATION_MULTIPLIER;
   const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, rawRotation));
@@ -282,69 +272,33 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
     );
   }
 
-  const stackPalette = getSessionPalette();
-  const stackPatternStyle = getPatternStyle('confetti');
-
   return (
     <div className="flex-1 flex flex-col items-center min-h-0 relative">
       <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-12 sm:pb-16">
-        
-        {/* Static back cards - the deck underneath */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
-          {/* Card 3 - deepest */}
-          <div 
-            className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
-            style={{
-              transform: 'translate(12px, 12px)',
-              background: stackPalette.background,
-              zIndex: 1,
-              ...stackPatternStyle,
-            }}
-          />
-          {/* Card 2 - middle */}
-          <div 
-            className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
-            style={{
-              transform: 'translate(6px, 6px)',
-              background: stackPalette.background,
-              zIndex: 2,
-              ...stackPatternStyle,
-            }}
-          />
-        </div>
-
-        {/* Top card - the active profile that moves */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
             ref={cardRef}
             key={currentProfile.id}
-            initial={{ scale: 0.95, opacity: 0, rotateY: -8 }}
+            initial={{ scale: 1, opacity: 1 }}
             animate={{
               scale: 1,
-              rotateY: 0,
               x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
               y: direction ? 0 : dragOffset.y,
               rotate: direction === "left" ? -MAX_ROTATION : direction === "right" ? MAX_ROTATION : rotation,
               opacity: direction ? 0 : opacity,
             }}
-            exit={{ 
-              x: direction === "left" ? -EXIT_DISTANCE : EXIT_DISTANCE,
-              rotate: direction === "left" ? -MAX_ROTATION : MAX_ROTATION,
-              opacity: 0,
-            }}
+            exit={{ scale: 0.5, opacity: 0 }}
             transition={{ 
-              duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0.25,
+              duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
               type: direction ? "tween" : "spring",
               ease: "easeOut",
             }}
-            className="select-none w-full relative"
+            className="select-none w-full"
             style={{ 
-              zIndex: 10,
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
               WebkitUserDrag: "none",
               userSelect: "none",
-              transformStyle: 'preserve-3d',
             } as React.CSSProperties}
             {...handlers}
           >
