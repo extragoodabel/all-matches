@@ -98,28 +98,69 @@ export class MemStorage implements IStorage {
     this.matches = new Map();
     this.messages = new Map();
     this.usedNames = new Set();
-    this.usedImageIndices = new Set();
     this.usedBioHashes = new Set();
+    
+    // Initialize shuffled image pools
+    this.maleImagePool = shufflePool(MALE_PHOTO_POOL);
+    this.femaleImagePool = shufflePool(FEMALE_PHOTO_POOL);
+    this.usedMaleImageIds = new Set();
+    this.usedFemaleImageIds = new Set();
+    
     this.currentId = {
       users: 1,
-      profiles: INITIAL_PROFILES.length + 1, // Start after initial profiles
+      profiles: INITIAL_PROFILES.length + 1,
       matches: 1,
       messages: 1,
     };
 
-    // Initialize with mock profiles (with generated character specs and gender-matched photos)
+    // Initialize with mock profiles (with generated character specs and unique images)
     INITIAL_PROFILES.forEach((profile) => {
       const charSpec = generateMockCharacterSpec(profile.name, profile.bio, profile.age, profile.gender);
-      const imageUrl = getMockPhotoUrl(profile.gender, profile.age, profile.id);
+      const imageId = this.getUniqueImageId(profile.gender);
+      const imageUrl = `https://images.unsplash.com/photo-${imageId}?auto=format&fit=crop&w=400&h=600&q=80`;
+      console.log(`[Image] Mock profile ${profile.id} (${profile.gender}): ${imageId}`);
       this.profiles.set(profile.id, {
         ...profile,
         imageUrl,
         characterSpec: charSpec
       });
-      // Track mock profile names and bios as used
       this.usedNames.add(profile.name.toLowerCase());
       this.usedBioHashes.add(this.hashBio(profile.bio));
     });
+    
+    console.log(`[Image] Pools initialized: ${this.maleImagePool.length} male, ${this.femaleImagePool.length} female`);
+  }
+  
+  getUniqueImageId(gender: string): string {
+    const isMale = gender === "male";
+    const pool = isMale ? this.maleImagePool : this.femaleImagePool;
+    const usedSet = isMale ? this.usedMaleImageIds : this.usedFemaleImageIds;
+    
+    // Find unused images
+    const available = pool.filter(id => !usedSet.has(id));
+    
+    if (available.length === 0) {
+      // Pool exhausted - reshuffle and reset
+      console.log(`[Image] ${gender} pool EXHAUSTED. Reshuffling ${pool.length} images.`);
+      if (isMale) {
+        this.maleImagePool = shufflePool(MALE_PHOTO_POOL);
+        this.usedMaleImageIds.clear();
+      } else {
+        this.femaleImagePool = shufflePool(FEMALE_PHOTO_POOL);
+        this.usedFemaleImageIds.clear();
+      }
+      // Select first from reshuffled pool
+      const newPool = isMale ? this.maleImagePool : this.femaleImagePool;
+      const selected = newPool[0];
+      usedSet.add(selected);
+      return selected;
+    }
+    
+    // Select random from available
+    const selected = available[Math.floor(Math.random() * available.length)];
+    usedSet.add(selected);
+    console.log(`[Image] Selected ${gender}: ${selected} (${available.length - 1} remaining)`);
+    return selected;
   }
 
   hashBio(bio: string): string {

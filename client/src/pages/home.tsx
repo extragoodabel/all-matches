@@ -11,7 +11,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,12 +23,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [currentMatch, setCurrentMatch] = useState<Profile | null>(null);
-  const [ageRange, setAgeRange] = useState([21, 50]);
+  
+  // Saved preferences (persisted state)
+  const [ageRange, setAgeRange] = useState<[number, number]>([21, 50]);
   const [genderPref, setGenderPref] = useState("all");
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Draft state for modal (only persisted on Save)
+  const [draftAgeRange, setDraftAgeRange] = useState<[number, number]>([21, 50]);
+  const [draftGenderPref, setDraftGenderPref] = useState("all");
 
   const { data: profiles = [], refetch } = useQuery<Profile[]>({
     queryKey: [`/api/profiles?gender=${genderPref}&minAge=${ageRange[0]}&maxAge=${ageRange[1]}`],
@@ -41,7 +52,7 @@ export default function Home() {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-  }, [profiles.length === 0]); // Only reshuffle when the list first loads or when length changes significantly
+  }, [profiles.length === 0]);
 
   const filteredProfiles = useMemo(() => {
     return (shuffledProfiles.length > 0 ? shuffledProfiles : profiles).filter((p) => {
@@ -65,17 +76,38 @@ export default function Home() {
       }
     }
     
-    // When getting low on profiles in the filtered list, trigger a background refetch
-    // The server will handle the replenishment
     if (filteredProfiles.length < 10) {
       refetch();
     }
   };
 
+  // Modal handlers
+  const openModal = () => {
+    // Initialize draft from saved state
+    setDraftAgeRange([...ageRange] as [number, number]);
+    setDraftGenderPref(genderPref);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    // Persist draft to saved state
+    setAgeRange(draftAgeRange);
+    setGenderPref(draftGenderPref);
+    setIsModalOpen(false);
+  };
+
+  const handleCancel = () => {
+    // Discard draft changes
+    setIsModalOpen(false);
+  };
+
+  // Validation
+  const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 50 && draftAgeRange[0] <= draftAgeRange[1];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8 relative z-50">
-        <div className="w-10" /> {/* Spacer */}
+        <div className="w-10" />
         <h1 className="text-5xl font-extrabold flex-1 text-center">
           <div className="flex items-center justify-center gap-2">
             <Heart className="w-6 h-6 text-red-500" />
@@ -85,44 +117,56 @@ export default function Home() {
             <Heart className="w-6 h-6 text-red-500" />
           </div>
         </h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <button className="p-3 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-gray-100 rounded-full transition-all group active:scale-95">
-              <Settings2 className="w-6 h-6 text-gray-600 group-hover:text-pink-500 transition-colors" />
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Match Preferences</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6 py-4">
-              <div className="space-y-2">
-                <Label>Age Range: {ageRange[0]} - {ageRange[1]}</Label>
-                <Slider
-                  min={21}
-                  max={50}
-                  step={1}
-                  value={ageRange}
-                  onValueChange={setAgeRange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Show me</Label>
-                <Select value={genderPref} onValueChange={setGenderPref}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Everyone</SelectItem>
-                    <SelectItem value="male">Men</SelectItem>
-                    <SelectItem value="female">Women</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <button 
+          onClick={openModal}
+          className="p-3 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-gray-100 rounded-full transition-all group active:scale-95"
+        >
+          <Settings2 className="w-6 h-6 text-gray-600 group-hover:text-pink-500 transition-colors" />
+        </button>
       </div>
+
+      <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCancel()}>
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Match Preferences</DialogTitle>
+            <DialogDescription>Set your age range and gender preferences</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <Label>Age Range: {draftAgeRange[0]} - {draftAgeRange[1]}</Label>
+              <Slider
+                min={21}
+                max={50}
+                step={1}
+                value={draftAgeRange}
+                onValueChange={(val) => setDraftAgeRange(val as [number, number])}
+                minStepsBetweenThumbs={0}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Show me</Label>
+              <Select value={draftGenderPref} onValueChange={setDraftGenderPref}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Everyone</SelectItem>
+                  <SelectItem value="male">Men</SelectItem>
+                  <SelectItem value="female">Women</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={!isValid}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SwipeDeck key={`${ageRange.join("-")}-${genderPref}`} profiles={filteredProfiles} onSwipe={handleSwipe} />
       

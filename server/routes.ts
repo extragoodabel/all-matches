@@ -152,95 +152,6 @@ async function generateUniqueBio(context: {
   return fallback;
 }
 
-// Gender and age-bucketed photo pools
-// Age buckets: 21-25, 26-32, 33-40, 41-50
-const MALE_PHOTOS_BY_AGE: Record<string, string[]> = {
-  "21-25": [
-    "1500648767791-00dcc994a43e",
-    "1507003211169-0a1dd7228f2d", 
-    "1519345182560-3f2917c472ef",
-    "1472099645785-5658abf4ff4e",
-  ],
-  "26-32": [
-    "1506794778202-cad84cf45f1d",
-    "1560250097-0b93528c311a",
-    "1463453091185-61582044d556",
-    "1502323777036-f29e3972d82f",
-  ],
-  "33-40": [
-    "1552374196-c4e7ffc6e12e",
-    "1500648767791-00dcc994a43e",
-    "1519345182560-3f2917c472ef",
-    "1506794778202-cad84cf45f1d",
-  ],
-  "41-50": [
-    "1560250097-0b93528c311a",
-    "1463453091185-61582044d556",
-    "1472099645785-5658abf4ff4e",
-    "1502323777036-f29e3972d82f",
-  ],
-};
-
-const FEMALE_PHOTOS_BY_AGE: Record<string, string[]> = {
-  "21-25": [
-    "1534528741775-53994a69daeb",
-    "1544005313-94ddf0286df2",
-    "1531746020798-e6953c6e8e04",
-    "1488426862026-3ee34a7d66df",
-  ],
-  "26-32": [
-    "1524504388940-b1c1722653e1",
-    "1489424731084-a5d8b219a5bb",
-    "1508214751196-bcfd4ca60f91",
-    "1487412720507-e7ab37603c6f",
-  ],
-  "33-40": [
-    "1503235930437-8c6293ba41f5",
-    "1533636721434-0e2d61030955",
-    "1506863530036-1efeddceb993",
-    "1438761681033-6461ffad8d80",
-  ],
-  "41-50": [
-    "1508214751196-bcfd4ca60f91",
-    "1503235930437-8c6293ba41f5",
-    "1487412720507-e7ab37603c6f",
-    "1438761681033-6461ffad8d80",
-  ],
-};
-
-function getAgeBucket(age: number): string {
-  if (age <= 25) return "21-25";
-  if (age <= 32) return "26-32";
-  if (age <= 40) return "33-40";
-  return "41-50";
-}
-
-function getPhotoForGenderAndAge(gender: string, age: number, profileId: number): string {
-  const bucket = getAgeBucket(age);
-  let photoPool: string[];
-  
-  // Default fallback pool if everything else fails
-  const fallbackPool = ["1500648767791-00dcc994a43e", "1534528741775-53994a69daeb"];
-  
-  if (gender === "male") {
-    photoPool = MALE_PHOTOS_BY_AGE[bucket] || MALE_PHOTOS_BY_AGE["26-32"] || fallbackPool;
-  } else if (gender === "female") {
-    photoPool = FEMALE_PHOTOS_BY_AGE[bucket] || FEMALE_PHOTOS_BY_AGE["26-32"] || fallbackPool;
-  } else {
-    // "other" or unknown - pick from combined pool
-    const malePool = MALE_PHOTOS_BY_AGE[bucket] || MALE_PHOTOS_BY_AGE["26-32"] || [];
-    const femalePool = FEMALE_PHOTOS_BY_AGE[bucket] || FEMALE_PHOTOS_BY_AGE["26-32"] || [];
-    photoPool = [...malePool, ...femalePool];
-  }
-  
-  // Ensure we always have at least one photo
-  if (photoPool.length === 0) {
-    photoPool = fallbackPool;
-  }
-  
-  const photoId = photoPool[profileId % photoPool.length];
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=400&h=600&q=80&v=${profileId}&t=${Date.now()}`;
-}
 
 function generateCharacterSpec(context: {
   name: string;
@@ -425,19 +336,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quirk,
         });
 
-        const created = await storage.createProfile({
+        // Get unique image from pool BEFORE creating profile
+        const imageId = storage.getUniqueImageId(gender);
+        const imageUrl = `https://images.unsplash.com/photo-${imageId}?auto=format&fit=crop&w=400&h=600&q=80`;
+        console.log(`[Profile] Created profile ${name} (${gender}, ${age}): image=${imageId}`);
+
+        await storage.createProfile({
           name,
           age,
           bio,
           gender,
-          imageUrl: "",
+          imageUrl,
           isAI: true,
           characterSpec: charSpec,
         });
-
-        // Use gender and age appropriate photo
-        const imageUrl = getPhotoForGenderAndAge(gender, age, created.id);
-        await storage.updateProfile(created.id, { imageUrl });
       }
 
       // Re-fetch unseen profiles after generation
