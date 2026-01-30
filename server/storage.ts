@@ -54,11 +54,11 @@ function generateMockCharacterSpec(name: string, bio: string, age: number, gende
 }
 
 const INITIAL_PROFILES = [
-  { id: 1, name: "Sophie", age: 28, gender: "female", bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe.", isAI: true },
-  { id: 2, name: "James", age: 31, gender: "male", bio: "Photographer by day, chef by night. Dry humor. I will absolutely judge your cutting technique.", isAI: true },
-  { id: 3, name: "Emma", age: 24, gender: "female", bio: "Book lover and yoga instructor. If you have a favorite essay, I want to hear about it.", isAI: true },
-  { id: 4, name: "Michael", age: 30, gender: "male", bio: "Music producer. Outdoors when I can, obsessed with sound design when I cannot.", isAI: true },
-  { id: 5, name: "Olivia", age: 25, gender: "female", bio: "Travel blogger. Street food, local markets, and I will ask you too many questions.", isAI: true },
+  { id: 1, name: "Sophie", age: 28, gender: "female", bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe.", isAI: true, isChaos: false },
+  { id: 2, name: "James", age: 31, gender: "male", bio: "Photographer by day, chef by night. Dry humor. I will absolutely judge your cutting technique.", isAI: true, isChaos: false },
+  { id: 3, name: "Emma", age: 24, gender: "female", bio: "Book lover and yoga instructor. If you have a favorite essay, I want to hear about it.", isAI: true, isChaos: false },
+  { id: 4, name: "Michael", age: 30, gender: "male", bio: "Music producer. Outdoors when I can, obsessed with sound design when I cannot.", isAI: true, isChaos: false },
+  { id: 5, name: "Olivia", age: 25, gender: "female", bio: "Travel blogger. Street food, local markets, and I will ask you too many questions.", isAI: true, isChaos: false },
 ];
 
 export interface IStorage {
@@ -241,7 +241,8 @@ export class MemStorage implements IStorage {
       id, 
       isAI: insertProfile.isAI ?? false,
       gender: insertProfile.gender ?? "other",
-      characterSpec: insertProfile.characterSpec ?? null
+      characterSpec: insertProfile.characterSpec ?? null,
+      isChaos: insertProfile.isChaos ?? false
     };
     this.profiles.set(id, profile);
     return profile;

@@ -1,0 +1,39 @@
+GOAL: Immediately reduce and control costs. Implement a “COST-SAFE / PROTOTYPE MODE” that prevents runaway AI usage.
+
+CONSTRAINTS (NON-NEGOTIABLE):
+1) DO NOT call any OpenAI (chat or images) during profile fetching / swiping.
+   - /api/profiles must NEVER generate new profiles with OpenAI.
+   - /api/profiles must NEVER generate images (no gpt-image-1, no Replit AI image calls).
+2) Profile generation must be “one-time only” (seeded) and then reused.
+   - Create a seed process that runs manually (script or endpoint protected by env flag), NOT automatically.
+   - After seeding, profiles come from stored data only (JSON file or DB).
+3) Add hard guards:
+   - If NODE_ENV !== "development" OR if COST_SAFE_MODE=true, the app must refuse/skip any AI generation code paths and use cached/fallback data only.
+   - Add console warnings if an AI code path is attempted while COST_SAFE_MODE=true.
+4) Add caching + dedup:
+   - Cache generated bios/images if they exist; never regenerate the same profile twice.
+   - Never run generation inside loops that can be triggered by page refresh.
+5) Add strict rate limiting:
+   - For chat responses, cap to max 1 AI call per user message.
+   - Add a server-side limiter: max 10 chat AI calls per hour (configurable).
+   - If limit exceeded, return a graceful fallback message.
+6) Add a “usage dashboard” log:
+   - On each AI call, log a single line with timestamp, endpoint, model, and reason.
+   - Maintain an in-memory counter for this session: chatCalls, imageCalls.
+7) Remove background replenishment:
+   - No “buffer refill” that triggers AI.
+   - If profiles run low, return existing profiles (shuffle) instead of generating more.
+8) Provide a simple config section:
+   - COST_SAFE_MODE=true/false
+   - ENABLE_CHAT_AI=true/false
+   - ENABLE_IMAGE_AI=true/false
+   Defaults: COST_SAFE_MODE=true, ENABLE_IMAGE_AI=false, ENABLE_CHAT_AI=false.
+
+IMPLEMENTATION REQUEST:
+- Refactor code to ensure /api/profiles only returns profiles from storage (MemStorage/DB/JSON) and never triggers AI.
+- Replace any AI portrait placeholder with a fast static image library (Unsplash or local assets).
+- Ensure the app still works end-to-end: swiping, matching, chat UI, and message history.
+
+DELIVERABLES:
+- Provide full replacement code for the relevant files you touched (routes.ts, openai.ts, any seed script).
+- Include a short note: where to toggle COST_SAFE_MODE and how to run the one-time seed step.

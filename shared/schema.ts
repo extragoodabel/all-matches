@@ -20,6 +20,7 @@ export const profiles = pgTable("profiles", {
   isAI: pgBoolean("is_ai").notNull().default(false),
   gender: text("gender").notNull().default("other"),
   characterSpec: text("character_spec"),
+  isChaos: pgBoolean("is_chaos").notNull().default(false),
 });
 
 export const matches = pgTable("matches", {
