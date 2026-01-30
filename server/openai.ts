@@ -1,4 +1,9 @@
 import OpenAI from "openai";
+import { 
+  canMakeChatAICall, 
+  recordChatCall,
+  COST_CONFIG 
+} from "./cost-config";
 
 function calculateTypingDelay(message: string): number {
   const words = message.trim().split(/\s+/).filter(Boolean).length;
@@ -17,6 +22,12 @@ const fallbackResponses = [
   "Hold up, my brain froze. One more time?",
   "I think my phone lagged. What'd you say?",
   "Sorry, got distracted. You were saying?",
+  "Hmm interesting... tell me more?",
+  "Oh really? That's wild",
+  "Haha okay okay, go on",
+  "No way! What happened next?",
+  "That's so funny lol",
+  "Omg same honestly",
 ];
 
 const chaosFallbackResponses = [
@@ -24,11 +35,26 @@ const chaosFallbackResponses = [
   "My third eye blinked. Repeat that?",
   "Sorry, I was briefly possessed. Continue.",
   "I blacked out for a sec. The prophecy continues.",
+  "The simulation glitched. Say that again?",
+  "I just had a vision. You were saying?",
+  "My crystal ball went foggy. One more time?",
+  "The voices said to ask you to repeat that.",
+];
+
+const rateLimitResponses = [
+  "Ugh my phone is being so slow rn. Give me a sec?",
+  "Sorry my connection is trash today",
+  "One sec, my app is acting weird",
+  "Hold on, gotta restart my phone lol",
 ];
 
 function getFallbackResponse(isChaos: boolean = false): string {
   const pool = isChaos ? chaosFallbackResponses : fallbackResponses;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function getRateLimitResponse(): string {
+  return rateLimitResponses[Math.floor(Math.random() * rateLimitResponses.length)];
 }
 
 interface CharacterSpec {
@@ -50,13 +76,11 @@ interface CharacterSpec {
   };
   signatureBits: string[];
   boundaries: string;
-  // Expanded persona traits
   attachmentStyle?: string;
   conflictStyle?: string;
   humorType?: string;
   energyLevel?: string;
   flirtIntensity?: string;
-  // Chaos mode fields
   isChaos?: boolean;
   chaosType?: string;
 }
@@ -78,7 +102,6 @@ export async function generateAIResponse(
   if (context.characterSpec) {
     try {
       spec = JSON.parse(context.characterSpec);
-      // Check if chaos is stored in the spec
       if (spec?.isChaos) {
         isChaos = true;
       }
@@ -87,10 +110,31 @@ export async function generateAIResponse(
     }
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  // ============ COST CONTROL CHECK ============
+  const canCall = canMakeChatAICall();
+  
+  if (!canCall.allowed) {
+    console.log(`[AI] Chat call BLOCKED: ${canCall.reason}`);
+    
+    // Return a graceful fallback
+    if (canCall.reason.includes("Rate limit")) {
+      const content = getRateLimitResponse();
+      return { content, typingDelay: calculateTypingDelay(content) };
+    }
+    
     const content = getFallbackResponse(isChaos);
     return { content, typingDelay: calculateTypingDelay(content) };
   }
+
+  // Check for API key
+  if (!process.env.OPENAI_API_KEY) {
+    console.log(`[AI] No API key, using fallback`);
+    const content = getFallbackResponse(isChaos);
+    return { content, typingDelay: calculateTypingDelay(content) };
+  }
+
+  // Record the call BEFORE making it
+  recordChatCall();
 
   const msgCount = context.messageHistory.length;
 
@@ -105,7 +149,6 @@ export async function generateAIResponse(
     let systemPrompt: string;
 
     if (spec) {
-      // Build base character prompt
       systemPrompt = `You are ${spec.name}, a ${spec.age}-year-old ${spec.gender} human on a dating app.
 
 CHARACTER SPEC:
@@ -115,7 +158,6 @@ CHARACTER SPEC:
 - Interests: ${spec.interests.join(", ")}
 - Quirk: ${spec.quirk}`;
 
-      // Add expanded persona traits if available
       if (spec.attachmentStyle || spec.conflictStyle || spec.humorType) {
         systemPrompt += `\n\nPERSONALITY TRAITS:`;
         if (spec.attachmentStyle) systemPrompt += `\n- Attachment style: ${spec.attachmentStyle}`;
@@ -139,7 +181,6 @@ ${spec.signatureBits.map(b => `- ${b}`).join('\n')}
 
 YOUR BIO: "${context.profileBio}"`;
 
-      // Add chaos mode instructions if active
       if (isChaos && spec.chaosType) {
         systemPrompt += `
 
@@ -179,7 +220,6 @@ CONVERSATION RULES:
 7. ${spec.goal === "flirt" ? "Be flirty and playful." : spec.goal === "chaos" ? "Be chaotic and unpredictable." : spec.goal === "sincere" ? "Be genuine and warm." : "Stay true to your goal."}`;
 
     } else {
-      // Fallback for profiles without character specs
       systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
 Your bio: "${context.profileBio}"
 
@@ -197,17 +237,19 @@ You are intentionally chaotic and unpredictable. Say weird things. Have strange 
       }
     }
 
+    console.log(`[AI] Making chat completion call for ${context.profileName}`);
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...formattedHistory, { role: "user", content: userMessage }],
       max_tokens: 150,
-      temperature: isChaos ? 1.0 : 0.9, // Slightly higher temperature for chaos mode
+      temperature: isChaos ? 1.0 : 0.9,
     });
 
     const content = response.choices?.[0]?.message?.content?.trim() || getFallbackResponse(isChaos);
     return { content, typingDelay: calculateTypingDelay(content) };
   } catch (error) {
-    console.error("Error generating AI response:", error);
+    console.error("[AI] Error generating response:", error);
     const content = getFallbackResponse(isChaos);
     return { content, typingDelay: calculateTypingDelay(content) };
   }
