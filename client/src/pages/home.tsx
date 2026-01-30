@@ -142,7 +142,7 @@ export default function Home() {
   return (
     <PatternBackground baseColor={palette.background} patternIndex={bgPatternIndex}>
       <div 
-        className="min-h-screen"
+        className="h-dvh flex flex-col overflow-hidden"
         style={{
           '--eg-primary': palette.primary,
           '--eg-secondary': palette.secondary,
@@ -150,8 +150,8 @@ export default function Home() {
           '--eg-background': palette.background,
         } as React.CSSProperties}
       >
-        <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-8 relative z-50">
+        <div className="flex-shrink-0 px-4 pt-3 pb-2">
+        <div className="flex justify-between items-center relative z-50">
           <button 
             onClick={() => setLocation("/inbox")}
             className="p-3 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--eg-accent)] transition-all"
@@ -196,7 +196,9 @@ export default function Home() {
             <Settings2 className="w-6 h-6" style={{ color: palette.primary }} />
           </button>
         </div>
+        </div>
 
+        <div className="flex-1 min-h-0 flex flex-col px-4">
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancel} />
@@ -295,6 +297,7 @@ export default function Home() {
           profiles={filteredProfiles} 
           onSwipe={handleSwipe} 
         />
+        </div>
         
         {currentMatch && (
           <MatchNotification
@@ -309,7 +312,6 @@ export default function Home() {
             isPending={currentMatch.matchId === null}
           />
         )}
-        </div>
       </div>
     </PatternBackground>
   );

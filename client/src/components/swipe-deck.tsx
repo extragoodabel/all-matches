@@ -125,7 +125,7 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
   
   return (
     <div 
-      className="flex flex-col items-center justify-center h-[600px] relative"
+      className="flex-1 flex flex-col items-center justify-center relative min-h-0"
       style={{
         '--eg-primary': palette.primary,
         '--eg-secondary': palette.secondary,
@@ -239,8 +239,8 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-full max-w-sm mb-6 relative">
+    <div className="flex-1 flex flex-col items-center min-h-0">
+      <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2">
         <AnimatePresence>
           <motion.div
             ref={cardRef}
@@ -259,7 +259,7 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
               type: direction ? "tween" : "spring",
               ease: "easeOut",
             }}
-            className="select-none"
+            className="select-none w-full"
             style={{ 
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
@@ -295,20 +295,20 @@ export function SwipeDeck({ profiles, onSwipe }: SwipeDeckProps) {
         </AnimatePresence>
       </div>
 
-      <div className="flex gap-6 mt-4">
+      <div className="flex-shrink-0 flex gap-6 py-3 pb-4">
         <button
           onClick={() => handleSwipe("left")}
-          className="p-5 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          className="p-4 md:p-5 bg-white rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
           aria-label="Dislike profile"
         >
-          <X className="w-8 h-8 text-[#FF4136]" />
+          <X className="w-7 h-7 md:w-8 md:h-8 text-[#FF4136]" />
         </button>
         <button
           onClick={() => handleSwipe("right")}
-          className="p-5 bg-[#00D9A5] rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          className="p-4 md:p-5 bg-[#00D9A5] rounded-full eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#1A1A1A] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
           aria-label="Like profile"
         >
-          <Heart className="w-8 h-8 text-[#1A1A1A]" />
+          <Heart className="w-7 h-7 md:w-8 md:h-8 text-[#1A1A1A]" />
         </button>
       </div>
     </div>

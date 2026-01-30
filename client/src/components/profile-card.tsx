@@ -47,8 +47,8 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         }}
       />
       
-      <div className="eg-card w-full max-w-sm mx-auto select-none">
-        <div className="relative aspect-[3/4] overflow-hidden">
+      <div className="eg-card w-full max-w-sm mx-auto select-none flex flex-col max-h-full">
+        <div className="relative w-full overflow-hidden flex-shrink-0" style={{ aspectRatio: '3/4', maxHeight: 'min(55vh, 400px)' }}>
           <img
             src={imageSrc}
             alt={profile.name}
@@ -75,11 +75,11 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         </div>
         
         <div 
-          className="p-4"
+          className="p-3 md:p-4 flex-shrink-0"
           style={{ background: theme.palette.background }}
         >
           <h2 
-            className="text-3xl font-black tracking-tight"
+            className="text-2xl md:text-3xl font-black tracking-tight"
             style={{ color: theme.palette.text }}
           >
             {profile.name}, {profile.age}
@@ -87,7 +87,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         </div>
         
         <div 
-          className="eg-caption-block"
+          className="eg-caption-block flex-shrink min-h-0 overflow-y-auto"
           style={{ 
             background: theme.palette.secondary,
             borderColor: theme.palette.accent,

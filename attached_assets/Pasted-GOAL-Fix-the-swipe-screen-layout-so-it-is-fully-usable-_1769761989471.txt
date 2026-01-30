@@ -1,0 +1,39 @@
+GOAL
+Fix the swipe screen layout so it is fully usable on mobile (bio visible + scroll works if needed), and on desktop it fits in a single viewport with no page scrolling. The entire swipe UI (title, card, bio, X/heart buttons) should be visible within one screen on both mobile and desktop.
+
+PROBLEMS TO FIX
+1) Mobile: bio is not visible and the card area does not scroll. Users only see the top + photo.
+2) Desktop: content is visible but requires page scrolling. We want zero page scroll. Everything should fit in the viewport.
+
+REQUIREMENTS
+- The swipe page should be a full-height layout: use viewport units (100dvh) and avoid outer containers adding extra vertical padding.
+- No page-level scrolling on desktop. Prefer using internal scrolling inside the card ONLY if absolutely necessary.
+- On mobile, if content cannot fit, allow the bio area to scroll (internal scroll), not the whole page.
+- Keep the X / heart controls pinned to the bottom area (always visible).
+- Reduce wasted vertical space: tighten title/top bar height, tighten margins/padding, and size the photo/card responsively.
+- The photo should never be “draggable like an image file” (disable default drag behavior) and the entire card remains swipe-draggable.
+- Maintain existing swipe functionality and match modal behavior.
+
+IMPLEMENTATION PLAN
+1) Identify the swipe screen component (Home page swipe view and the card component).
+2) Replace the outer layout with a flex column container that is exactly 100dvh:
+   - Top bar (title) fixed height
+   - Middle card area flex-1 with min-h-0
+   - Bottom controls fixed height
+3) Make the card a flex column with:
+   - Image section uses aspect ratio and max height constraints so it never consumes the whole screen.
+   - Bio section below the image is always visible on mobile.
+   - Bio section gets `overflow-y-auto` and `min-h-0` so it can scroll internally if needed.
+4) Remove page padding/margins that cause scroll. Ensure parent containers do not add `py-8` etc.
+5) Add responsive sizing rules:
+   - Mobile: image max height around 55–60vh (leaves room for bio + buttons)
+   - Desktop: image max height around 50–65% of viewport depending on window height
+6) Verify the entire screen fits without scrolling on common breakpoints:
+   - iPhone 13/14 sized viewport
+   - small Android viewport
+   - 1366x768 laptop
+   - 1440x900
+7) Deliver as a complete code change (not suggestions): update the relevant page/component files and any CSS/Tailwind classes needed.
+
+OUTPUT
+Provide the full updated code for the affected component files (the swipe page and any card components you modify), ready for copy/paste, and briefly list which files were changed.
