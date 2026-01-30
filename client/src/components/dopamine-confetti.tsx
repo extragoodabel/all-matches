@@ -63,21 +63,21 @@ interface BalloonParticle {
 function generateFireworks(count: number): FireworkParticle[] {
   const particles: FireworkParticle[] = [];
   for (let i = 0; i < count; i++) {
-    const burstIndex = Math.floor(i / (count / 3));
-    const burstDelay = burstIndex * 250;
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
-    const speed = 8 + Math.random() * 10;
+    const burstIndex = Math.floor(i / (count / 4));
+    const burstDelay = burstIndex * 200;
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+    const speed = 14 + Math.random() * 12;
     particles.push({
       id: i,
       emoji: getRandomIcon(true),
-      startX: 20 + Math.random() * 60,
-      startY: 85 + Math.random() * 10,
-      velocityX: Math.cos(angle) * speed * (0.3 + Math.random() * 0.7),
+      startX: 15 + Math.random() * 70,
+      startY: 92 + Math.random() * 8,
+      velocityX: Math.cos(angle) * speed * (0.4 + Math.random() * 0.6),
       velocityY: Math.sin(angle) * speed,
-      size: 16 + Math.random() * 18,
+      size: 18 + Math.random() * 20,
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 400,
-      delay: burstDelay + Math.random() * 150,
+      rotationSpeed: (Math.random() - 0.5) * 300,
+      delay: burstDelay + Math.random() * 120,
     });
   }
   return particles;
@@ -139,9 +139,9 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
 
-  const fireworkCount = prefersReducedMotion ? 10 : 60 + Math.floor(Math.random() * 30);
-  const confettiCount = prefersReducedMotion ? 40 : 180 + Math.floor(Math.random() * 80);
-  const balloonCount = prefersReducedMotion ? 4 : 12 + Math.floor(Math.random() * 6);
+  const fireworkCount = prefersReducedMotion ? 12 : 100 + Math.floor(Math.random() * 50);
+  const confettiCount = prefersReducedMotion ? 50 : 200 + Math.floor(Math.random() * 80);
+  const balloonCount = prefersReducedMotion ? 5 : 14 + Math.floor(Math.random() * 8);
 
   const fireworks = useMemo(() => generateFireworks(fireworkCount), [fireworkCount]);
   const confetti = useMemo(() => generateConfetti(confettiCount, !prefersReducedMotion), [confettiCount, prefersReducedMotion]);
@@ -258,22 +258,26 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
     let lastTime = performance.now();
 
     const animate = (currentTime: number) => {
-      const dt = Math.min((currentTime - lastTime) / 1000, 0.04);
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.035);
       lastTime = currentTime;
 
       setVel((v) => ({
-        x: v.x * 0.992,
-        y: v.y + 0.12,
+        x: v.x * 0.995,
+        y: v.y + 0.06,
       }));
 
       setPos((p) => ({
-        x: p.x + vel.x * dt * 25,
-        y: p.y + vel.y * dt * 25,
+        x: p.x + vel.x * dt * 18,
+        y: p.y + vel.y * dt * 18,
       }));
 
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (pos.y > 130) {
+      if (pos.y > 105) {
+        setOpacity((o) => Math.max(0, o - dt * 0.8));
+      }
+
+      if (opacity <= 0 || pos.y > 140) {
         return;
       }
 
@@ -282,9 +286,9 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [started, vel, pos.y, particle.rotationSpeed]);
+  }, [started, vel, pos.y, particle.rotationSpeed, opacity]);
 
-  if (pos.y > 120 && started) return null;
+  if ((pos.y > 140 || opacity <= 0) && started) return null;
 
   return (
     <div
