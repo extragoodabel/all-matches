@@ -547,7 +547,9 @@ function pickPersonaWithCaps(): PersonaTemplate {
 
 function pickQuirk(): string {
   const mugColor = randomMugColor();
-  const quirks = [
+  
+  // Regular quirks (common)
+  const commonQuirks = [
     "I make playlists for every mood.",
     "I name all my houseplants.",
     "I have opinions about font kerning.",
@@ -555,23 +557,27 @@ function pickQuirk(): string {
     "I'm weirdly good at naming pets.",
     "I'm a semi-pro at GeoGuessr.",
     "I still have a flip phone for the aesthetic.",
-    // Make the mug thing rare and variable
-    `I only drink coffee from one specific ${mugColor} mug. No exceptions.`,
     "I can't eat pizza without ranch.",
     "I sleep with a fan on, even in winter.",
     "I've never seen Star Wars. Be gentle.",
-    "I collect tiny spoons like it's an Olympic sport.",
     "I have a notes app full of first-date ideas.",
     "I will absolutely judge your grocery cart (lovingly).",
     "I keep emergency snacks in every bag I own.",
     "I take selfies like it's a hostage situation.",
     "I have a very intense opinion about fonts and will not apologize.",
   ];
+  
+  // Rare quirks (~3% each)
+  const rareQuirks = [
+    `I only drink coffee from one specific ${mugColor} mug. No exceptions.`,
+    "I collect tiny spoons like it's an Olympic sport.",
+  ];
 
-  // Mug quirk should be rare
-  if (chance(0.03)) return quirks[7];
-  const filtered = quirks.filter((_, idx) => idx !== 7);
-  return pick(filtered);
+  // 3% chance for each rare quirk
+  if (chance(0.03)) return rareQuirks[0]; // mug
+  if (chance(0.03)) return rareQuirks[1]; // spoons
+  
+  return pick(commonQuirks);
 }
 
 // Background profile generation
