@@ -309,7 +309,7 @@ function generateCharacterSpec(context: {
 
 // ============ PROFILE GENERATION CONFIG ============
 const PROFILE_BUFFER_TARGET = 30;        // Target number of unseen profiles to maintain
-const PROFILE_GEN_BATCH_SIZE = 15;       // How many profiles to generate per background batch
+const PROFILE_GEN_BATCH_SIZE = 20;       // How many profiles to generate per background batch
 const PROFILE_LOW_THRESHOLD = 10;        // Trigger background generation when below this
 const IMAGE_VALIDATION_TIMEOUT = 1500;   // Image validation timeout (ms)
 
@@ -391,67 +391,77 @@ async function generateProfilesInBackground(
       "I collect vintage spoons like it's an Olympic sport.",
     ];
 
-    for (let i = 0; i < count; i++) {
-      const arch = pick(archetypes);
-      const age = generateAge(minAge, maxAge);
+    // Generate profiles in parallel batches of 5 for speed
+    const batchSize = 5;
+    for (let batchStart = 0; batchStart < count; batchStart += batchSize) {
+      const batchEnd = Math.min(batchStart + batchSize, count);
+      const batchPromises = [];
       
-      let gender: string;
-      if (genderPref === "male") {
-        gender = "male";
-      } else if (genderPref === "female") {
-        gender = "female";
-      } else if (genderPref === "other") {
-        gender = "other";
-      } else {
-        const rand = Math.random();
-        if (rand < 0.4) gender = "male";
-        else if (rand < 0.8) gender = "female";
-        else gender = "other";
+      for (let i = batchStart; i < batchEnd; i++) {
+        batchPromises.push((async () => {
+          const arch = pick(archetypes);
+          const age = generateAge(minAge, maxAge);
+          
+          let gender: string;
+          if (genderPref === "male") {
+            gender = "male";
+          } else if (genderPref === "female") {
+            gender = "female";
+          } else if (genderPref === "other") {
+            gender = "other";
+          } else {
+            const rand = Math.random();
+            if (rand < 0.4) gender = "male";
+            else if (rand < 0.8) gender = "female";
+            else gender = "other";
+          }
+          
+          const quirk = pick(quirks);
+          const firstNames = gender === "male" ? maleFirstNames : 
+                            gender === "female" ? femaleFirstNames : otherFirstNames;
+          const name = generateUniqueName(firstNames, lastInitials);
+
+          const bio = await generateUniqueBio({
+            name,
+            age,
+            gender,
+            archetypeLabel: arch.label,
+            interests: arch.interests,
+            quirk,
+          });
+
+          const charSpec = generateCharacterSpec({
+            name,
+            age,
+            gender,
+            archetypeLabel: arch.label,
+            interests: arch.interests,
+            quirk,
+          });
+
+          const nextProfileId = storage['currentId'].profiles + i;
+          const imageGender = gender === "other" 
+            ? (Math.random() > 0.5 ? "male" : "female") 
+            : gender;
+          const imageId = storage.getUniqueImageId(imageGender as 'male' | 'female');
+          const imageUrl = buildImageUrl(imageId, nextProfileId);
+
+          const profile = await storage.createProfile({
+            name,
+            age,
+            bio,
+            gender,
+            imageUrl,
+            isAI: true,
+            characterSpec: charSpec,
+          });
+          
+          console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age})`);
+          return profile;
+        })());
       }
       
-      const quirk = pick(quirks);
-      const firstNames = gender === "male" ? maleFirstNames : 
-                        gender === "female" ? femaleFirstNames : otherFirstNames;
-      const name = generateUniqueName(firstNames, lastInitials);
-
-      // Generate bio (fast, no AI call in current implementation)
-      const bio = await generateUniqueBio({
-        name,
-        age,
-        gender,
-        archetypeLabel: arch.label,
-        interests: arch.interests,
-        quirk,
-      });
-
-      const charSpec = generateCharacterSpec({
-        name,
-        age,
-        gender,
-        archetypeLabel: arch.label,
-        interests: arch.interests,
-        quirk,
-      });
-
-      // Get image - skip validation to speed up (we'll accept some broken images)
-      const nextProfileId = storage['currentId'].profiles;
-      const imageGender = gender === "other" 
-        ? (Math.random() > 0.5 ? "male" : "female") 
-        : gender;
-      const imageId = storage.getUniqueImageId(imageGender as 'male' | 'female');
-      const imageUrl = buildImageUrl(imageId, nextProfileId);
-
-      await storage.createProfile({
-        name,
-        age,
-        bio,
-        gender,
-        imageUrl,
-        isAI: true,
-        characterSpec: charSpec,
-      });
-      
-      console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age})`);
+      await Promise.all(batchPromises);
     }
     
     const elapsed = Date.now() - startTime;
