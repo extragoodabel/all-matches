@@ -290,8 +290,8 @@ function FireworkElement({ particle }: { particle: FireworkParticle }) {
 
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (pos.y > 105) {
-        setOpacity((o) => Math.max(0, o - dt * 0.8));
+      if (pos.y > 70) {
+        setOpacity((o) => Math.max(0, o - dt * 0.35));
       }
 
       if (opacity <= 0 || pos.y > 140) {
@@ -354,8 +354,8 @@ function ConfettiElement({ particle }: { particle: ConfettiParticle }) {
       setY((prevY) => prevY + particle.fallSpeed * dt * 35);
       setRotation((r) => r + particle.rotationSpeed * dt);
 
-      if (y > 85) {
-        setOpacity((o) => Math.max(0, o - dt * 1.2));
+      if (y > 75) {
+        setOpacity((o) => Math.max(0, o - dt * 0.4));
       }
 
       if (opacity <= 0 || y > 130) {
