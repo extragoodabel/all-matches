@@ -23,7 +23,6 @@ function calculateTypingDelay(message: string): number {
     max = 4000;
   }
 
-  // 10–25% jitter inside the range
   const base = min + Math.random() * (max - min);
   const jitterFactor = 1 + (Math.random() * 0.3 - 0.15); // ~±15%
   const withJitter = base * jitterFactor;
@@ -53,7 +52,11 @@ function generatePersonaSpec(name: string, bio: string) {
     "Chaotic Art Kid", "Aspiring DJ", "Burned Out Grad Student", 
     "Sweet Golden Retriever Energy", "Cynical but Funny", "Mysterious",
     "Hyper-Competent Techie", "Spiritual Nomad", "High-Energy Athlete",
-    "Old Soul Librarian", "Socialite with an Edge", "Corporate Rebel"
+    "Old Soul Librarian", "Socialite with an Edge", "Corporate Rebel",
+    "Indie Musician", "Gamer", "History Buff", "Plant Parent",
+    "Anime Enthusiast", "DIY Crafter", "Coffee Snob", "Stargazer",
+    "Urban Gardener", "Vinyl Collector", "Puzzle Master", "Street Photographer",
+    "Foodie Blogger", "Tech Minimalist", "Extreme Sports Junkie"
   ];
   
   const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend"];
@@ -63,7 +66,8 @@ function generatePersonaSpec(name: string, bio: string) {
   const interestPool = [
     "analog photography", "deep-sea diving", "obscure 70s horror", "competitive chess",
     "brutalist architecture", "DIY synthesizers", "ultra-marathons", "astrology",
-    "quantum physics", "perfecting sourdough", "urban exploration", "vintage manga"
+    "quantum physics", "perfecting sourdough", "urban exploration", "vintage manga",
+    "cybersecurity", "botany", "mixology", "poker", "mechanical keyboards", "knitting"
   ];
 
   const stylePool = [

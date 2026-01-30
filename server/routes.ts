@@ -11,33 +11,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let unseen = await storage.getUnseenProfiles(userId);
 
     if (unseen.length < 20) {
-      const names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker"];
-      const bios = [
-        "Love exploring the outdoors and finding new hiking trails.",
-        "Passionate about cooking and trying out new recipes.",
-        "Avid reader and collector of vintage books.",
-        "Tech enthusiast always looking for the next big thing.",
-        "Music lover, I play three instruments and go to gigs every weekend.",
-        "Artist who finds beauty in the everyday ordinary things.",
-        "Traveler at heart, I've been to 15 countries and counting.",
-        "Yoga practitioner and firm believer in mindfulness.",
-        "Dog person who spends way too much time at the park.",
-        "Movie buff with a soft spot for 80s classics.",
-        "Competitive board gamer and puzzle enthusiast.",
-        "Fitness junkie who loves a good sunrise run.",
-        "Coffee connoisseur on a mission to find the best latte.",
-        "Amateur astronomer who loves stargazing on clear nights.",
-        "DIY project addict, currently renovating my home."
+      const archetypes = [
+        { label: "Chaotic Art Kid", interests: ["analog photography", "DIY synthesizers", "street art"], goal: "chaos", intelligence: "witty", morality: "messy", style: "lowercase, high slang" },
+        { label: "Aspiring DJ", interests: ["vinyl collecting", "techno", "club hopping"], goal: "validation", intelligence: "street smart", morality: "neutral", style: "minimal caps, frequent emojis" },
+        { label: "Burned Out Grad Student", interests: ["quantum physics", "perfecting sourdough", "thesis writing"], goal: "sincere", intelligence: "academic", morality: "neutral", style: "proper caps, rare emojis" },
+        { label: "Sweet Golden Retriever Energy", interests: ["dog parks", "beach days", "movie nights"], goal: "relationship", intelligence: "ditzy", morality: "kind", style: "excessive punctuation, frequent emojis" },
+        { label: "Cynical but Funny", interests: ["dark comedy", "people watching", "urban exploration"], goal: "debate", intelligence: "intense", morality: "blunt", style: "sarcastic tone, moderate punctuation" },
+        { label: "Mysterious", interests: ["occult history", "stargazing", "poetry"], goal: "mystery", intelligence: "philosophical", morality: "neutral", style: "short, punchy sentences" },
+        { label: "Hyper-Competent Techie", interests: ["open source", "cybersecurity", "mechanical keyboards"], goal: "validation", intelligence: "intense", morality: "overly honest", style: "proper grammar, low slang" },
+        { label: "Spiritual Nomad", interests: ["reiki", "crystals", "van life"], goal: "making a friend", intelligence: "philosophical", morality: "kind", style: "peaceful tone, frequent flower emojis" },
+        { label: "High-Energy Athlete", interests: ["crossfit", "meal prep", "hiking"], goal: "flirt", intelligence: "street smart", morality: "neutral", style: "direct, high energy" },
+        { label: "Old Soul Librarian", interests: ["classic literature", "tea blending", "knitting"], goal: "relationship", intelligence: "academic", morality: "kind", style: "elegant, proper punctuation" },
+        { label: "Socialite with an Edge", interests: ["fashion design", "cocktail mixing", "modern art"], goal: "validation", intelligence: "witty", morality: "slightly toxic", style: "trendy slang, frequent emojis" },
+        { label: "Corporate Rebel", interests: ["investing", "skydiving", "poker"], goal: "flirt", intelligence: "intense", morality: "blunt", style: "brief, authoritative" },
+        { label: "Indie Musician", interests: ["songwriting", "thrift shopping", "coffee"], goal: "sincere", intelligence: "witty", morality: "neutral", style: "lowercase, artistic" },
+        { label: "Gamer Girl/Boy", interests: ["speedrunning", "cosplay", "streaming"], goal: "making a friend", intelligence: "street smart", morality: "kind", style: "internet slang, frequent emojis" },
+        { label: "History Buff", interests: ["museums", "civil war reenactment", "archaeology"], goal: "debate", intelligence: "academic", morality: "overly honest", style: "informative, long-winded" },
+        { label: "Plant Parent", interests: ["botany", "interior design", "organic gardening"], goal: "relationship", intelligence: "philosophical", morality: "kind", style: "soft tone, leaf emojis" },
+        { label: "Anime Enthusiast", interests: ["manga", "conventions", "japanese cooking"], goal: "making a friend", intelligence: "street smart", morality: "neutral", style: "enthusiastic, references" },
+        { label: "DIY Crafter", interests: ["pottery", "sewing", "woodworking"], goal: "sincere", intelligence: "street smart", morality: "kind", style: "helpful, warm" },
+        { label: "Coffee Snob", interests: ["espresso machines", "bean roasting", "latte art"], goal: "debate", intelligence: "intense", morality: "blunt", style: "opinionated, punchy" },
+        { label: "Stargazer", interests: ["astrophotography", "telescopes", "space exploration"], goal: "mystery", intelligence: "philosophical", morality: "neutral", style: "dreamy, poetic" },
+        { label: "Urban Gardener", interests: ["beekeeping", "hydroponics", "farmers markets"], goal: "relationship", intelligence: "street smart", morality: "kind", style: "earthy, practical" },
+        { label: "Vinyl Collector", interests: ["jazz", "record stores", "audio equipment"], goal: "sincere", intelligence: "witty", morality: "neutral", style: "casual, relaxed" },
+        { label: "Puzzle Master", interests: ["escape rooms", "crosswords", "sudoku"], goal: "debate", intelligence: "intense", morality: "neutral", style: "logical, brief" },
+        { label: "Street Photographer", interests: ["leica cameras", "film processing", "architecture"], goal: "sincere", intelligence: "philosophical", morality: "neutral", style: "visual, minimalist" },
+        { label: "Foodie Blogger", interests: ["michelin stars", "food photography", "wine tasting"], goal: "validation", intelligence: "witty", morality: "slightly toxic", style: "opinionated, trendy" }
       ];
 
+      const names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker"];
+
       for (let i = 0; i < 30; i++) {
+        const arch = archetypes[Math.floor(Math.random() * archetypes.length)];
         const name = names[Math.floor(Math.random() * names.length)];
-        const bio = bios[Math.floor(Math.random() * bios.length)];
         const age = 21 + Math.floor(Math.random() * 20);
         const gender = Math.random() > 0.5 ? "male" : "female";
-        const id = Math.floor(Math.random() * 1000);
         
-        // Simple check to avoid exact duplicates in this batch
+        // Generate a specific bio based on archetype
+        const bio = `I'm a ${arch.label.toLowerCase()}. Usually found ${arch.interests[0]} or ${arch.interests[1]}. I have a weird collection of ${arch.interests[2]} and I'm weirdly good at naming pets.`;
+
         await storage.createProfile({
           name,
           age,
