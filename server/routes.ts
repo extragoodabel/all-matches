@@ -341,16 +341,34 @@ function isBadBio(text: string): boolean {
 
 // Bio lead priorities - what each persona leads with (not all traits)
 const BIO_LEAD_TYPES = [
-  "humor",       // lead with a joke or witty observation
-  "vibe",        // lead with energy/mood/aesthetic
-  "interest",    // lead with one specific passion
-  "quirk",       // lead with something quirky
-  "question",    // ask or challenge the reader
-  "hot_take",    // unpopular opinion or bold claim
-  "random_fact", // one weird fact about themselves
-  "dealbreaker", // something they won't compromise on
-  "brag",        // humble brag or actual flex
-  "warning",     // playful warning about themselves
+  "humor",           // a joke or witty observation
+  "vibe",            // energy or aesthetic
+  "interest",        // one specific passion
+  "quirk",           // something quirky
+  "question",        // ask or challenge the reader
+  "hot_take",        // unpopular opinion
+  "random_fact",     // one weird fact
+  "dealbreaker",     // something non-negotiable
+  "brag",            // humble brag or flex
+  "warning",         // playful warning
+  "confession",      // something they're slightly embarrassed about
+  "contradiction",   // two things about them that don't seem to fit
+  "obsession",       // something they're way too into
+  "pet_peeve",       // something that annoys them
+  "secret",          // something most people don't know
+  "challenge",       // daring the reader to do something
+  "memory",          // a specific moment or story hint
+  "goal",            // something they're working toward
+  "fear",            // something they're scared of (playfully)
+  "talent",          // something they're good at
+  "flaw",            // something they're bad at
+  "routine",         // a specific habit or ritual
+  "taste",           // a strong preference (food, music, etc.)
+  "story_hook",      // start of a story that makes you want more
+  "self_roast",      // making fun of themselves
+  "philosophy",      // a life motto or principle
+  "nostalgia",       // something from their past
+  "prediction",      // something they think will happen
 ];
 
 async function generateBioWithOpenAI(context: {
@@ -380,15 +398,33 @@ async function generateBioWithOpenAI(context: {
   const getLeadInstruction = (lead: string): string => {
     switch (lead) {
       case "humor": return "a joke, dry observation, or something genuinely funny";
-      case "vibe": return "your energy or aesthetic (not using labels)";
-      case "interest": return `a genuine passion for ${featuredInterest} (show, don't label)`;
-      case "quirk": return context.quirk ? `this quirk naturally: ${context.quirk}` : "something unusual you do";
+      case "vibe": return "your energy or aesthetic (show, don't label)";
+      case "interest": return `a genuine passion for ${featuredInterest}`;
+      case "quirk": return context.quirk ? `this quirk: ${context.quirk}` : "something unusual you do";
       case "question": return "a question or playful challenge to the reader";
-      case "hot_take": return "an unpopular opinion or bold claim you stand by";
+      case "hot_take": return "an unpopular opinion you stand by";
       case "random_fact": return "one weird or surprising fact about yourself";
-      case "dealbreaker": return "something you absolutely need or won't compromise on";
-      case "brag": return "something you're genuinely good at (humble or not)";
-      case "warning": return "a playful warning about what dating you is like";
+      case "dealbreaker": return "something you won't compromise on";
+      case "brag": return "something you're genuinely good at";
+      case "warning": return "a playful warning about dating you";
+      case "confession": return "something you're slightly embarrassed about";
+      case "contradiction": return "two things about you that seem contradictory";
+      case "obsession": return "something you're way too into";
+      case "pet_peeve": return "something that irrationally annoys you";
+      case "secret": return "something most people don't know about you";
+      case "challenge": return "a dare or challenge for the reader";
+      case "memory": return "a hint at a specific moment or story";
+      case "goal": return "something you're actively working toward";
+      case "fear": return "something you're scared of (can be silly)";
+      case "talent": return "something you're weirdly good at";
+      case "flaw": return "something you're terrible at";
+      case "routine": return "a specific habit or ritual you have";
+      case "taste": return "a strong preference (food, music, movies, etc.)";
+      case "story_hook": return "the start of a story that makes them want more";
+      case "self_roast": return "making fun of yourself";
+      case "philosophy": return "a life motto or guiding principle";
+      case "nostalgia": return "something from your past you miss";
+      case "prediction": return "something you think will happen";
       default: return "something distinctive about yourself";
     }
   };
@@ -405,6 +441,24 @@ async function generateBioWithOpenAI(context: {
     "Statement then punchline.",
     "List of 2-3 things (no labels).",
     "Stream of consciousness fragment.",
+    "Bold claim, then softening it.",
+    "Third person observation about yourself.",
+    "Direct address to the reader.",
+    "If/then conditional.",
+    "Comparison (I'm like X but Y).",
+    "Timeline (past vs now).",
+    "Contradiction setup.",
+    "Rhetorical question, no answer.",
+    "Mini dialogue or quote.",
+    "Rating or ranking something.",
+    "Warning label format.",
+    "Cause and effect.",
+    "Confession then pivot.",
+    "Fragmented phrases, no full sentences.",
+    "One long run-on thought.",
+    "Dry deadpan delivery.",
+    "Enthusiastic and exclamatory.",
+    "Mysterious and vague.",
   ];
   const structureHint = pick(structures);
 
