@@ -274,7 +274,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
 
   return (
     <div className="flex-1 flex flex-col items-center min-h-0 relative">
-      <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-16">
+      <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-12 sm:pb-16">
         <AnimatePresence>
           <motion.div
             ref={cardRef}
@@ -330,7 +330,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
       </div>
 
       <div 
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-6 z-20 pointer-events-auto"
+        className="absolute bottom-0 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-6 z-20 pointer-events-auto"
         style={{ animation: 'floatBob 4s ease-in-out infinite' }}
       >
         <button
