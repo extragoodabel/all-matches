@@ -1,0 +1,74 @@
+Debug and fix: After matching, chat breaks and shows “Match not found” / “Back to messages”. Determine why users can’t message matches anymore.
+
+What I’m seeing:
+
+I swipe right (match) successfully.
+
+I go to the chat/messages screen.
+
+When I open a conversation and try to send a message, I get “Match not found” or get kicked back to a “Back to messages” page.
+
+Likely root cause:
+
+The client is passing a profileId where the server expects a matchId (or the reverse), so /api/messages and /api/messages/:id are querying the wrong table key.
+
+Requirements:
+
+Add clear debug logs in server/routes.ts for:
+
+POST /api/matches: log incoming body, created match.id, match.profileId, match.userId
+
+GET /api/matches/:userId: log number of matches returned and their ids/profileIds
+
+POST /api/messages: log incoming message.matchId, whether a match exists with that id, and if fallback mapping to profileId occurs
+
+GET /api/messages/:id: log whether the param is treated as matchId or profileId and which matchId it resolves to
+
+Implement a single shared resolver function used by BOTH:
+
+GET /api/messages/:id
+
+POST /api/messages
+that resolves an incoming id to a real match record:
+
+Pseudocode:
+
+async function resolveMatchId(incomingId: number, userId: number) {
+  // First try incomingId as matchId
+  const matches = await storage.getMatches(userId)
+  let match = matches.find(m => m.id === incomingId)
+  if (match) return { match, matchId: match.id }
+
+  // Fallback: treat incomingId as profileId
+  match = matches.find(m => m.profileId === incomingId)
+  if (match) return { match, matchId: match.id }
+
+  return null
+}
+
+
+Fix client/server contract so it’s consistent:
+
+Decide whether the chat route uses matchId or profileId.
+
+Preferred: chat URL should be /chat/:matchId (message app behavior).
+
+If the client must keep using profileId in the URL, then the server MUST reliably map profileId → matchId using the resolver above, and the UI must display the correct match thread.
+
+Confirm/fix the match creation payload:
+
+Ensure POST /api/matches stores { userId: 1, profileId: <profile.id> }
+
+Ensure the UI uses the returned match.id for messaging and message retrieval.
+
+Deliverables:
+
+Provide full updated code for server/routes.ts with the resolver + logs.
+
+Provide the necessary client change (full updated file) for whichever page/component links into chat so it passes the correct matchId into ChatInterface and uses the correct /api/messages/... query key.
+
+Include a brief explanation of what was wrong and how to verify: match, open chat, send message, see it appear, receive AI reply.
+
+Acceptance test:
+
+Swipe right to match → open messages → open that match → send a message → see it appear immediately → see AI response after delay with no “match not found”.

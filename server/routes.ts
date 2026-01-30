@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateAIResponse } from "./openai";
-import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
+import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
 import { buildImageUrl } from "./portrait-library";
@@ -508,10 +508,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/matches", async (req, res) => {
     try {
+      console.log(`[POST /api/matches] Incoming body:`, req.body);
       const match = insertMatchSchema.parse(req.body);
       const createdMatch = await storage.createMatch(match);
+      console.log(`[POST /api/matches] Created match.id=${createdMatch.id}, userId=${createdMatch.userId}, profileId=${createdMatch.profileId}`);
       res.json(createdMatch);
-    } catch {
+    } catch (error) {
+      console.error("[POST /api/matches] Error:", error);
       res.status(400).json({ error: "Invalid match data" });
     }
   });
@@ -522,8 +525,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
 
       const matches = await storage.getMatches(userId);
+      console.log(`[GET /api/matches/${userId}] Returning ${matches.length} matches: [${matches.map(m => `{id:${m.id},profileId:${m.profileId}}`).join(', ')}]`);
       res.json(matches);
-    } catch {
+    } catch (error) {
+      console.error("[GET /api/matches] Error:", error);
       res.status(500).json({ error: "Failed to fetch matches" });
     }
   });
@@ -574,23 +579,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shared resolver: resolves an incoming ID to a real match record
+  // First tries incomingId as matchId, then falls back to treating it as profileId
+  async function resolveMatchId(incomingId: number, userId: number = 1): Promise<{ match: Match; matchId: number } | null> {
+    const matches = await storage.getMatches(userId);
+    
+    // First try: treat incomingId as matchId
+    let match = matches.find(m => m.id === incomingId);
+    if (match) {
+      console.log(`[Resolver] ID ${incomingId} resolved as matchId -> match.id=${match.id}, profileId=${match.profileId}`);
+      return { match, matchId: match.id };
+    }
+    
+    // Fallback: treat incomingId as profileId
+    match = matches.find(m => m.profileId === incomingId);
+    if (match) {
+      console.log(`[Resolver] ID ${incomingId} resolved as profileId -> match.id=${match.id}, profileId=${match.profileId}`);
+      return { match, matchId: match.id };
+    }
+    
+    console.log(`[Resolver] ID ${incomingId} could not be resolved to any match`);
+    return null;
+  }
+
   app.get("/api/messages/:id", async (req, res) => {
     try {
       const incoming = parseInt(req.params.id);
       if (isNaN(incoming)) return res.status(400).json({ error: "Invalid id" });
 
-      let messages = await storage.getMessages(incoming);
+      console.log(`[GET /api/messages/${incoming}] Resolving ID...`);
       
-      if (messages.length === 0) {
-        const matches = await storage.getMatches(1);
-        const match = matches.find((m) => m.profileId === incoming);
-        if (match) {
-          messages = await storage.getMessages(match.id);
-        }
+      const resolved = await resolveMatchId(incoming);
+      
+      if (!resolved) {
+        console.log(`[GET /api/messages/${incoming}] No match found, returning empty array`);
+        return res.json([]);
       }
       
+      const messages = await storage.getMessages(resolved.matchId);
+      console.log(`[GET /api/messages/${incoming}] Found ${messages.length} messages for matchId=${resolved.matchId}`);
+      
       res.json(messages);
-    } catch {
+    } catch (error) {
+      console.error("[GET /api/messages] Error:", error);
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
@@ -599,34 +630,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const message = insertMessageSchema.parse(req.body);
       
-      console.log(`[Message] Incoming matchId: ${message.matchId}`);
+      console.log(`[POST /api/messages] Incoming matchId: ${message.matchId}, content: "${message.content.substring(0, 30)}..."`);
       
-      const matches = await storage.getMatches(1);
-      let match = matches.find((m) => m.id === message.matchId);
-      console.log(`[Message] Match found by id: ${!!match}${match ? `, profileId: ${match.profileId}` : ''}`);
+      const resolved = await resolveMatchId(message.matchId);
       
-      let actualMatchId = message.matchId;
-      if (!match) {
-        console.log(`[Message] Trying fallback: treating ${message.matchId} as profileId`);
-        match = matches.find((m) => m.profileId === message.matchId);
-        if (match) {
-          console.log(`[Message] Fallback success: found match.id=${match.id} for profileId=${message.matchId}`);
-          actualMatchId = match.id;
-        }
+      if (!resolved) {
+        console.log(`[POST /api/messages] Match not found for id=${message.matchId}`);
+        return res.status(404).json({ error: "Match not found" });
       }
+      
+      console.log(`[POST /api/messages] Resolved to matchId=${resolved.matchId}`);
       
       const createdMessage = await storage.createMessage({
         ...message,
-        matchId: actualMatchId
+        matchId: resolved.matchId
       });
 
       if (!message.isAI) {
-        if (!match) return res.status(404).json({ error: "Match not found" });
+        const match = resolved.match;
 
         const profile = await storage.getProfile(match.profileId);
         if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-        const currentMessages = await storage.getMessages(actualMatchId);
+        const currentMessages = await storage.getMessages(resolved.matchId);
 
         generateAIResponse(
           {
@@ -646,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
 
               await storage.createMessage({
-                matchId: actualMatchId,
+                matchId: resolved.matchId,
                 content: aiResponse.content,
                 isAI: true,
               });
