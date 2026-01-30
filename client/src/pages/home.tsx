@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
+import { PatternBackground } from "@/components/pattern-background";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
@@ -138,17 +139,17 @@ export default function Home() {
   const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 99 && draftAgeRange[0] <= draftAgeRange[1];
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        '--eg-primary': palette.primary,
-        '--eg-secondary': palette.secondary,
-        '--eg-accent': palette.accent,
-        '--eg-background': palette.background,
-        background: palette.background,
-      } as React.CSSProperties}
-    >
-      <div className="container mx-auto px-4 py-6">
+    <PatternBackground baseColor={palette.background}>
+      <div 
+        className="min-h-screen"
+        style={{
+          '--eg-primary': palette.primary,
+          '--eg-secondary': palette.secondary,
+          '--eg-accent': palette.accent,
+          '--eg-background': palette.background,
+        } as React.CSSProperties}
+      >
+        <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-8 relative z-50">
           <button 
             onClick={() => setLocation("/inbox")}
@@ -307,7 +308,8 @@ export default function Home() {
             isPending={currentMatch.matchId === null}
           />
         )}
+        </div>
       </div>
-    </div>
+    </PatternBackground>
   );
 }

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ChatInterface } from "@/components/chat-interface";
+import { PatternBackground } from "@/components/pattern-background";
 import type { Message, Profile, Match } from "@shared/schema";
 import { ArrowLeft, Sparkles, Heart } from "lucide-react";
 import { getProfileTheme } from "@/styles/theme";
@@ -101,16 +102,16 @@ export default function Chat({ params }: ChatProps) {
   }
 
   return (
-    <div 
-      className="min-h-screen flex flex-col"
-      style={{
-        '--eg-primary': theme.palette.primary,
-        '--eg-secondary': theme.palette.secondary,
-        '--eg-accent': theme.palette.accent,
-        '--eg-background': theme.palette.background,
-        background: theme.palette.background,
-      } as React.CSSProperties}
-    >
+    <PatternBackground baseColor={theme.palette.background}>
+      <div 
+        className="min-h-screen flex flex-col"
+        style={{
+          '--eg-primary': theme.palette.primary,
+          '--eg-secondary': theme.palette.secondary,
+          '--eg-accent': theme.palette.accent,
+          '--eg-background': theme.palette.background,
+        } as React.CSSProperties}
+      >
       <div 
         className="relative overflow-hidden"
         style={{ background: theme.palette.primary }}
@@ -149,9 +150,10 @@ export default function Chat({ params }: ChatProps) {
         </div>
       </div>
 
-      <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col overflow-hidden">
-        <ChatInterface matchId={matchId} messages={messages} onNewMessage={handleNewMessage} />
+        <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col overflow-hidden">
+          <ChatInterface matchId={matchId} messages={messages} onNewMessage={handleNewMessage} />
+        </div>
       </div>
-    </div>
+    </PatternBackground>
   );
 }

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { MessageCircle, ArrowLeft, Heart, Sparkles } from "lucide-react";
 import { getSessionPalette, getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
+import { PatternBackground } from "@/components/pattern-background";
 
 interface InboxItem {
   matchId: number;
@@ -61,19 +62,19 @@ export default function Inbox() {
   }
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        '--eg-primary': palette.primary,
-        '--eg-secondary': palette.secondary,
-        '--eg-accent': palette.accent,
-        background: palette.background,
-      } as React.CSSProperties}
-    >
+    <PatternBackground baseColor={palette.background}>
       <div 
-        className="relative overflow-hidden"
-        style={{ background: palette.primary }}
+        className="min-h-screen"
+        style={{
+          '--eg-primary': palette.primary,
+          '--eg-secondary': palette.secondary,
+          '--eg-accent': palette.accent,
+        } as React.CSSProperties}
       >
+        <div 
+          className="relative overflow-hidden"
+          style={{ background: palette.primary }}
+        >
         <div 
           className="absolute inset-0 opacity-20"
           style={patternStyle}
@@ -156,7 +157,8 @@ export default function Inbox() {
             })}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </PatternBackground>
   );
 }
