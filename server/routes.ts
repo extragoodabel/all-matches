@@ -35,6 +35,87 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
+// Age distribution config - weights control relative probability of each age bracket
+// Higher weight = more likely to appear. Tune these to adjust the distribution.
+const AGE_DISTRIBUTION = [
+  { min: 21, max: 24, weight: 30 },  // Gen Z young adults - very common
+  { min: 25, max: 29, weight: 28 },  // Late 20s - very common
+  { min: 30, max: 34, weight: 18 },  // Early 30s - common
+  { min: 35, max: 39, weight: 10 },  // Late 30s - less common
+  { min: 40, max: 49, weight: 7 },   // 40s - uncommon
+  { min: 50, max: 64, weight: 4 },   // 50s-early 60s - rare
+  { min: 65, max: 79, weight: 2 },   // Senior - very rare
+  { min: 80, max: 89, weight: 0.8 }, // 80s - extremely rare
+  { min: 90, max: 99, weight: 0.2 }, // 90+ - ultra rare (comedic)
+];
+
+// Generate age using weighted distribution, respecting user's min/max preferences
+function generateAge(userMinAge: number = 21, userMaxAge: number = 99): number {
+  // Filter brackets that overlap with user's age range
+  const validBrackets = AGE_DISTRIBUTION
+    .map(bracket => ({
+      min: Math.max(bracket.min, userMinAge),
+      max: Math.min(bracket.max, userMaxAge),
+      weight: bracket.weight,
+    }))
+    .filter(b => b.min <= b.max); // Only keep brackets with valid range
+
+  if (validBrackets.length === 0) {
+    // Fallback: return middle of user's range
+    return Math.floor((userMinAge + userMaxAge) / 2);
+  }
+
+  // Calculate total weight
+  const totalWeight = validBrackets.reduce((sum, b) => sum + b.weight, 0);
+  
+  // Pick a random value in the weight space
+  let random = Math.random() * totalWeight;
+  
+  // Find which bracket the random value falls into
+  for (const bracket of validBrackets) {
+    random -= bracket.weight;
+    if (random <= 0) {
+      // Generate uniform random age within this bracket
+      return bracket.min + Math.floor(Math.random() * (bracket.max - bracket.min + 1));
+    }
+  }
+  
+  // Fallback (shouldn't reach here)
+  const lastBracket = validBrackets[validBrackets.length - 1];
+  return lastBracket.min + Math.floor(Math.random() * (lastBracket.max - lastBracket.min + 1));
+}
+
+// Debug helper: Print histogram of age distribution (dev only)
+function debugAgeDistribution(samples: number = 1000): void {
+  const histogram: Record<string, number> = {
+    "21-24": 0, "25-29": 0, "30-34": 0, "35-39": 0,
+    "40-49": 0, "50-64": 0, "65-79": 0, "80-89": 0, "90-99": 0,
+  };
+  
+  for (let i = 0; i < samples; i++) {
+    const age = generateAge();
+    if (age <= 24) histogram["21-24"]++;
+    else if (age <= 29) histogram["25-29"]++;
+    else if (age <= 34) histogram["30-34"]++;
+    else if (age <= 39) histogram["35-39"]++;
+    else if (age <= 49) histogram["40-49"]++;
+    else if (age <= 64) histogram["50-64"]++;
+    else if (age <= 79) histogram["65-79"]++;
+    else if (age <= 89) histogram["80-89"]++;
+    else histogram["90-99"]++;
+  }
+  
+  console.log(`[Age Distribution] Sample of ${samples} ages:`);
+  for (const [bracket, count] of Object.entries(histogram)) {
+    const pct = ((count / samples) * 100).toFixed(1);
+    const bar = "█".repeat(Math.round(count / samples * 50));
+    console.log(`  ${bracket}: ${pct}% ${bar} (${count})`);
+  }
+}
+
+// Run debug on startup (remove in production)
+debugAgeDistribution(1000);
+
 function hashBio(bio: string): string {
   let hash = 0;
   for (let i = 0; i < bio.length; i++) {
@@ -324,8 +405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < need; i++) {
         const arch = pick(archetypes);
         
-        // Generate age within user's preferred range
-        const age = minAge + Math.floor(Math.random() * (maxAge - minAge + 1));
+        // Generate age using weighted distribution (skews young, rare elderly)
+        const age = generateAge(minAge, maxAge);
         
         // Determine gender based on user preference
         let gender: string;
