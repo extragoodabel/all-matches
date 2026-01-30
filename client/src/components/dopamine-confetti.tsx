@@ -130,24 +130,14 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
   const [phase, setPhase] = useState<"pulse" | "active" | "done">("pulse");
   const [visible, setVisible] = useState(true);
   const [showSubliminal, setShowSubliminal] = useState(false);
-  const [subliminalWords] = useState(() => {
-    const positions = [
-      { x: 15, y: 20, rotate: -15 },
-      { x: 75, y: 25, rotate: 12 },
-      { x: 10, y: 55, rotate: -8 },
-      { x: 80, y: 50, rotate: 10 },
-      { x: 20, y: 80, rotate: 5 },
-      { x: 70, y: 75, rotate: -12 },
-      { x: 50, y: 15, rotate: 3 },
-      { x: 45, y: 85, rotate: -5 },
-    ];
-    return positions.map((pos, i) => ({
-      word: SUBLIMINAL_WORDS[Math.floor(Math.random() * SUBLIMINAL_WORDS.length)],
-      ...pos,
-      delay: Math.random() * 100,
-      size: 2.5 + Math.random() * 1.5,
-    }));
-  });
+  const [subliminalWord] = useState(() => 
+    SUBLIMINAL_WORDS[Math.floor(Math.random() * SUBLIMINAL_WORDS.length)]
+  );
+  const [subliminalPosition] = useState(() => ({
+    x: 30 + Math.random() * 40,
+    y: 35 + Math.random() * 30,
+    rotate: (Math.random() - 0.5) * 20,
+  }));
 
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -172,8 +162,8 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
     }
 
     const pulseTimer = setTimeout(() => setPhase("active"), 150);
-    const subliminalStart = setTimeout(() => setShowSubliminal(true), 100);
-    const subliminalEnd = setTimeout(() => setShowSubliminal(false), 350);
+    const subliminalStart = setTimeout(() => setShowSubliminal(true), 50);
+    const subliminalEnd = setTimeout(() => setShowSubliminal(false), 280);
     const doneTimer = setTimeout(() => {
       setPhase("done");
       setVisible(false);
@@ -204,27 +194,27 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-      {showSubliminal && subliminalWords.map((sw, i) => (
+      {showSubliminal && (
         <div 
-          key={i}
           className="absolute"
           style={{
-            left: `${sw.x}%`,
-            top: `${sw.y}%`,
-            transform: `translate(-50%, -50%) rotate(${sw.rotate}deg)`,
-            opacity: 0.04 + Math.random() * 0.03,
-            fontSize: `${sw.size}vw`,
+            left: `${subliminalPosition.x}%`,
+            top: `${subliminalPosition.y}%`,
+            transform: `translate(-50%, -50%) rotate(${subliminalPosition.rotate}deg)`,
+            opacity: 0.15,
+            fontSize: "12vw",
             fontWeight: 900,
-            letterSpacing: "0.15em",
+            letterSpacing: "0.2em",
             color: "#FF1493",
-            animation: `dopamine-flash 300ms ease-out ${sw.delay}ms`,
+            animation: "dopamine-flash 200ms ease-out",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
+            textShadow: "0 0 40px rgba(255,20,147,0.3)",
           }}
         >
-          {sw.word}
+          {subliminalWord}
         </div>
-      ))}
+      )}
 
       <div
         className="absolute inset-0 transition-opacity duration-150"
