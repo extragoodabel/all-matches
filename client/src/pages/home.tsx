@@ -158,10 +158,19 @@ export default function Home() {
           </button>
           
           <div className="flex-1 text-center">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight inline-flex items-center gap-2">
-              <Heart className="w-7 h-7" style={{ color: palette.primary }} />
-              <span style={{ color: palette.accent }}>All Matches!</span>
-              <Sparkles className="w-6 h-6" style={{ color: palette.secondary }} />
+            <h1 className="eg-hero-title inline-flex items-center gap-3">
+              <Heart className="w-8 h-8 md:w-10 md:h-10" style={{ color: palette.primary }} />
+              <span 
+                className="relative px-4 py-1"
+                style={{ 
+                  color: palette.background,
+                  background: palette.primary,
+                  boxShadow: `4px 4px 0 ${palette.accent}`,
+                }}
+              >
+                All Matches!
+              </span>
+              <Sparkles className="w-7 h-7 md:w-9 md:h-9" style={{ color: palette.secondary }} />
             </h1>
           </div>
           
