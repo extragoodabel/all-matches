@@ -1,0 +1,73 @@
+(PERFORMANCE: “FINDING MORE MATCHES” IS TOO SLOW)
+
+The app is frequently stuck on the “finding more matches” loading screen. I need you to make profile loading feel instant. Do NOT change the look and feel or core swipe mechanics. Focus only on performance and responsiveness.
+
+Diagnose first (add lightweight logs)
+
+Add timing logs around the /api/profiles handler:
+
+time to fetch unseen profiles
+
+time spent generating new profiles (if any)
+
+time spent building image URLs
+
+total request time
+
+Log how many profiles are returned each request.
+
+Confirm whether the UI is waiting on /api/profiles (network) or blocking on rendering.
+
+Fix strategy (must implement)
+
+We should NEVER generate profiles synchronously inside the /api/profiles request in a way that blocks the response.
+
+Implement this approach:
+
+A) Always return fast from /api/profiles
+
+If unseen.length > 0, return immediately.
+
+If buffer is low, return what we have immediately, and replenish asynchronously.
+
+B) Maintain a “buffer” of ready profiles server-side
+
+Maintain a target buffer of at least TARGET_BUFFER = 30 unseen profiles at all times.
+
+When buffer drops below LOW_WATER_MARK = 15, start replenishing in the background.
+
+Ensure only one replenish job runs at a time (use a boolean lock like isReplenishing).
+
+C) Generate in batches, not one-by-one in the request path
+
+Background replenish should generate BATCH_SIZE = 10 profiles per run.
+
+Add a maximum time cap per replenish run (ex: 2 seconds). If it hits cap, stop and schedule another run.
+
+D) Make images instant
+
+Do not call any external APIs to create images.
+
+Use only pre-known fast-loading URLs (your existing source), and add cache-busting query params to reduce broken caching.
+
+If an image URL fails (broken link), replace it at creation-time with a known-good fallback from the pool (do not ship broken URLs).
+
+E) Client-side: prefetch next batch
+
+When the swipe deck mounts, prefetch /api/profiles once.
+
+When remaining cards in the deck drop below 5, trigger a background refetch (React Query prefetch/invalidate) so the user never sees the loader.
+
+Requirements
+
+The “finding more matches” screen should show for under 500ms in normal usage.
+
+If we truly have zero profiles, show a quick skeleton deck (3 placeholder cards) while fetch completes so the UI never looks stuck.
+
+Avoid expensive randomness or repeated sorting work on every request. Shuffle once per returned batch, not per profile.
+
+Deliverable
+
+Provide the updated full code for server/routes.ts (or whichever file owns /api/profiles) implementing buffered background replenishment.
+
+If you need a small helper, add it in the same file. Avoid creating many new files.
