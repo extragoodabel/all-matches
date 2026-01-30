@@ -273,6 +273,21 @@ export class MemStorage implements IStorage {
       this.rejectedProfiles.set(userId, new Set());
     }
     this.rejectedProfiles.get(userId)!.add(profileId);
+    
+    // Actually delete rejected profiles to free up bio/image slots
+    const profile = this.profiles.get(profileId);
+    if (profile) {
+      // Remove bio hash so similar bios can be generated again
+      const hash = this.hashBio(profile.bio);
+      this.usedBioHashes.delete(hash);
+      
+      // Remove name so it can be reused
+      this.usedNames.delete(profile.name.toLowerCase());
+      
+      // Delete the profile
+      this.profiles.delete(profileId);
+      console.log(`[Storage] Deleted rejected profile ${profileId} (${profile.name}), freed bio hash`);
+    }
   }
 
   async createProfile(insertProfile: InsertProfile): Promise<Profile> {
