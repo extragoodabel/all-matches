@@ -1,11 +1,34 @@
+function makeSvgPlaceholder(seed: string) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="600">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#111827"/>
+          <stop offset="1" stop-color="#6d28d9"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#g)"/>
+      <circle cx="200" cy="220" r="90" fill="#0b1020" opacity="0.55"/>
+      <rect x="110" y="340" width="180" height="20" rx="10" fill="#0b1020" opacity="0.55"/>
+      <text x="200" y="520" fill="#e5e7eb" font-size="20" text-anchor="middle" font-family="system-ui">
+        AI Portrait Loading
+      </text>
+      <text x="200" y="548" fill="#9ca3af" font-size="14" text-anchor="middle" font-family="system-ui">
+        Seed: ${seed}
+      </text>
+    </svg>
+  `.trim();
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export const mockProfiles = [
   {
     id: 1,
     name: "Sophie",
     age: 28,
     gender: "female",
-    bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe. I'm super energetic and love hearing about travel stories!",
-    imageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+    bio: "Adventure seeker and coffee enthusiast. I'm usually hiking or finding a new hidden cafe.",
+    imageUrl: makeSvgPlaceholder("Sophie-1"),
     isAI: true
   },
   {
@@ -13,8 +36,8 @@ export const mockProfiles = [
     name: "James",
     age: 31,
     gender: "male",
-    bio: "Photographer by day, chef by night. I'm a bit of a perfectionist but I have a dry sense of humor. Looking for someone who appreciates a good home-cooked meal and deep conversations.",
-    imageUrl: "https://images.unsplash.com/photo-1503235930437-8c6293ba41f5",
+    bio: "Photographer by day, chef by night. Dry humor. I will absolutely judge your cutting technique.",
+    imageUrl: makeSvgPlaceholder("James-2"),
     isAI: true
   },
   {
@@ -22,8 +45,8 @@ export const mockProfiles = [
     name: "Emma",
     age: 24,
     gender: "female",
-    bio: "Book lover and yoga instructor. I'm very chill, empathetic, and love talking about philosophy or your favorite author. I use a lot of soft emojis and am very supportive.",
-    imageUrl: "https://images.unsplash.com/photo-1502323777036-f29e3972d82f",
+    bio: "Book lover and yoga instructor. If you have a favorite essay, I want to hear about it.",
+    imageUrl: makeSvgPlaceholder("Emma-3"),
     isAI: true
   },
   {
@@ -31,8 +54,8 @@ export const mockProfiles = [
     name: "Michael",
     age: 30,
     gender: "male",
-    bio: "Music producer. I'm a bit of a tech nerd and outdoor enthusiast. I'm laid back but very passionate about my work. I tend to use short, direct sentences.",
-    imageUrl: "https://images.unsplash.com/photo-1533636721434-0e2d61030955",
+    bio: "Music producer. Outdoors when I can, obsessed with sound design when I cannot.",
+    imageUrl: makeSvgPlaceholder("Michael-4"),
     isAI: true
   },
   {
@@ -40,8 +63,8 @@ export const mockProfiles = [
     name: "Olivia",
     age: 25,
     gender: "female",
-    bio: "Travel blogger. I'm very outgoing and curious. I love street food and local markets. I ask a lot of questions because I'm genuinely interested in people's favorite local spots!",
-    imageUrl: "https://images.unsplash.com/photo-1506863530036-1efeddceb993",
+    bio: "Travel blogger. Street food, local markets, and I will ask you too many questions.",
+    imageUrl: makeSvgPlaceholder("Olivia-5"),
     isAI: true
   }
 ];

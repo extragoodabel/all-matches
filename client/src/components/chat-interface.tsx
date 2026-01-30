@@ -1,154 +1,142 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
-import { type Message } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-interface ChatInterfaceProps {
+export function ChatInterface({
+  matchId,
+  messages,
+  onNewMessage,
+}: {
   matchId: number;
   messages: Message[];
   onNewMessage: () => void;
-}
+}) {
+  const [text, setText] = useState("");
+  const queryClient = useQueryClient();
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-export function ChatInterface({ matchId, messages, onNewMessage }: ChatInterfaceProps) {
-  const [message, setMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
-  const pollIntervalRef = useRef<NodeJS.Timeout>();
+  const threadKey = useMemo(() => [`/api/messages/${matchId}`], [matchId]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
+  // Typing bubble heuristic:
+  // if last message is from user and we do not yet have a later AI message, show bubble.
+  const showTyping = useMemo(() => {
+    if (!messages.length) return false;
+    const last = messages[messages.length - 1];
+    if (last.isAI) return false;
+    return true;
   }, [messages]);
 
-  // Clear intervals on unmount
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Poll for new messages when typing indicator is shown
-  useEffect(() => {
-    if (isTyping) {
-      // Poll more frequently for a snappier feel
-      pollIntervalRef.current = setInterval(() => {
-        onNewMessage();
-      }, 1000);
-
-      // Set a maximum typing time of 30 seconds
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-        }
-      }, 30000);
-
-      return () => {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-        }
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
-      };
-    }
-  }, [isTyping, onNewMessage]);
-
-  // Turn off typing indicator when a new AI message arrives
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.isAI) {
-      setIsTyping(false);
-    }
-  }, [messages]);
-
-  const handleSend = async () => {
-    if (!message.trim()) return;
-
-    try {
-      const currentMessage = message.trim();
-      setMessage(""); // Clear input immediately
-      
-      // Send user message
-      await apiRequest("POST", "/api/messages", {
+  const sendMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await apiRequest("POST", "/api/messages", {
         matchId,
-        content: currentMessage,
+        content,
         isAI: false,
       });
+      return res.json();
+    },
+    onMutate: async (content: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: threadKey });
 
+      // Snapshot previous value
+      const previous = queryClient.getQueryData<Message[]>(threadKey) || [];
+
+      // Optimistically add the user's message so it appears immediately
+      const optimistic: Message = {
+        id: Date.now(),
+        matchId,
+        content,
+        isAI: false,
+        createdAt: new Date(),
+      } as any;
+
+      queryClient.setQueryData<Message[]>(threadKey, [...previous, optimistic]);
+
+      setText("");
+      return { previous };
+    },
+    onError: (_err, _content, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(threadKey, ctx.previous);
+    },
+    onSuccess: () => {
       onNewMessage();
 
-      // Set typing indicator after a very short delay
-      setTimeout(() => {
-        setIsTyping(true);
-      }, 300);
+      // Poll a few times so the delayed AI reply appears without user refreshing.
+      // This avoids the "stuck typing forever" feeling.
+      const start = Date.now();
+      const interval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: threadKey });
 
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
-    }
-  };
+        if (Date.now() - start > 9000) {
+          clearInterval(interval);
+        }
+      }, 900);
+
+      // Safety cleanup
+      setTimeout(() => clearInterval(interval), 10000);
+    },
+  });
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, showTyping]);
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
+    <div className="border rounded-lg p-4">
+      <div className="h-[60vh] overflow-y-auto space-y-3 pr-2">
+        {messages.map((m) => (
           <div
-            key={msg.id}
-            className={`flex ${msg.isAI ? "justify-start" : "justify-end"}`}
+            key={m.id}
+            className={`flex ${m.isAI ? "justify-start" : "justify-end"}`}
           >
             <div
-              className={`max-w-[70%] p-3 rounded-lg ${
-                msg.isAI
-                  ? "bg-gray-100 text-gray-900"
-                  : "bg-blue-500 text-white"
+              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                m.isAI ? "bg-muted" : "bg-primary text-primary-foreground"
               }`}
             >
-              {msg.content}
+              {m.content}
             </div>
           </div>
         ))}
-        {isTyping && (
+
+        {showTyping && (
           <div className="flex justify-start">
-            <div className="max-w-[70%] p-3 rounded-lg bg-gray-100">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
+            <div className="max-w-[60%] rounded-2xl px-3 py-2 text-sm bg-muted">
+              <span className="inline-flex gap-1">
+                <span className="animate-bounce">•</span>
+                <span className="animate-bounce [animation-delay:120ms]">•</span>
+                <span className="animate-bounce [animation-delay:240ms]">•</span>
+              </span>
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </CardContent>
-      <div className="p-4 border-t flex gap-2">
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          onKeyPress={(e) => e.key === "Enter" && handleSend()}
-        />
-        <Button onClick={handleSend}>
-          <Send className="w-4 h-4" />
-        </Button>
+
+        <div ref={bottomRef} />
       </div>
-    </Card>
+
+      <form
+        className="mt-4 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const trimmed = text.trim();
+          if (!trimmed) return;
+          if (sendMutation.isPending) return;
+          sendMutation.mutate(trimmed);
+        }}
+      >
+        <Input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Message..."
+        />
+        <Button type="submit" disabled={sendMutation.isPending}>
+          Send
+        </Button>
+      </form>
+    </div>
   );
 }

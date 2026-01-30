@@ -4,7 +4,6 @@ import { storage } from "./storage";
 import { generateAIResponse } from "./openai";
 import { insertMatchSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
-import crypto from "crypto";
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -44,6 +43,7 @@ function generateUniqueName(firstNames: string[], lastInitials: string[]): strin
   return fallback;
 }
 
+// Weighted bio “modes” so bios don’t feel formulaic
 const BIO_MODES = [
   { mode: "one_liner", weight: 15, desc: "Single punchy sentence, confident or mysterious" },
   { mode: "hot_takes", weight: 12, desc: "2-3 spicy opinions/hot takes" },
@@ -101,6 +101,9 @@ RULES:
 - Output ONLY the bio text, no quotes, no explanation`;
 
   try {
+    // Use your existing generateAIResponse model choices for text elsewhere;
+    // here we keep it simple by relying on your openai.ts for chat personality.
+    // If this call fails, we fallback locally.
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.chat.completions.create({
@@ -121,7 +124,7 @@ RULES:
 function generateFallbackBio(interests: string[], quirk: string): string {
   const templates = [
     `${pick(interests)} lately. ${quirk}`,
-    `If you can hang with ${pick(interests)}, we'll get along. ${quirk}`,
+    `If you can hang with ${pick(interests)}, we’ll get along. ${quirk}`,
     `${quirk} Also: ${pick(interests)}.`,
     `Currently obsessed with ${pick(interests)}.`,
     `${pick(interests)} + ${pick(interests)} + coffee`,
@@ -152,6 +155,8 @@ async function generateUniqueBio(context: {
   return fallback;
 }
 
+// Curated Unsplash *photo IDs* for fast portrait loading.
+// NOTE: These are real photos. If your requirement is “no real people”, do not use Unsplash.
 const PORTRAIT_IDS: string[] = [
   "1500648767791-00dcc994a43e",
   "1507003211169-0a1dd7228f2d",
@@ -174,75 +179,21 @@ const PORTRAIT_IDS: string[] = [
   "1533636721434-0e2d61030955",
   "1506863530036-1efeddceb993",
   "1438761681033-6461ffad8d80",
+  // add more IDs if you want fewer repeats over longer sessions
 ];
 
 function getUnusedImageIndex(): number {
   for (let i = 0; i < PORTRAIT_IDS.length; i++) {
     if (!storage.usedImageIndices.has(i)) return i;
   }
+  // If we ever exhaust the pool, we’ll reuse but with a different cache buster.
   return Math.floor(Math.random() * PORTRAIT_IDS.length);
 }
 
 function portraitUrlByIndex(idx: number, profileId: number): string {
   const id = PORTRAIT_IDS[idx % PORTRAIT_IDS.length];
+  // Cache buster so the browser doesn’t “helpfully” reuse old images
   return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&h=600&q=80&v=${profileId}&t=${Date.now()}`;
-}
-
-function generateCharacterSpec(context: {
-  name: string;
-  age: number;
-  gender: string;
-  archetypeLabel: string;
-  interests: string[];
-  quirk: string;
-}): string {
-  const seed = crypto.createHash('md5').update(context.name + context.archetypeLabel + context.quirk).digest('hex');
-  const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
-
-  const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend", "vibes only"];
-  const intelligenceVibes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical", "creative", "chill"];
-  const moralityFlavors = ["kind", "neutral", "messy", "blunt", "slightly toxic", "overly honest", "wholesome", "chaotic good"];
-  const stylePool = [
-    { emojis: "frequent", punctuation: "loose", slang: "high", caps: "minimal", length: "short" },
-    { emojis: "rare", punctuation: "perfect", slang: "low", caps: "proper", length: "moderate" },
-    { emojis: "moderate", punctuation: "none", slang: "moderate", caps: "lowercase", length: "punchy" },
-    { emojis: "frequent", punctuation: "excessive!!!", slang: "internet speak", caps: "all caps for emphasis", length: "varied" },
-    { emojis: "occasional", punctuation: "minimal", slang: "gen-z", caps: "no caps ever", length: "short bursts" },
-    { emojis: "none", punctuation: "proper", slang: "none", caps: "normal", length: "thoughtful" }
-  ];
-  const bits = [
-    "teasing the user relentlessly", "asking weird 'would you rather' questions",
-    "using overly dramatic metaphors", "sending one-word replies then a long follow-up",
-    "constantly referencing a 'secret project'", "predicting the user's future",
-    "correcting the user's grammar (as a joke)", "sending 'voice note' descriptions",
-    "making everything into a competition", "dropping random facts",
-    "being suspiciously specific about niche topics", "using a signature catchphrase",
-    "referencing obscure movies nobody knows", "sending chaotic energy",
-    "replying in questions", "being mysteriously vague"
-  ];
-
-  const goal = goals[n(0) % goals.length];
-  const intelligence = intelligenceVibes[n(2) % intelligenceVibes.length];
-  const morality = moralityFlavors[n(4) % moralityFlavors.length];
-  const style = stylePool[n(6) % stylePool.length];
-  const signatureBits = [bits[n(8) % bits.length], bits[n(10) % bits.length]];
-
-  const spec = {
-    name: context.name,
-    age: context.age,
-    gender: context.gender,
-    archetype: context.archetypeLabel,
-    goal,
-    intelligence,
-    morality,
-    interests: context.interests,
-    quirk: context.quirk,
-    textingStyle: style,
-    signatureBits,
-    boundaries: "No explicit content. Stay in character. Be engaging but not creepy."
-  };
-
-  return JSON.stringify(spec);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -252,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let unseen = await storage.getUnseenProfiles(userId);
 
     const TARGET_BUFFER = 25;
-    const MAX_NEW_PER_REQUEST = 12;
+    const MAX_NEW_PER_REQUEST = 12; // fast now (no AI images)
 
     if (unseen.length < TARGET_BUFFER) {
       const archetypes = [
@@ -287,15 +238,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "I make playlists for every mood.",
         "I name all my houseplants.",
         "I have opinions about font kerning.",
-        "I've memorized way too many movie quotes.",
-        "I'm weirdly good at naming pets.",
-        "I'm a semi-pro at GeoGuessr.",
+        "I’ve memorized way too many movie quotes.",
+        "I’m weirdly good at naming pets.",
+        "I’m a semi-pro at GeoGuessr.",
         "I still have a flip phone for the aesthetic.",
         "I only drink coffee from blue mugs. No exceptions.",
-        "I can't eat pizza without ranch.",
-        "I sleep with a fan on, even in winter.",
-        "I've never seen Star Wars. Don't hurt me.",
-        "I collect vintage spoons like it's an Olympic sport.",
+        "I can’t eat pizza without ranch.",
       ];
 
       const need = Math.min(TARGET_BUFFER - unseen.length, MAX_NEW_PER_REQUEST);
@@ -316,23 +264,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quirk,
         });
 
-        const charSpec = generateCharacterSpec({
-          name,
-          age,
-          gender,
-          archetypeLabel: arch.label,
-          interests: arch.interests,
-          quirk,
-        });
-
         const created = await storage.createProfile({
           name,
           age,
           bio,
           gender,
-          imageUrl: "",
+          imageUrl: "", // set right after
           isAI: true,
-          characterSpec: charSpec,
+          characterSpec: null,
         });
 
         const idx = getUnusedImageIndex();
@@ -346,6 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       unseen = await storage.getUnseenProfiles(userId);
     }
 
+    // Randomize ordering so it never feels the same
     res.json(shuffle(unseen));
   });
 
@@ -385,21 +325,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // IMPORTANT: this endpoint expects matchId, but your client sometimes sends profileId.
+  // We support BOTH by falling back if no match is found.
   app.get("/api/messages/:id", async (req, res) => {
     try {
       const incoming = parseInt(req.params.id);
       if (isNaN(incoming)) return res.status(400).json({ error: "Invalid id" });
 
+      // Assume matchId first
       let messages = await storage.getMessages(incoming);
-      
+
+      // Fallback: treat as profileId
       if (messages.length === 0) {
         const matches = await storage.getMatches(1);
-        const match = matches.find((m) => m.profileId === incoming);
-        if (match) {
-          messages = await storage.getMessages(match.id);
-        }
+        const m = matches.find((mm) => mm.profileId === incoming);
+        if (m) messages = await storage.getMessages(m.id);
       }
-      
+
       res.json(messages);
     } catch {
       res.status(500).json({ error: "Failed to fetch messages" });
@@ -409,28 +351,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req, res) => {
     try {
       const message = insertMessageSchema.parse(req.body);
-      
-      console.log(`[Message] Incoming matchId: ${message.matchId}`);
-      
+
+      const incoming = message.matchId;
+      console.log(`[POST /api/messages] incoming matchId=${incoming}`);
+
       const matches = await storage.getMatches(1);
-      let match = matches.find((m) => m.id === message.matchId);
-      console.log(`[Message] Match found by id: ${!!match}${match ? `, profileId: ${match.profileId}` : ''}`);
-      
-      let actualMatchId = message.matchId;
+
+      let match = matches.find((m) => m.id === incoming);
+      console.log(`[POST /api/messages] match found by id? ${!!match}`);
+
+      let actualMatchId = incoming;
+
       if (!match) {
-        console.log(`[Message] Trying fallback: treating ${message.matchId} as profileId`);
-        match = matches.find((m) => m.profileId === message.matchId);
-        if (match) {
-          console.log(`[Message] Fallback success: found match.id=${match.id} for profileId=${message.matchId}`);
-          actualMatchId = match.id;
-        }
+        console.log(`[POST /api/messages] fallback: treating ${incoming} as profileId`);
+        match = matches.find((m) => m.profileId === incoming);
+        console.log(`[POST /api/messages] match found by profileId? ${!!match}`);
+        if (match) actualMatchId = match.id;
       }
-      
+
+      if (match) {
+        console.log(`[POST /api/messages] using match.id=${actualMatchId} (profileId=${match.profileId})`);
+      }
+
+      // Save the user message
       const createdMessage = await storage.createMessage({
         ...message,
-        matchId: actualMatchId
+        matchId: actualMatchId,
       });
 
+      // Generate AI response for user messages
       if (!message.isAI) {
         if (!match) return res.status(404).json({ error: "Match not found" });
 
@@ -443,7 +392,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             profileName: profile.name,
             profileBio: profile.bio,
-            characterSpec: profile.characterSpec,
             messageHistory: currentMessages.map((m) => ({
               content: m.content,
               isAI: m.isAI,
@@ -453,6 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
           .then(async (aiResponse) => {
             try {
+              // Shorter, more realistic delays
               await new Promise((r) => setTimeout(r, 250 + Math.random() * 450));
               await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
 
