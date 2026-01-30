@@ -339,6 +339,16 @@ function isBadBio(text: string): boolean {
   return false;
 }
 
+// Bio lead priorities - what each persona leads with (not all traits)
+const BIO_LEAD_TYPES = [
+  "humor",      // lead with a joke or witty observation
+  "vibe",       // lead with energy/mood/aesthetic
+  "interest",   // lead with one specific passion
+  "quirk",      // lead with something quirky about them
+  "question",   // lead by asking or challenging the reader
+  "confession", // lead with an admission or hot take
+];
+
 async function generateBioWithOpenAI(context: {
   name: string;
   age: number;
@@ -353,34 +363,59 @@ async function generateBioWithOpenAI(context: {
   if (!process.env.OPENAI_API_KEY) return null;
 
   const targetLines = chance(0.35) ? 1 : chance(0.55) ? 2 : chance(0.80) ? 3 : 4;
-  const chosenInterests = pickN(context.interests, Math.min(2, context.interests.length));
-  const chosenDetail = pick(BIO_DETAILS);
+  
+  // Pick ONE lead type - this persona's priority for what to showcase
+  const leadWith = pick(BIO_LEAD_TYPES);
+  
+  // Pick just ONE interest to potentially mention (not all)
+  const featuredInterest = pick(context.interests);
 
-  const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+, not a real person, not a celebrity).
+  let leadInstruction = "";
+  switch (leadWith) {
+    case "humor":
+      leadInstruction = "Lead with something funny, a witty observation, or a joke.";
+      break;
+    case "vibe":
+      leadInstruction = "Lead with your energy, mood, or aesthetic.";
+      break;
+    case "interest":
+      leadInstruction = `Lead with your passion for: ${featuredInterest}`;
+      break;
+    case "quirk":
+      leadInstruction = context.quirk 
+        ? `Lead with this quirk: ${context.quirk}` 
+        : "Lead with something unusual about yourself.";
+      break;
+    case "question":
+      leadInstruction = "Lead by asking or challenging the reader.";
+      break;
+    case "confession":
+      leadInstruction = "Lead with an admission, hot take, or confession.";
+      break;
+  }
 
-Character:
-- Name: ${context.name}
-- Age: ${context.age}
-- Gender: ${context.gender}
-- Primary trait: ${context.archetypeLabel}
-- Flirt intensity: ${context.flirtPercent}/100 (PG-13, non-explicit)
+  const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
-You MUST include these exact specifics, naturally:
-- Interest #1: ${chosenInterests[0] || context.interests[0]}
-- Interest #2: ${chosenInterests[1] || chosenInterests[0] || context.interests[0]}
-- One grounded detail: ${chosenDetail}
+LEAD PRIORITY: ${leadInstruction}
+
+Character context (use sparingly, NOT all of this):
+- Archetype hint: ${context.archetypeLabel}
+- One interest: ${featuredInterest}
 ${context.quirk ? `- Quirk: ${context.quirk}` : ""}
+- Flirt vibe: ${context.flirtPercent}/100 (PG-13)
 
-${context.lookingForLine ? `Also include this exact line about why they are on the app or what they want:\n- ${context.lookingForLine}\n` : ""}
+${context.lookingForLine ? `Optional line about what they want:\n- ${context.lookingForLine}\n` : ""}
 
 FORMAT:
-- Exactly ${targetLines} line(s). Use line breaks.
-- Max 4 lines total.
+- Exactly ${targetLines} line(s). Max 4 lines.
 - 0-2 emojis max.
 - Never use em dashes.
 
-TONE:
-- Grounded and human, not surreal, not random, not marketing copy.
+RULES:
+- This is a TEASER, not a resume. Pick ONE thing to highlight.
+- Do NOT list multiple traits or interests.
+- Leave mystery for conversation.
+- Grounded and human, not surreal.
 - No labels like "Interests:" or "About me:"
 - Do not start with: "I'm a", "Usually found", "Secret talent"
 
