@@ -325,6 +325,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(unseen);
   });
 
+  app.get("/api/profiles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid profile ID" });
+
+      const profile = await storage.getProfile(id);
+      if (!profile) return res.status(404).json({ error: "Profile not found" });
+
+      res.json(profile);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
   app.post("/api/matches", async (req, res) => {
     try {
       const match = insertMatchSchema.parse(req.body);

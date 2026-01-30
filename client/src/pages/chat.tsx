@@ -1,8 +1,7 @@
-import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatInterface } from "@/components/chat-interface";
-import { mockProfiles } from "@/lib/mock-profiles";
-import type { Message } from "@shared/schema";
+import type { Message, Profile } from "@shared/schema";
+import { Loader2 } from "lucide-react";
 
 interface ChatProps {
   params: {
@@ -12,8 +11,16 @@ interface ChatProps {
 
 export default function Chat({ params }: ChatProps) {
   const profileId = parseInt(params.id);
-  const profile = mockProfiles.find((p) => p.id === profileId);
   const queryClient = useQueryClient();
+
+  const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
+    queryKey: ['/api/profiles', profileId],
+    queryFn: async () => {
+      const res = await fetch(`/api/profiles/${profileId}`);
+      if (!res.ok) throw new Error('Profile not found');
+      return res.json();
+    },
+  });
 
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: [`/api/messages/${profileId}`],
@@ -23,8 +30,16 @@ export default function Chat({ params }: ChatProps) {
     queryClient.invalidateQueries({ queryKey: [`/api/messages/${profileId}`] });
   };
 
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!profile) {
-    return <div>Profile not found</div>;
+    return <div className="container mx-auto px-4 py-8 text-center">Profile not found</div>;
   }
 
   return (
