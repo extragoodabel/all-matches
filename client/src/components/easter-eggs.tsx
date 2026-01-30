@@ -20,23 +20,19 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
     setPhase("spinning");
     
     const sparkColors = [color, secondaryColor, '#FFD700', '#FF6B35', '#FF1493'];
-    const newSparks = Array.from({ length: 48 }, (_, i) => ({
+    const newSparks = Array.from({ length: 36 }, (_, i) => ({
       id: i,
-      angle: (i / 48) * 360 + Math.random() * 15,
-      velocity: 40 + Math.random() * 60,
+      angle: (i / 36) * 360 + Math.random() * 20,
+      velocity: 120 + Math.random() * 180,
       color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
     }));
     setSparks(newSparks);
 
     setTimeout(() => {
-      setPhase("shooting");
-      setSparks([]);
-    }, prefersReducedMotion ? 300 : 1200);
-
-    setTimeout(() => {
       setPhase("idle");
+      setSparks([]);
       setIsAnimating(false);
-    }, prefersReducedMotion ? 600 : 1800);
+    }, prefersReducedMotion ? 400 : 1500);
   }, [isAnimating, color, secondaryColor, prefersReducedMotion]);
 
   return (
@@ -44,16 +40,12 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
       <motion.div
         animate={
           phase === "spinning"
-            ? { rotate: prefersReducedMotion ? 180 : 1080, scale: [1, 1.2, 1] }
-            : phase === "shooting"
-            ? { x: 100, y: -100, rotate: 1440, opacity: 0, scale: 0.5 }
-            : { x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }
+            ? { rotate: prefersReducedMotion ? 360 : 1440, scale: [1, 1.3, 1.1, 1.2, 1] }
+            : { rotate: 0, scale: 1 }
         }
         transition={
           phase === "spinning"
-            ? { duration: prefersReducedMotion ? 0.3 : 1.2, ease: [0.4, 0, 0.2, 1] }
-            : phase === "shooting"
-            ? { duration: 0.5, ease: "easeIn" }
+            ? { duration: prefersReducedMotion ? 0.4 : 1.4, ease: [0.2, 0, 0.2, 1] }
             : { duration: 0.3 }
         }
       >
@@ -64,17 +56,20 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
         {phase === "spinning" && sparks.map((spark) => (
           <motion.div
             key={spark.id}
-            className="absolute w-1.5 h-1.5 rounded-full"
-            style={{ background: spark.color }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+            className="absolute w-4 h-4 rounded-full"
+            style={{ 
+              background: spark.color,
+              boxShadow: `0 0 8px ${spark.color}, 0 0 16px ${spark.color}`,
+            }}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 1.5 }}
             animate={{
               x: Math.cos((spark.angle * Math.PI) / 180) * spark.velocity,
-              y: Math.sin((spark.angle * Math.PI) / 180) * spark.velocity + 20,
+              y: Math.sin((spark.angle * Math.PI) / 180) * spark.velocity + 40,
               opacity: 0,
-              scale: 0,
+              scale: 0.3,
             }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
           />
         ))}
       </AnimatePresence>
