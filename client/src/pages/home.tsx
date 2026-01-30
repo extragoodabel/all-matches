@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
@@ -29,6 +29,9 @@ export default function Home() {
     preferences.maxAge,
   ]);
   const [secretText, setSecretText] = useState(false);
+  const [headerPressed, setHeaderPressed] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
   );
@@ -174,36 +177,36 @@ export default function Home() {
             <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer transition-transform duration-75"
                 style={{ 
                   color: palette.background,
                   background: palette.primary,
-                  boxShadow: `4px 4px 0 ${palette.accent}`,
+                  boxShadow: headerPressed ? `2px 2px 0 ${palette.accent}` : `4px 4px 0 ${palette.accent}`,
+                  transform: headerPressed ? 'translate(2px, 2px)' : 'translate(0, 0)',
                 }}
-                onMouseDown={() => {
-                  const timeout = setTimeout(() => setSecretText(true), 700);
-                  (window as any).__secretTimeout = timeout;
-                }}
-                onMouseUp={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                  setTimeout(() => setSecretText(false), 2000);
-                }}
-                onMouseLeave={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                }}
-                onTouchStart={() => {
-                  const timeout = setTimeout(() => setSecretText(true), 700);
-                  (window as any).__secretTimeout = timeout;
-                }}
-                onTouchEnd={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                  setTimeout(() => setSecretText(false), 2000);
+                onMouseDown={() => setHeaderPressed(true)}
+                onMouseUp={() => setHeaderPressed(false)}
+                onMouseLeave={() => setHeaderPressed(false)}
+                onTouchStart={() => setHeaderPressed(true)}
+                onTouchEnd={() => setHeaderPressed(false)}
+                onClick={() => {
+                  if (secretText) return;
+                  tapCountRef.current += 1;
+                  if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+                  tapTimeoutRef.current = setTimeout(() => {
+                    tapCountRef.current = 0;
+                  }, 1000);
+                  if (tapCountRef.current >= 5) {
+                    setSecretText(true);
+                    tapCountRef.current = 0;
+                    setTimeout(() => setSecretText(false), 1500);
+                  }
                 }}
               >
                 <span className="transition-opacity duration-300" style={{ opacity: secretText ? 0 : 1, position: secretText ? 'absolute' : 'relative' }}>
                   All Matches!
                 </span>
-                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 1 : 0, position: secretText ? 'relative' : 'absolute' }}>
+                <span className="transition-opacity duration-300 tracking-wider" style={{ opacity: secretText ? 1 : 0, position: secretText ? 'relative' : 'absolute' }}>
                   Validation Vending Machine
                 </span>
               </span>
