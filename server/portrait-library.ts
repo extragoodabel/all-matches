@@ -147,6 +147,24 @@ export const ANDROGYNOUS_PORTRAIT_ASSETS: PortraitAsset[] = [
   unsplash("1599566219227-2efe0c9b7f5f"),
   // Burst portraits
   ...BURST_OTHER.map(burst),
+  // Local generated portraits
+  local("/portraits/profile_10_isaac_21.png"),
+  local("/portraits/profile_10_morgan_c__25.png"),
+  local("/portraits/profile_11_evan_l__21.png"),
+  local("/portraits/profile_13_noah_t__25.png"),
+  local("/portraits/profile_16_theo_t__25.png"),
+  local("/portraits/profile_6_isaac_24.png"),
+  local("/portraits/profile_6_mina_j__21.png"),
+  local("/portraits/profile_6_reese_t__40.png"),
+  local("/portraits/profile_7_charlie_r__40.png"),
+  local("/portraits/profile_7_lena_26.png"),
+  local("/portraits/profile_7_lena_c__32.png"),
+  local("/portraits/profile_7_logan_t__44.png"),
+  local("/portraits/profile_7_taylor_g__43.png"),
+  local("/portraits/profile_8_caleb_p__32.png"),
+  local("/portraits/profile_8_logan_40.png"),
+  local("/portraits/profile_9_leo_21.png"),
+  local("/portraits/profile_9_reese_41.png"),
 ];
 
 export const WOMEN_PORTRAIT_ASSETS: PortraitAsset[] = [
