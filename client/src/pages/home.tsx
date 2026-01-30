@@ -169,11 +169,11 @@ export default function Home() {
             <MessageCircle className="w-6 h-6" style={{ color: palette.primary }} />
           </button>
           
-          <div className="flex-1 text-center">
-            <h1 className="eg-hero-title inline-flex items-center gap-3">
+          <div className="flex-1 text-center min-w-0">
+            <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap text-lg sm:text-2xl md:text-3xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-4 py-1"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 text-base sm:text-xl md:text-2xl"
                 style={{ 
                   color: palette.background,
                   background: palette.primary,
@@ -208,7 +208,7 @@ export default function Home() {
         </div>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col px-4">
+        <div className="flex-1 min-h-0 flex flex-col px-4 pt-2 sm:pt-0">
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancel} />

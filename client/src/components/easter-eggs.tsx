@@ -73,7 +73,7 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
             : { duration: 0.3 }
         }
       >
-        <Sparkles className="w-7 h-7 md:w-9 md:h-9" style={{ color: secondaryColor }} />
+        <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9" style={{ color: secondaryColor }} />
       </motion.div>
       
       <AnimatePresence>
@@ -163,7 +163,7 @@ export function HeartKiss({ color, accentColor }: HeartKissProps) {
           animate={isAnimating ? { scale: [1, 1.3, 1] } : {}}
           transition={{ duration: 0.3 }}
         >
-          <Heart className="w-8 h-8 md:w-10 md:h-10" style={{ color }} />
+          <Heart className="w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10" style={{ color }} />
         </motion.div>
       </div>
 
