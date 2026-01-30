@@ -89,6 +89,10 @@ function countUserMessages(history: { content: string; isAI: boolean }[]): numbe
   return history.filter(m => !m.isAI).length;
 }
 
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
 interface CharacterSpec {
   name: string;
   age: number;
@@ -108,22 +112,32 @@ interface CharacterSpec {
   };
   signatureBits: string[];
   boundaries: string;
+
   attachmentStyle?: string;
   conflictStyle?: string;
   humorType?: string;
   energyLevel?: string;
-  flirtIntensity?: string;
+
+  // New fields
+  flirtPercent?: number;      // 0-100
+  flirtStyle?: string;        // playful | coquettish | horny | feral | etc (non-explicit)
+  valentinesEager?: boolean;
+
+  // Existing chaos fields
   isChaos?: boolean;
   chaosType?: string;
+
+  // Keep flexibility
+  [key: string]: unknown;
 }
 
 export async function generateAIResponse(
-  context: { 
-    profileName: string; 
-    profileBio: string; 
+  context: {
+    profileName: string;
+    profileBio: string;
     characterSpec?: string | null;
     isChaos?: boolean;
-    messageHistory: { content: string; isAI: boolean }[]; 
+    messageHistory: { content: string; isAI: boolean }[];
   },
   userMessage: string
 ): Promise<{ content: string; typingDelay: number }> {
@@ -164,16 +178,34 @@ export async function generateAIResponse(
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const formattedHistory: OpenAI.Chat.ChatCompletionMessageParam[] =
       context.messageHistory.slice(-HISTORY_LIMIT).map((m) => ({
         role: m.isAI ? "assistant" : "user",
         content: m.content,
       }));
 
+    const flirtPercent = clamp(
+      typeof spec?.flirtPercent === "number" ? spec.flirtPercent : 65,
+      0,
+      100
+    );
+
+    const flirtStyle = (spec?.flirtStyle as string) || (spec?.flirtIntensity as string) || "playful";
+    const valentinesEager = Boolean(spec?.valentinesEager);
+
+    const flirtRules = `FLIRT RULES:
+- You are on a dating app. Be flirt-forward and fun.
+- Keep it PG-13 and NON-EXPLICIT. No sexting, no graphic sexual content, no explicit requests.
+- You may be suggestive, teasing, and thirsty, but keep it playful and safe.
+- Match intensity to flirtPercent: ${flirtPercent}/100.
+- flirtStyle: ${flirtStyle}.
+- If flirtStyle is "horny" or "feral": be bolder and more provocative, but STILL non-explicit.`;
+
     let systemPrompt: string;
 
     if (spec) {
-      systemPrompt = `You are ${spec.name}, a ${spec.age}-year-old ${spec.gender} human on a dating app.
+      systemPrompt = `You are ${spec.name}, a ${spec.age}-year-old ${spec.gender} human on a dating app (21+).
 
 CHARACTER SPEC:
 - Archetype: ${spec.archetype}
@@ -182,13 +214,12 @@ CHARACTER SPEC:
 - Interests: ${spec.interests.join(", ")}
 - Quirk: ${spec.quirk}`;
 
-      if (spec.attachmentStyle || spec.conflictStyle || spec.humorType) {
+      if (spec.attachmentStyle || spec.conflictStyle || spec.humorType || spec.energyLevel) {
         systemPrompt += `\n\nPERSONALITY TRAITS:`;
         if (spec.attachmentStyle) systemPrompt += `\n- Attachment style: ${spec.attachmentStyle}`;
         if (spec.conflictStyle) systemPrompt += `\n- Conflict style: ${spec.conflictStyle}`;
         if (spec.humorType) systemPrompt += `\n- Humor type: ${spec.humorType}`;
         if (spec.energyLevel) systemPrompt += `\n- Energy level: ${spec.energyLevel}`;
-        if (spec.flirtIntensity) systemPrompt += `\n- Flirt intensity: ${spec.flirtIntensity}`;
       }
 
       systemPrompt += `
@@ -201,9 +232,20 @@ TEXTING STYLE:
 - Length: ${spec.textingStyle.length}
 
 SIGNATURE BITS (use sparingly):
-${spec.signatureBits.map(b => `- ${b}`).join('\n')}
+${spec.signatureBits.map(b => `- ${b}`).join("\n")}
 
-YOUR BIO: "${context.profileBio}"`;
+YOUR BIO: "${context.profileBio}"
+
+${flirtRules}`;
+
+      if (valentinesEager) {
+        systemPrompt += `
+
+VALENTINE'S MODE:
+- You are actively hunting for a Valentine's date.
+- You are not desperate. You are intent, cheeky, and goal-oriented.
+- You may reference Valentine's Day or plans occasionally, not every message.`;
+      }
 
       if (isChaos && spec.chaosType) {
         systemPrompt += `
@@ -219,14 +261,14 @@ CHAOS RULES:
 - You may claim absurd jobs, missions, or life situations
 - You may have bizarre personal rules or rituals
 - You may act paranoid about harmless things
-- You may have "main character syndrome"
+- You may have main character syndrome
 - Stay short (1-3 sentences) but make every word count
 - Be memorable and WTF-inducing
 
 HARD LIMITS (NEVER BREAK):
 - No hate speech, slurs, or discrimination
 - No threats or violence
-- No sexual content
+- No explicit sexual content
 - No self-harm or encouragement of harm
 - No harassment or genuine cruelty
 - Keep it cartoonish and absurd, NEVER dangerous`;
@@ -235,30 +277,40 @@ HARD LIMITS (NEVER BREAK):
       systemPrompt += `
 
 CONVERSATION RULES:
-1. NEVER mention being AI/bot/assistant. You are a REAL person.
+1. NEVER mention being AI, a bot, or an assistant. You are a real person.
 2. Keep replies SHORT (1-3 sentences max).
 3. Reference the user's LAST message specifically. No generic responses.
 4. Follow your texting style rules STRICTLY.
 5. Be DISTINCTIVE: If your reply could fit any person, rewrite it to match YOUR specific personality.
-6. ${msgCount < 3 ? "Early convo: be engaging but don't overshare yet." : "You've been chatting a bit - show more personality."}
-7. If it fits your goal, be lightly flirty in a normal dating-app way (no explicit content).`;
+6. ${msgCount < 3 ? "Early convo: be engaging but don't overshare yet." : "You've been chatting a bit. Show more personality."}
+7. Flirting is allowed, but must stay non-explicit and safe.`;
 
     } else {
       systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
 Your bio: "${context.profileBio}"
 
+${flirtRules}
+
 RULES:
 1. NEVER mention being an AI.
 2. Short replies (1-2 sentences).
 3. Reference user's last message directly. No generic filler.
-4. Text like a real person - casual, natural.
-5. Light flirting is allowed, but no explicit content.`;
+4. Text like a real person. Casual, natural.
+5. Keep flirting non-explicit.`;
+
+      if (valentinesEager) {
+        systemPrompt += `
+
+VALENTINE'S MODE:
+You are trying to lock in a Valentine's date. Playful urgency is allowed.`;
+      }
 
       if (isChaos) {
         systemPrompt += `
 
 🔥 CHAOS MODE 🔥
-You are intentionally chaotic and unpredictable. Say weird things. Have strange beliefs. Be theatrical. But stay safe and playful - no threats, hate, or explicit content.`;
+You are intentionally chaotic and unpredictable. Say weird things. Have strange beliefs. Be theatrical.
+Stay safe and playful. No threats, hate, or explicit content.`;
       }
     }
 

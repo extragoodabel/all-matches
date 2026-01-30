@@ -7,23 +7,20 @@ import { z } from "zod";
 import crypto from "crypto";
 import { buildImageUrl, MEN_PORTRAIT_IDS, WOMEN_PORTRAIT_IDS, ANDROGYNOUS_PORTRAIT_IDS } from "./portrait-library";
 
-async function validateImageUrl(url: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch(url, { 
-      method: 'HEAD',
-      signal: controller.signal 
-    });
-    clearTimeout(timeout);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
+// ------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function pickN<T>(arr: T[], n: number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -35,87 +32,71 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
-// Age distribution config - weights control relative probability of each age bracket
-// Higher weight = more likely to appear. Tune these to adjust the distribution.
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+function chance(p: number): boolean {
+  return Math.random() < p;
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+function weightedPick<T extends { weight: number }>(items: T[]): T {
+  const total = items.reduce((sum, it) => sum + it.weight, 0);
+  let r = Math.random() * total;
+  for (const it of items) {
+    r -= it.weight;
+    if (r <= 0) return it;
+  }
+  return items[0];
+}
+
+// ------------------------------------------------------------
+// Age distribution
+// ------------------------------------------------------------
 const AGE_DISTRIBUTION = [
-  { min: 21, max: 24, weight: 30 },  // Gen Z young adults - very common
-  { min: 25, max: 29, weight: 28 },  // Late 20s - very common
-  { min: 30, max: 34, weight: 18 },  // Early 30s - common
-  { min: 35, max: 39, weight: 10 },  // Late 30s - less common
-  { min: 40, max: 49, weight: 7 },   // 40s - uncommon
-  { min: 50, max: 64, weight: 4 },   // 50s-early 60s - rare
-  { min: 65, max: 79, weight: 2 },   // Senior - very rare
-  { min: 80, max: 89, weight: 0.8 }, // 80s - extremely rare
-  { min: 90, max: 99, weight: 0.2 }, // 90+ - ultra rare (comedic)
+  { min: 21, max: 24, weight: 30 },
+  { min: 25, max: 29, weight: 28 },
+  { min: 30, max: 34, weight: 18 },
+  { min: 35, max: 39, weight: 10 },
+  { min: 40, max: 49, weight: 7 },
+  { min: 50, max: 64, weight: 4 },
+  { min: 65, max: 79, weight: 2 },
+  { min: 80, max: 89, weight: 0.8 },
+  { min: 90, max: 99, weight: 0.2 },
 ];
 
-// Generate age using weighted distribution, respecting user's min/max preferences
 function generateAge(userMinAge: number = 21, userMaxAge: number = 99): number {
-  // Filter brackets that overlap with user's age range
   const validBrackets = AGE_DISTRIBUTION
     .map(bracket => ({
       min: Math.max(bracket.min, userMinAge),
       max: Math.min(bracket.max, userMaxAge),
       weight: bracket.weight,
     }))
-    .filter(b => b.min <= b.max); // Only keep brackets with valid range
+    .filter(b => b.min <= b.max);
 
-  if (validBrackets.length === 0) {
-    // Fallback: return middle of user's range
-    return Math.floor((userMinAge + userMaxAge) / 2);
-  }
+  if (validBrackets.length === 0) return Math.floor((userMinAge + userMaxAge) / 2);
 
-  // Calculate total weight
   const totalWeight = validBrackets.reduce((sum, b) => sum + b.weight, 0);
-  
-  // Pick a random value in the weight space
   let random = Math.random() * totalWeight;
-  
-  // Find which bracket the random value falls into
+
   for (const bracket of validBrackets) {
     random -= bracket.weight;
     if (random <= 0) {
-      // Generate uniform random age within this bracket
       return bracket.min + Math.floor(Math.random() * (bracket.max - bracket.min + 1));
     }
   }
-  
-  // Fallback (shouldn't reach here)
+
   const lastBracket = validBrackets[validBrackets.length - 1];
   return lastBracket.min + Math.floor(Math.random() * (lastBracket.max - lastBracket.min + 1));
 }
 
-// Debug helper: Print histogram of age distribution (dev only)
-function debugAgeDistribution(samples: number = 1000): void {
-  const histogram: Record<string, number> = {
-    "21-24": 0, "25-29": 0, "30-34": 0, "35-39": 0,
-    "40-49": 0, "50-64": 0, "65-79": 0, "80-89": 0, "90-99": 0,
-  };
-  
-  for (let i = 0; i < samples; i++) {
-    const age = generateAge();
-    if (age <= 24) histogram["21-24"]++;
-    else if (age <= 29) histogram["25-29"]++;
-    else if (age <= 34) histogram["30-34"]++;
-    else if (age <= 39) histogram["35-39"]++;
-    else if (age <= 49) histogram["40-49"]++;
-    else if (age <= 64) histogram["50-64"]++;
-    else if (age <= 79) histogram["65-79"]++;
-    else if (age <= 89) histogram["80-89"]++;
-    else histogram["90-99"]++;
-  }
-  
-  console.log(`[Age Distribution] Sample of ${samples} ages:`);
-  for (const [bracket, count] of Object.entries(histogram)) {
-    const pct = ((count / samples) * 100).toFixed(1);
-    const bar = "█".repeat(Math.round(count / samples * 50));
-    console.log(`  ${bracket}: ${pct}% ${bar} (${count})`);
-  }
-}
-
-// Run debug on startup (remove in production)
-debugAgeDistribution(1000);
-
+// ------------------------------------------------------------
+// Name + Bio hashing
+// ------------------------------------------------------------
 function hashBio(bio: string): string {
   let hash = 0;
   for (let i = 0; i < bio.length; i++) {
@@ -141,19 +122,174 @@ function generateUniqueName(firstNames: string[], lastInitials: string[]): strin
   return fallback;
 }
 
+// ------------------------------------------------------------
+// Persona expansion
+// We generate MANY personas by combining role + vibe + obsession,
+// while also including specific hard-coded archetypes you requested.
+// ------------------------------------------------------------
+type PersonaTemplate = {
+  label: string;
+  interests: string[];
+  quirkHints?: string[];
+  flirtBias?: number;           // additive to flirtPercent
+  chaosBias?: number;           // increases chance of chaos flag
+  paranoidBucket?: boolean;     // counts toward the 10% combined cap
+  valentinesBias?: boolean;     // nudges valentinesEager
+};
+
+const ROLE_ARCHETYPES: PersonaTemplate[] = [
+  { label: "Sports Guy", interests: ["fantasy leagues", "stadium nachos", "arguing about refs"], flirtBias: 10 },
+  { label: "Sports Girl", interests: ["WNBA hot takes", "tailgates", "jersey collecting"], flirtBias: 10 },
+  { label: "Anti-Sports Person", interests: ["bookstores", "quiet restaurants", "not knowing who anyone is"], flirtBias: 0 },
+
+  { label: "Animal Lover", interests: ["fostering pets", "pet costumes", "animal facts"], flirtBias: 10 },
+  { label: "Lizard Person (Literal)", interests: ["gecko tanks", "heat lamps", "feeding crickets"], flirtBias: 5, chaosBias: 0.1 },
+  { label: "Bird Watcher", interests: ["binoculars", "rare sightings", "bird call apps"], flirtBias: 5 },
+
+  { label: "Keto and CrossFit", interests: ["macros", "PRs", "cold plunges"], flirtBias: 5 },
+  { label: "Aggro Gym Rat", interests: ["preworkout", "lifting straps", "mirror selfies"], flirtBias: 15 },
+  { label: "Aerobics Dance Goblin", interests: ["80s cardio", "sweatbands", "dance breaks"], flirtBias: 10, chaosBias: 0.15 },
+
+  { label: "Geologist", interests: ["cool rocks", "fault lines", "national parks"], flirtBias: 5 },
+  { label: "Architect", interests: ["weird buildings", "models", "design arguments"], flirtBias: 5 },
+  { label: "Mechanic", interests: ["engine swaps", "tool organization", "fixing anything"], flirtBias: 10 },
+  { label: "Pilot", interests: ["airport lounges", "cloud photos", "clean checklists"], flirtBias: 10 },
+  { label: "Engineer", interests: ["over-optimizing", "spreadsheets", "problem solving"], flirtBias: 5 },
+
+  { label: "Cop", interests: ["night shifts", "coffee", "true crime avoidance"], flirtBias: 0 },
+  { label: "Soldier", interests: ["discipline", "boots", "structured routines"], flirtBias: 0 },
+
+  { label: "Timid and Shy", interests: ["soft playlists", "quiet bars", "texts over calls"], flirtBias: -10 },
+  { label: "Opera Singer", interests: ["rehearsals", "dramatic entrances", "applause"], flirtBias: 10 },
+  { label: "Orchestra Musician", interests: ["practice rooms", "concert black fits", "nerding out"], flirtBias: 5 },
+
+  { label: "Delusional Actor", interests: ["auditions", "self tapes", "being discovered"], flirtBias: 15, chaosBias: 0.2 },
+  { label: "Historian", interests: ["archives", "long walks", "very specific opinions"], flirtBias: 0 },
+  { label: "Linguist Who Corrects You", interests: ["syntax", "phonetics", "being right"], flirtBias: 0, chaosBias: 0.1 },
+
+  { label: "Sloth Mode", interests: ["naps", "delivery apps", "soft clothes"], flirtBias: 0 },
+  { label: "Greedy Great Gatsby Type", interests: ["status", "champagne", "exclusive invites"], flirtBias: 10, chaosBias: 0.1 },
+
+  { label: "Religious", interests: ["Sunday routines", "values", "community events"], flirtBias: 0 },
+  { label: "Punk", interests: ["shows", "patched jackets", "anti-establishment jokes"], flirtBias: 10, chaosBias: 0.1 },
+  { label: "Goth", interests: ["black eyeliner", "graveyard walks", "dark playlists"], flirtBias: 10, chaosBias: 0.1 },
+  { label: "Witchy", interests: ["tarot", "candles", "moon phases"], flirtBias: 10, chaosBias: 0.15 },
+
+  { label: "Superhero Nerd", interests: ["comics", "lore debates", "collectibles"], flirtBias: 5 },
+  { label: "Hustle Bro", interests: ["grindset quotes", "cold emails", "side hustles"], flirtBias: 10, chaosBias: 0.1 },
+  { label: "Basic", interests: ["brunch", "espresso martinis", "group trips"], flirtBias: 10 },
+  { label: "Boss", interests: ["boundaries", "wins", "not tolerating nonsense"], flirtBias: 10 },
+
+  { label: "Comedian", interests: ["bits", "crowd work", "banter"], flirtBias: 15 },
+  { label: "Art Film Lover", interests: ["A24 arguments", "slow cinema", "film festivals"], flirtBias: 5, chaosBias: 0.1 },
+
+  { label: "Does Drag On Weekends", interests: ["stage looks", "lip syncs", "afterparties"], flirtBias: 15, chaosBias: 0.1 },
+  { label: "Gardening Obsessed", interests: ["soil", "tomatoes", "propagating cuttings"], flirtBias: 5 },
+
+  { label: "Fashionista", interests: ["runway clips", "thrifting", "fit checks"], flirtBias: 10 },
+  { label: "Designer", interests: ["typefaces", "moodboards", "color fights"], flirtBias: 5 },
+
+  { label: "Chronically Unemployed", interests: ["daytime errands", "big plans", "mysterious income"], flirtBias: 5, chaosBias: 0.2 },
+  { label: "Serial Dater", interests: ["first date spots", "exit strategies", "banter"], flirtBias: 15, chaosBias: 0.1 },
+  { label: "Playboy or Playgirl", interests: ["flirting", "late nights", "being a problem"], flirtBias: 20, chaosBias: 0.15 },
+
+  // Required: hypochondriac
+  { label: "Hypochondriac", interests: ["symptom checking", "vitamins", "air purifiers"], flirtBias: 0, chaosBias: 0.1 },
+
+  // Required: fish guy
+  { label: "Fish Holding Boat Guy", interests: ["boats", "holding fish", "bigger fish"], flirtBias: 10, chaosBias: 0.1 },
+
+  // Whimsical paranoia bucket (cap combined around 10%)
+  { label: "Whimsical Conspiracy Theorist", interests: ["string boards", "vibes-based evidence", "mysterious coincidences"], chaosBias: 0.35, paranoidBucket: true },
+  { label: "Suspicious Doomsday Prep (Cute)", interests: ["flashlights", "go-bags", "emergency snacks"], chaosBias: 0.25, paranoidBucket: true },
+];
+
+const JOB_ROLES = [
+  "Newscaster", "Beat Reporter", "Teacher", "Gym Teacher", "Construction Worker",
+  "Day Trader", "Drop Shipper", "Rancher", "Oil Tycoon", "Beef Tycoon",
+  "College Professor", "Bartender", "Nurse", "Paramedic", "Yoga Instructor",
+  "Chef", "Pastry Chef", "Tattoo Artist", "Firefighter", "Public Defender",
+  "Real Estate Agent", "Flight Attendant", "Museum Docent", "Librarian",
+  "Wedding Planner", "Event Producer", "Accountant", "Therapist", "Plumber",
+  "Electrician", "Sound Engineer", "Set Designer", "Stunt Performer", "Park Ranger",
+  "Biologist", "Chemist", "Data Analyst", "Product Manager", "Sales Closer",
+  "Car Salesperson", "Sommelier", "Coffee Roaster", "Local Politician",
+  "City Planner", "Translator", "Interpreter", "UX Researcher",
+  "Disgraced Tech Founder", "30 Under 30 To Prison Pipeline",
+];
+
+const WEIRD_OBSESSIONS = [
+  "rollerblading", "kombucha brewing", "urban foraging", "competitive karaoke",
+  "ant farms", "handwriting analysis", "perfume sampling", "mushroom IDs",
+  "maps", "train schedules", "airport codes", "microplastics rants",
+  "facial hair grooming", "mustache wax", "collecting keychains",
+  "unreasonably specific ramen opinions", "making spreadsheets for fun",
+  "whale facts", "volcano documentaries", "weather radar",
+  "haunted hotels", "escape rooms", "lockpicking (legal, hobby)",
+  "tiny spoons", "architecture tours", "medieval history",
+];
+
+const VIBES = [
+  "coquettish", "feral", "mysterious", "sweet", "menace-flirty",
+  "golden retriever", "black cat", "chaotic good", "pseudo-intellectual",
+  "sycophant (Bonfire of the Vanities)", "philosopher", "anarchist (cartoon)",
+  "silly communist (jokes only)", "time traveler", "caveman", "nun (unhinged but harmless)",
+];
+
+function buildExpandedPersonaLibrary(): PersonaTemplate[] {
+  const generated: PersonaTemplate[] = [];
+
+  // Generate lots of combos to get variety without hand-writing 200 lines
+  for (const job of JOB_ROLES) {
+    const vibe = pick(VIBES);
+    const obsession = pick(WEIRD_OBSESSIONS);
+
+    generated.push({
+      label: `${job} (${vibe})`,
+      interests: [
+        `${job.toLowerCase()} lore`,
+        obsession,
+        pick(["late-night texts", "first-date banter", "weird little treats", "people watching"])
+      ],
+      flirtBias: randInt(0, 12),
+      chaosBias: chance(0.2) ? 0.1 : 0,
+    });
+  }
+
+  // Add a few extra “anti” or “villain” flavors
+  const extras: PersonaTemplate[] = [
+    { label: "Organic Head", interests: ["farmers markets", "supplement stacks", "wild theories about seed oils"], chaosBias: 0.1, flirtBias: 5 },
+    { label: "Vegan Evangelist (But Hot)", interests: ["vegan tasting menus", "animal rights", "calling you out (playfully)"], flirtBias: 10, chaosBias: 0.1 },
+    { label: "Pseudo-Intellectual", interests: ["name-dropping authors", "debating definitions", "saying 'interesting' a lot"], flirtBias: 5, chaosBias: 0.15 },
+    { label: "Hypocrite With Confidence", interests: ["rules for you", "exceptions for me", "still charming somehow"], flirtBias: 15, chaosBias: 0.15 },
+    { label: "Sycophant Social Climber", interests: ["being seen", "networking", "VIP wristbands"], flirtBias: 10, chaosBias: 0.1 },
+    { label: "Nun (Off-Duty)", interests: ["forbidden jokes", "wholesome chaos", "mysterious vows"], flirtBias: 5, chaosBias: 0.25 },
+    { label: "Local Politician Seeking Side Quest", interests: ["handshakes", "damage control", "secrets"], flirtBias: 15, chaosBias: 0.15 },
+  ];
+
+  return [...ROLE_ARCHETYPES, ...generated, ...extras];
+}
+
+const EXPANDED_PERSONAS = buildExpandedPersonaLibrary();
+
+// ------------------------------------------------------------
+// Bio generation modes (expanded)
+// Every character gets a bio. No "no intro at all" mode.
+// ------------------------------------------------------------
 const BIO_MODES = [
-  { mode: "one_liner", weight: 15, desc: "Single punchy sentence, confident or mysterious" },
-  { mode: "hot_takes", weight: 12, desc: "2-3 spicy opinions/hot takes" },
-  { mode: "list_of_things", weight: 10, desc: "Bullet-ish list of 3-4 facts" },
-  { mode: "prompt_answers", weight: 10, desc: "Dating app prompt answers" },
-  { mode: "low_effort", weight: 8, desc: "3-7 words max, lazy or cryptic" },
-  { mode: "self_aware", weight: 10, desc: "Meta/self-deprecating about dating apps" },
-  { mode: "sincere", weight: 12, desc: "Genuine, warm, looking for connection" },
-  { mode: "weird_flex", weight: 8, desc: "Odd accomplishment / humble brag" },
-  { mode: "question", weight: 8, desc: "Ends with a question to spark convo" },
-  { mode: "anti_bio", weight: 5, desc: "Defiant anti-bio" },
-  { mode: "specific_scenario", weight: 7, desc: "A vivid specific scenario" },
-  { mode: "red_flags_joke", weight: 5, desc: "Jokes about their own red flags" }
+  { mode: "one_liner", weight: 12, desc: "Single punchy sentence, confident or mysterious" },
+  { mode: "hot_takes", weight: 10, desc: "2-3 spicy opinions, punchy" },
+  { mode: "micro_story", weight: 10, desc: "Tiny vivid scene like a movie moment" },
+  { mode: "prompt_answers", weight: 12, desc: "Dating app prompt answers, natural tone" },
+  { mode: "manifesto", weight: 6, desc: "Mini manifesto, intense but funny" },
+  { mode: "requirements_list", weight: 7, desc: "Playful requirements but not mean" },
+  { mode: "self_aware", weight: 10, desc: "Meta about dating apps and validation" },
+  { mode: "sincere", weight: 10, desc: "Warm and genuine, wants connection" },
+  { mode: "weird_flex", weight: 8, desc: "Odd accomplishment or strange brag" },
+  { mode: "question", weight: 8, desc: "Ends with a question that sparks convo" },
+  { mode: "scenario_invite", weight: 9, desc: "Invites you into a specific plan" },
+  { mode: "red_flags_joke", weight: 8, desc: "Jokes about their own red flags" },
+  { mode: "short_but_specific", weight: 10, desc: "2-3 short lines, dense specifics" },
 ];
 
 function pickWeightedMode(): { mode: string; desc: string } {
@@ -166,6 +302,11 @@ function pickWeightedMode(): { mode: string; desc: string } {
   return { mode: BIO_MODES[0].mode, desc: BIO_MODES[0].desc };
 }
 
+function randomMugColor(): string {
+  const colors = ["green", "orange", "black", "clear glass", "ceramic", "metal", "pink", "yellow", "white"];
+  return pick(colors);
+}
+
 async function generateBioWithOpenAI(context: {
   name: string;
   age: number;
@@ -173,28 +314,36 @@ async function generateBioWithOpenAI(context: {
   archetypeLabel: string;
   interests: string[];
   quirk: string;
+  flirtPercent: number;
+  valentinesEager: boolean;
 }): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY) return null;
 
   const modeInfo = pickWeightedMode();
+  const valentinesLine = context.valentinesEager ? "They are actively looking for a Valentine's date (playful, not desperate)." : "No special holiday urgency.";
 
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+, not a real person, not a celebrity).
 Character:
 - Name: ${context.name}
 - Age: ${context.age} (must read 21+)
 - Gender: ${context.gender}
-- Vibe: ${context.archetypeLabel}
+- Archetype: ${context.archetypeLabel}
 - Interests: ${context.interests.join(", ")}
 - Quirk: ${context.quirk}
+- Flirt intensity: ${context.flirtPercent}/100
+- Valentine's urgency: ${valentinesLine}
 
 Bio style: ${modeInfo.mode.replace(/_/g, " ")} - ${modeInfo.desc}
 
 RULES:
 - 1-5 lines max
-- Do NOT start with "I'm a..." or "Usually found..." or "Secret talent:"
+- Make it feel like a real dating profile, not marketing copy
+- Do NOT start with: "I'm a", "Usually found", "Secret talent"
 - Do NOT use labels like "Interests:" or "About me:"
 - 0-3 emojis max
-- Include 2-4 specific details but weave them naturally
+- Include 2-4 specific details woven naturally
+- Avoid repetitive templates and obvious structures
+- Avoid copycat clichés unless it is intentionally funny
 - Output ONLY the bio text, no quotes, no explanation`;
 
   try {
@@ -203,8 +352,8 @@ RULES:
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 150,
-      temperature: 0.9,
+      max_tokens: 170,
+      temperature: 0.95,
     });
 
     const text = response.choices?.[0]?.message?.content?.trim();
@@ -217,11 +366,11 @@ RULES:
 
 function generateFallbackBio(interests: string[], quirk: string): string {
   const templates = [
-    `${pick(interests)} lately. ${quirk}`,
-    `If you can hang with ${pick(interests)}, we'll get along. ${quirk}`,
-    `${quirk} Also: ${pick(interests)}.`,
-    `Currently obsessed with ${pick(interests)}.`,
-    `${pick(interests)} + ${pick(interests)} + coffee`,
+    `I get weird about ${pick(interests)}. ${quirk}`,
+    `Two truths: ${pick(interests)} matters. ${pick(interests)} matters more. ${quirk}`,
+    `If you bring opinions about ${pick(interests)}, I will respect you. ${quirk}`,
+    `I will absolutely talk your ear off about ${pick(interests)}. ${quirk}`,
+    `Come with me: ${pick(interests)} and then ${pick(interests)}. ${quirk}`,
   ];
   return pick(templates);
 }
@@ -233,6 +382,8 @@ async function generateUniqueBio(context: {
   archetypeLabel: string;
   interests: string[];
   quirk: string;
+  flirtPercent: number;
+  valentinesEager: boolean;
 }): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const bio = await generateBioWithOpenAI(context);
@@ -249,7 +400,9 @@ async function generateUniqueBio(context: {
   return fallback;
 }
 
-
+// ------------------------------------------------------------
+// Character spec generation (now includes flirtPercent, flirtStyle, valentinesEager, chaos flags)
+// ------------------------------------------------------------
 function generateCharacterSpec(context: {
   name: string;
   age: number;
@@ -257,13 +410,23 @@ function generateCharacterSpec(context: {
   archetypeLabel: string;
   interests: string[];
   quirk: string;
+  flirtPercent: number;
+  flirtStyle: string;
+  valentinesEager: boolean;
+  isChaos: boolean;
+  chaosType?: string;
 }): string {
-  const seed = crypto.createHash('md5').update(context.name + context.archetypeLabel + context.quirk).digest('hex');
+  const seed = crypto.createHash("md5").update(context.name + context.archetypeLabel + context.quirk).digest("hex");
   const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
 
   const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend", "vibes only"];
   const intelligenceVibes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical", "creative", "chill"];
   const moralityFlavors = ["kind", "neutral", "messy", "blunt", "slightly toxic", "overly honest", "wholesome", "chaotic good"];
+  const attachmentStyles = ["secure", "anxious", "avoidant", "chaotic", "unknown"];
+  const conflictStyles = ["direct", "avoidant", "joking", "stonewalling", "diplomatic"];
+  const humorTypes = ["dry", "absurdist", "roast", "dad-jokes", "sardonic", "chaotic", "wholesome"];
+  const energyLevels = ["low", "medium", "high", "unhinged"];
+
   const stylePool = [
     { emojis: "frequent", punctuation: "loose", slang: "high", caps: "minimal", length: "short" },
     { emojis: "rare", punctuation: "perfect", slang: "low", caps: "proper", length: "moderate" },
@@ -272,15 +435,33 @@ function generateCharacterSpec(context: {
     { emojis: "occasional", punctuation: "minimal", slang: "gen-z", caps: "no caps ever", length: "short bursts" },
     { emojis: "none", punctuation: "proper", slang: "none", caps: "normal", length: "thoughtful" }
   ];
+
   const bits = [
-    "teasing the user relentlessly", "asking weird 'would you rather' questions",
-    "using overly dramatic metaphors", "sending one-word replies then a long follow-up",
-    "constantly referencing a 'secret project'", "predicting the user's future",
-    "correcting the user's grammar (as a joke)", "sending 'voice note' descriptions",
-    "making everything into a competition", "dropping random facts",
-    "being suspiciously specific about niche topics", "using a signature catchphrase",
-    "referencing obscure movies nobody knows", "sending chaotic energy",
-    "replying in questions", "being mysteriously vague"
+    "teasing the user relentlessly",
+    "asking weird would-you-rather questions",
+    "using overly dramatic metaphors",
+    "sending one-word replies then a long follow-up",
+    "constantly referencing a secret project",
+    "predicting the user's future",
+    "correcting the user's grammar as a joke",
+    "describing imaginary voice notes",
+    "making everything into a competition",
+    "dropping random facts",
+    "being suspiciously specific about niche topics",
+    "using a signature catchphrase",
+    "referencing obscure movies nobody knows",
+    "replying in questions",
+    "being mysteriously vague",
+  ];
+
+  const chaosTypes = [
+    "cartoon villain energy",
+    "main character syndrome",
+    "harmless conspiracy brain",
+    "time traveler logic",
+    "dramatic opera monologue",
+    "prophecy speaker",
+    "romcom menace",
   ];
 
   const goal = goals[n(0) % goals.length];
@@ -294,32 +475,109 @@ function generateCharacterSpec(context: {
     age: context.age,
     gender: context.gender,
     archetype: context.archetypeLabel,
-    goal,
+    goal: context.isChaos ? "chaos" : goal,
     intelligence,
     morality,
     interests: context.interests,
     quirk: context.quirk,
     textingStyle: style,
     signatureBits,
-    boundaries: "No explicit content. Stay in character. Be engaging but not creepy."
+    boundaries: "No explicit sexual content. Stay in character. Be engaging but not creepy.",
+
+    attachmentStyle: attachmentStyles[n(12) % attachmentStyles.length],
+    conflictStyle: conflictStyles[n(14) % conflictStyles.length],
+    humorType: humorTypes[n(16) % humorTypes.length],
+    energyLevel: energyLevels[n(18) % energyLevels.length],
+
+    flirtPercent: context.flirtPercent,
+    flirtStyle: context.flirtStyle,
+    valentinesEager: context.valentinesEager,
+
+    isChaos: context.isChaos,
+    chaosType: context.isChaos ? (context.chaosType || chaosTypes[n(20) % chaosTypes.length]) : undefined,
   };
 
   return JSON.stringify(spec);
 }
 
-// ============ PROFILE GENERATION CONFIG ============
-const PROFILE_BUFFER_TARGET = 40;        // Target number of unseen profiles to maintain
-const PROFILE_GEN_BATCH_SIZE = 15;       // How many profiles to generate per background batch (smaller = faster)
-const PROFILE_LOW_THRESHOLD = 15;        // Trigger background generation when below this
-const IMAGE_VALIDATION_TIMEOUT = 1500;   // Image validation timeout (ms)
+// ------------------------------------------------------------
+// Profile generation config
+// ------------------------------------------------------------
+const PROFILE_BUFFER_TARGET = 45;
+const PROFILE_GEN_BATCH_SIZE = 12;      // smaller batch to keep UI feeling fast
+const PROFILE_LOW_THRESHOLD = 15;
 
-// Track if background generation is already running to prevent duplicate runs
+// Track if background generation is already running
 let isGeneratingProfiles = false;
 
-// Background profile generation (fire-and-forget, doesn't block requests)
+// Chaos tuning
+const CHAOS_OVERALL_RATE = 0.30;        // ~30% chaos overall
+const PARANOID_BUCKET_CAP = 0.10;       // combined paranoid/suspicious/doomsday around 10%
+
+function generateFlirtPercent(): number {
+  // Majority over 50%
+  const roll = Math.random();
+  if (roll < 0.70) return randInt(55, 95);
+  if (roll < 0.90) return randInt(35, 55);
+  return randInt(10, 35);
+}
+
+function pickFlirtStyle(flirtPercent: number): string {
+  const high = flirtPercent >= 70;
+  const mid = flirtPercent >= 50;
+
+  const stylesHigh = ["coquettish", "horny", "feral", "menace-flirty", "playful"];
+  const stylesMid = ["playful", "coquettish", "bold", "teasing"];
+  const stylesLow = ["shy", "awkward", "friendly", "guarded"];
+
+  if (high) return pick(stylesHigh);
+  if (mid) return pick(stylesMid);
+  return pick(stylesLow);
+}
+
+function pickPersonaWithCaps(): PersonaTemplate {
+  // Keep paranoidBucket around cap by limiting selection probability
+  const paranoid = EXPANDED_PERSONAS.filter(p => p.paranoidBucket);
+  const normal = EXPANDED_PERSONAS.filter(p => !p.paranoidBucket);
+
+  // Select paranoid only with capped chance
+  if (chance(PARANOID_BUCKET_CAP) && paranoid.length > 0) return pick(paranoid);
+  return pick(normal);
+}
+
+function pickQuirk(): string {
+  const mugColor = randomMugColor();
+  const quirks = [
+    "I make playlists for every mood.",
+    "I name all my houseplants.",
+    "I have opinions about font kerning.",
+    "I've memorized way too many movie quotes.",
+    "I'm weirdly good at naming pets.",
+    "I'm a semi-pro at GeoGuessr.",
+    "I still have a flip phone for the aesthetic.",
+    // Make the mug thing rare and variable
+    `I only drink coffee from one specific ${mugColor} mug. No exceptions.`,
+    "I can't eat pizza without ranch.",
+    "I sleep with a fan on, even in winter.",
+    "I've never seen Star Wars. Be gentle.",
+    "I collect tiny spoons like it's an Olympic sport.",
+    "I have a notes app full of first-date ideas.",
+    "I will absolutely judge your grocery cart (lovingly).",
+    "I keep emergency snacks in every bag I own.",
+    "I take selfies like it's a hostage situation.",
+    "I have a very intense opinion about fonts and will not apologize.",
+  ];
+
+  // Mug quirk should be rare
+  if (chance(0.03)) return quirks[7];
+  const filtered = quirks.filter((_, idx) => idx !== 7);
+  return pick(filtered);
+}
+
+// Background profile generation
 async function generateProfilesInBackground(
-  genderPref: string, 
-  minAge: number, 
+  genderPref: string,
+  minAge: number,
   maxAge: number,
   count: number
 ): Promise<void> {
@@ -327,32 +585,12 @@ async function generateProfilesInBackground(
     console.log(`[BG Gen] Already generating, skipping`);
     return;
   }
-  
+
   isGeneratingProfiles = true;
   const startTime = Date.now();
   console.log(`[BG Gen] Starting background generation of ${count} profiles for gender=${genderPref}`);
-  
-  try {
-    const archetypes = [
-      { label: "Chaotic Art Kid", interests: ["analog photography", "DIY synthesizers", "street art"] },
-      { label: "Aspiring DJ", interests: ["vinyl collecting", "techno", "club hopping"] },
-      { label: "Burned Out Grad Student", interests: ["research rabbit holes", "sourdough experiments", "late-night debates"] },
-      { label: "Sweet Golden Retriever Energy", interests: ["dog parks", "cozy movie nights", "sunny brunch"] },
-      { label: "Cynical but Funny", interests: ["dark comedy", "people watching", "urban exploration"] },
-      { label: "Mysterious", interests: ["occult history", "stargazing", "poetry"] },
-      { label: "Hyper-Competent Techie", interests: ["open source", "cybersecurity", "mechanical keyboards"] },
-      { label: "Spiritual Nomad", interests: ["reiki", "crystals", "van life"] },
-      { label: "High-Energy Athlete", interests: ["crossfit", "meal prep", "mountain trails"] },
-      { label: "Old Soul Librarian", interests: ["classic literature", "tea blending", "quiet museums"] },
-      { label: "Socialite with an Edge", interests: ["fashion design", "cocktail mixing", "modern art"] },
-      { label: "Corporate Rebel", interests: ["investing", "skydiving", "poker"] },
-      { label: "Indie Musician", interests: ["songwriting", "thrift shopping", "coffee"] },
-      { label: "Gamer", interests: ["speedrunning", "co-op games", "streaming"] },
-      { label: "Plant Parent", interests: ["botany", "interior design", "organic gardening"] },
-      { label: "Street Photographer", interests: ["architecture", "film processing", "night walks"] },
-      { label: "Foodie", interests: ["hole-in-the-wall spots", "tasting menus", "food photography"] },
-    ];
 
+  try {
     const maleFirstNames = [
       "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
       "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
@@ -360,87 +598,95 @@ async function generateProfilesInBackground(
       "Evan", "Owen", "Miles", "Eli", "Theo", "Max", "Jonah", "Isaac", "Leo", "Caleb",
       "Marcus", "Derek", "Jason", "Tyler", "Ryan", "Kevin", "Brandon", "Justin"
     ];
-    
+
     const femaleFirstNames = [
       "Morgan", "Avery", "Hayden", "Emerson", "Sasha",
       "Leah", "Maya", "Nina", "Zoe", "Iris", "Lena", "Aria", "Jules", "Tessa", "Mina",
       "Sophie", "Emma", "Olivia", "Ava", "Isabella", "Mia", "Charlotte", "Amelia",
       "Harper", "Evelyn", "Luna", "Camila", "Gianna", "Penelope", "Riley", "Layla"
     ];
-    
+
     const otherFirstNames = [
       "Alex", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Skyler", "Peyton",
       "Dakota", "Reese", "Parker", "Charlie", "Blake", "Sawyer", "Rowan", "Finley",
       "Jamie", "Sam", "Cameron", "Drew", "Kai", "Morgan", "Avery", "Hayden",
       "Emerson", "Sasha", "Jules", "Remy", "Phoenix", "River", "Sage", "Eden"
     ];
-    
-    const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-    const quirks = [
-      "I make playlists for every mood.",
-      "I name all my houseplants.",
-      "I have opinions about font kerning.",
-      "I've memorized way too many movie quotes.",
-      "I'm weirdly good at naming pets.",
-      "I'm a semi-pro at GeoGuessr.",
-      "I still have a flip phone for the aesthetic.",
-      "I only drink coffee from blue mugs. No exceptions.",
-      "I can't eat pizza without ranch.",
-      "I sleep with a fan on, even in winter.",
-      "I've never seen Star Wars. Don't hurt me.",
-      "I collect vintage spoons like it's an Olympic sport.",
-    ];
 
-    // Generate profiles in parallel batches of 5 for speed
+    const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    // Generate profiles in parallel batches of 5
     const batchSize = 5;
     for (let batchStart = 0; batchStart < count; batchStart += batchSize) {
       const batchEnd = Math.min(batchStart + batchSize, count);
       const batchPromises = [];
-      
+
       for (let i = batchStart; i < batchEnd; i++) {
         batchPromises.push((async () => {
-          const arch = pick(archetypes);
+          const persona = pickPersonaWithCaps();
           const age = generateAge(minAge, maxAge);
-          
+
           let gender: string;
-          if (genderPref === "male") {
-            gender = "male";
-          } else if (genderPref === "female") {
-            gender = "female";
-          } else if (genderPref === "other") {
-            gender = "other";
-          } else {
-            const rand = Math.random();
-            if (rand < 0.4) gender = "male";
-            else if (rand < 0.8) gender = "female";
+          if (genderPref === "male") gender = "male";
+          else if (genderPref === "female") gender = "female";
+          else if (genderPref === "other") gender = "other";
+          else {
+            const r = Math.random();
+            if (r < 0.4) gender = "male";
+            else if (r < 0.8) gender = "female";
             else gender = "other";
           }
-          
-          const quirk = pick(quirks);
-          const firstNames = gender === "male" ? maleFirstNames : 
-                            gender === "female" ? femaleFirstNames : otherFirstNames;
+
+          const firstNames = gender === "male" ? maleFirstNames : gender === "female" ? femaleFirstNames : otherFirstNames;
           const name = generateUniqueName(firstNames, lastInitials);
+
+          const flirtBase = generateFlirtPercent();
+          const flirtPercent = clamp(flirtBase + (persona.flirtBias || 0), 0, 100);
+          const flirtStyle = pickFlirtStyle(flirtPercent);
+
+          const valentinesEager = chance(0.10) || Boolean(persona.valentinesBias);
+
+          // Chaos selection
+          const chaosChance = clamp(CHAOS_OVERALL_RATE + (persona.chaosBias || 0), 0, 0.85);
+          const isChaos = chance(chaosChance);
+
+          const quirk = pickQuirk();
+
+          // Fish guy needs stronger quirk and interests
+          const finalQuirk = persona.label === "Fish Holding Boat Guy"
+            ? "If I am not holding a fish, assume I am about to be holding a fish."
+            : quirk;
+
+          const interests = persona.label === "Fish Holding Boat Guy"
+            ? ["holding fish", "boats", "holding fish on boats", "telling you it was THIS big"]
+            : persona.interests;
 
           const bio = await generateUniqueBio({
             name,
             age,
             gender,
-            archetypeLabel: arch.label,
-            interests: arch.interests,
-            quirk,
+            archetypeLabel: persona.label,
+            interests,
+            quirk: finalQuirk,
+            flirtPercent,
+            valentinesEager,
           });
 
           const charSpec = generateCharacterSpec({
             name,
             age,
             gender,
-            archetypeLabel: arch.label,
-            interests: arch.interests,
-            quirk,
+            archetypeLabel: persona.label,
+            interests,
+            quirk: finalQuirk,
+            flirtPercent,
+            flirtStyle,
+            valentinesEager,
+            isChaos,
           });
 
-          const nextProfileId = storage['currentId'].profiles + i;
-          const imageId = storage.getUniqueImageId(gender as 'male' | 'female' | 'other');
+          const nextProfileId = storage["currentId"].profiles + i;
+          const imageId = storage.getUniqueImageId(gender as "male" | "female" | "other");
           const imageUrl = buildImageUrl(imageId, nextProfileId);
 
           const profile = await storage.createProfile({
@@ -452,15 +698,15 @@ async function generateProfilesInBackground(
             isAI: true,
             characterSpec: charSpec,
           });
-          
-          console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age})`);
+
+          console.log(`[BG Gen] Created profile ${i + 1}/${count}: ${name} (${gender}, ${age}) -> ${persona.label}`);
           return profile;
         })());
       }
-      
+
       await Promise.all(batchPromises);
     }
-    
+
     const elapsed = Date.now() - startTime;
     console.log(`[BG Gen] Completed ${count} profiles in ${elapsed}ms`);
   } catch (error) {
@@ -470,46 +716,44 @@ async function generateProfilesInBackground(
   }
 }
 
+// ------------------------------------------------------------
+// Routes
+// ------------------------------------------------------------
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/profiles", async (req, res) => {
     const requestStart = Date.now();
     const userId = 1;
-    
-    // Parse and validate filter params
+
     const rawGender = (req.query.gender as string) || "all";
     const genderPref = ["male", "female", "other", "all"].includes(rawGender) ? rawGender : "all";
     const rawMinAge = parseInt(req.query.minAge as string) || 21;
     const rawMaxAge = parseInt(req.query.maxAge as string) || 99;
     const minAge = Math.max(21, Math.min(99, rawMinAge));
     const maxAge = Math.max(21, Math.min(99, rawMaxAge));
-    
+
     console.log(`[Profiles] Request start - gender=${genderPref}, age=${minAge}-${maxAge}`);
 
-    // Fetch unseen profiles (fast - just reads from memory)
     const fetchStart = Date.now();
     let unseen = await storage.getUnseenProfiles(userId);
     console.log(`[Profiles] getUnseenProfiles took ${Date.now() - fetchStart}ms, found ${unseen.length}`);
 
-    // Apply filters
-    if (genderPref !== "all") {
-      unseen = unseen.filter(p => p.gender === genderPref);
-    }
+    if (genderPref !== "all") unseen = unseen.filter(p => p.gender === genderPref);
     unseen = unseen.filter(p => p.age >= minAge && p.age <= maxAge);
     console.log(`[Profiles] After filtering: ${unseen.length} profiles`);
 
-    // If running low, trigger background generation (fire-and-forget)
     if (unseen.length < PROFILE_LOW_THRESHOLD) {
       const needed = PROFILE_BUFFER_TARGET - unseen.length;
-      console.log(`[Profiles] Low buffer (${unseen.length}), triggering background generation of ${needed}`);
-      // Fire and forget - don't await
-      generateProfilesInBackground(genderPref, minAge, maxAge, Math.min(needed, PROFILE_GEN_BATCH_SIZE))
-        .catch(err => console.error('[BG Gen] Unhandled error:', err));
+      const toGen = Math.max(0, Math.min(needed, PROFILE_GEN_BATCH_SIZE));
+      console.log(`[Profiles] Low buffer (${unseen.length}), triggering background generation of ${toGen}`);
+      if (toGen > 0) {
+        generateProfilesInBackground(genderPref, minAge, maxAge, toGen)
+          .catch(err => console.error("[BG Gen] Unhandled error:", err));
+      }
     }
 
-    // Return immediately with whatever we have
     const elapsed = Date.now() - requestStart;
     console.log(`[Profiles] Request completed in ${elapsed}ms, returning ${unseen.length} profiles`);
-    
+
     res.json(shuffle(unseen));
   });
 
@@ -527,20 +771,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mark a profile as having a bad image (so it won't be returned again)
   app.post("/api/profiles/:id/bad-image", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid profile ID" });
 
       console.log(`[Bad Image] Profile ${id} reported as having broken image`);
-      
-      // Delete the profile so it won't be served again
       const deleted = await storage.deleteProfile(id);
-      if (deleted) {
-        console.log(`[Bad Image] Profile ${id} deleted successfully`);
-      }
-      
+      if (deleted) console.log(`[Bad Image] Profile ${id} deleted successfully`);
+
       res.json({ success: true });
     } catch (error) {
       console.error("[Bad Image] Error:", error);
@@ -560,13 +799,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: "Invalid match data" });
     }
   });
-  
+
   app.post("/api/reject", async (req, res) => {
     try {
       const { userId, profileId } = req.body;
-      if (!userId || !profileId) {
-        return res.status(400).json({ error: "Missing userId or profileId" });
-      }
+      if (!userId || !profileId) return res.status(400).json({ error: "Missing userId or profileId" });
       storage.rejectProfile(userId, profileId);
       res.json({ success: true });
     } catch (error) {
@@ -583,12 +820,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid match ID" });
       }
 
-      // Find the match by iterating through all user matches (userId=1 for now)
       const allMatches = await storage.getMatches(1);
       const match = allMatches.find(m => m.id === matchId);
-      
+
       if (!match) {
-        console.log(`[GET /api/matches/by-id/${matchId}] Match NOT found. Available matches: [${allMatches.map(m => m.id).join(', ')}]`);
+        console.log(`[GET /api/matches/by-id/${matchId}] Match NOT found. Available matches: [${allMatches.map(m => m.id).join(", ")}]`);
         return res.status(404).json({ error: "Match not found" });
       }
 
@@ -612,7 +848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
 
       const matches = await storage.getMatches(userId);
-      console.log(`[GET /api/matches/${userId}] Returning ${matches.length} matches: [${matches.map(m => `{id:${m.id},profileId:${m.profileId}}`).join(', ')}]`);
+      console.log(`[GET /api/matches/${userId}] Returning ${matches.length} matches: [${matches.map(m => `{id:${m.id},profileId:${m.profileId}}`).join(", ")}]`);
       res.json(matches);
     } catch (error) {
       console.error("[GET /api/matches] Error:", error);
@@ -620,20 +856,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Combined endpoint for inbox: matches with profile data + last message
   app.get("/api/inbox/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
 
       const matches = await storage.getMatches(userId);
-      
+
       const inboxItems = await Promise.all(
         matches.map(async (match) => {
           const profile = await storage.getProfile(match.profileId);
           const messages = await storage.getMessages(match.id);
           const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-          
+
           return {
             matchId: match.id,
             profileId: match.profileId,
@@ -652,7 +887,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // Sort by last message time (descending), then by match creation time
       inboxItems.sort((a, b) => {
         const aTime = a.lastMessage?.createdAt || a.createdAt;
         const bTime = b.lastMessage?.createdAt || b.createdAt;
@@ -666,25 +900,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shared resolver: resolves an incoming ID to a real match record
-  // First tries incomingId as matchId, then falls back to treating it as profileId
   async function resolveMatchId(incomingId: number, userId: number = 1): Promise<{ match: Match; matchId: number } | null> {
     const matches = await storage.getMatches(userId);
-    
-    // First try: treat incomingId as matchId
+
     let match = matches.find(m => m.id === incomingId);
     if (match) {
       console.log(`[Resolver] ID ${incomingId} resolved as matchId -> match.id=${match.id}, profileId=${match.profileId}`);
       return { match, matchId: match.id };
     }
-    
-    // Fallback: treat incomingId as profileId
+
     match = matches.find(m => m.profileId === incomingId);
     if (match) {
       console.log(`[Resolver] ID ${incomingId} resolved as profileId -> match.id=${match.id}, profileId=${match.profileId}`);
       return { match, matchId: match.id };
     }
-    
+
     console.log(`[Resolver] ID ${incomingId} could not be resolved to any match`);
     return null;
   }
@@ -695,17 +925,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(incoming)) return res.status(400).json({ error: "Invalid id" });
 
       console.log(`[GET /api/messages/${incoming}] Resolving ID...`);
-      
       const resolved = await resolveMatchId(incoming);
-      
+
       if (!resolved) {
         console.log(`[GET /api/messages/${incoming}] No match found, returning empty array`);
         return res.json([]);
       }
-      
+
       const messages = await storage.getMessages(resolved.matchId);
       console.log(`[GET /api/messages/${incoming}] Found ${messages.length} messages for matchId=${resolved.matchId}`);
-      
       res.json(messages);
     } catch (error) {
       console.error("[GET /api/messages] Error:", error);
@@ -716,18 +944,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req, res) => {
     try {
       const message = insertMessageSchema.parse(req.body);
-      
       console.log(`[POST /api/messages] Incoming matchId: ${message.matchId}, content: "${message.content.substring(0, 30)}..."`);
-      
+
       const resolved = await resolveMatchId(message.matchId);
-      
       if (!resolved) {
         console.log(`[POST /api/messages] Match not found for id=${message.matchId}`);
         return res.status(404).json({ error: "Match not found" });
       }
-      
+
       console.log(`[POST /api/messages] Resolved to matchId=${resolved.matchId}`);
-      
+
       const createdMessage = await storage.createMessage({
         ...message,
         matchId: resolved.matchId
@@ -735,7 +961,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!message.isAI) {
         const match = resolved.match;
-
         const profile = await storage.getProfile(match.profileId);
         if (!profile) return res.status(404).json({ error: "Profile not found" });
 
@@ -783,12 +1008,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============ ADMIN: IMAGE TAGGING ============
+  // Admin image tagging stays the same
   app.get("/api/admin/images", async (_req, res) => {
     try {
       const allImages: { id: string; gender: "male" | "female" | "other" }[] = [];
       const seen = new Set<string>();
-      
+
       for (const id of MEN_PORTRAIT_IDS) {
         if (!seen.has(id)) {
           allImages.push({ id, gender: "male" });
@@ -807,7 +1032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           seen.add(id);
         }
       }
-      
+
       console.log(`[Admin] Returning ${allImages.length} unique images (${MEN_PORTRAIT_IDS.length} male, ${WOMEN_PORTRAIT_IDS.length} female, ${ANDROGYNOUS_PORTRAIT_IDS.length} other)`);
       res.json(allImages);
     } catch (error) {
@@ -819,28 +1044,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/images/tags", async (req, res) => {
     try {
       const { tags } = req.body as { tags: Record<string, "male" | "female" | "other" | "broken"> };
-      
+
       const changes = {
         toMale: [] as string[],
         toFemale: [] as string[],
         toOther: [] as string[],
         broken: [] as string[],
       };
-      
+
       for (const [id, newTag] of Object.entries(tags)) {
         if (newTag === "male") changes.toMale.push(id);
         else if (newTag === "female") changes.toFemale.push(id);
         else if (newTag === "other") changes.toOther.push(id);
         else if (newTag === "broken") changes.broken.push(id);
       }
-      
+
       console.log("[Admin] Image tag changes:", {
         toMale: changes.toMale.length,
         toFemale: changes.toFemale.length,
         toOther: changes.toOther.length,
         broken: changes.broken.length,
       });
-      
+
       console.log("\n=== COPY THESE CHANGES TO portrait-library.ts ===");
       if (changes.toMale.length > 0) {
         console.log("\nMove to MEN_PORTRAIT_IDS:");
@@ -859,11 +1084,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changes.broken.forEach(id => console.log(`  "${id}",`));
       }
       console.log("\n=== END CHANGES ===\n");
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: "Changes logged to console. Update portrait-library.ts manually.",
-        changes 
+        changes
       });
     } catch (error) {
       console.error("[Admin] Error saving tags:", error);
@@ -872,11 +1097,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
-  // Pre-generate profiles at startup so users don't wait
+
+  // Pre-generate profiles at startup so users do not wait
   console.log(`[Startup] Triggering initial profile generation of ${PROFILE_GEN_BATCH_SIZE} profiles`);
   generateProfilesInBackground("all", 21, 99, PROFILE_GEN_BATCH_SIZE)
-    .catch(err => console.error('[Startup Gen] Error:', err));
-  
+    .catch(err => console.error("[Startup Gen] Error:", err));
+
   return httpServer;
 }
