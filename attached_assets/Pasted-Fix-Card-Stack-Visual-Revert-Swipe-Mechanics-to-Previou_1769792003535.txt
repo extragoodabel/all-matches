@@ -1,0 +1,93 @@
+Fix Card Stack Visual + Revert Swipe Mechanics to Previous Working Version
+
+We need to fix two regressions introduced by the “card stack under profile” update.
+
+1) Card stack visuals are not reading correctly
+
+Current problems:
+
+The “stack” cards underneath are smaller than the active profile card.
+
+There is a semi transparent extra card floating and it looks mislayered.
+
+It does not look like a real stack of same sized cards.
+
+Desired behavior:
+
+The stack should look like 3 to 4 cards of the exact same width and height as the active profile card.
+
+Only the top card is the active swipe card.
+
+The cards underneath should show subtle offsets so you can see edges peeking out.
+
+Example: card 2 offset 6px right and 6px down
+
+card 3 offset 12px right and 12px down
+
+card 4 offset 18px right and 18px down
+
+Under cards should not be translucent overlays floating in front of the main card. They should sit behind it.
+
+Use z-index layering correctly so the active card is always on top.
+
+Keep existing border and pattern style, but apply it consistently across the stack so it reads as one stack.
+
+2) Swipe mechanics are broken and must revert to the last known good version
+
+Current problems:
+
+All swipes resolve as right swipes even when swiping left.
+
+Dragging sticks to the pointer even after mouseup or touch end.
+
+Swiping has become generally buggy.
+
+Required fix:
+
+Revert swipe mechanics to the exact behavior from the previously working version before the stack change.
+
+Only apply the stack as a visual layer. Do not let underlying stack elements capture pointer events.
+
+Ensure the swipe direction is computed correctly from drag deltaX:
+
+If deltaX > threshold, confirm swipe right
+
+If deltaX < negative threshold, confirm swipe left
+
+Otherwise snap back to center
+
+On release, always clear dragging state and detach pointer listeners reliably.
+
+Prevent sticky drag by using pointer events properly:
+
+Use pointerdown to start
+
+pointermove only while dragging
+
+pointerup and pointercancel must end drag and reset transforms
+
+If using setPointerCapture, releasePointerCapture on end
+
+Make sure transforms are applied only to the active card, not the stack container and not the background cards.
+
+Non negotiables
+
+Do not change desktop layout, mobile layout, match flow, chat flow, or any other styling.
+
+Only fix the stack visual proportions and restore swipe behavior.
+
+After fix, test on both mouse and touch:
+
+drag left commits left swipe
+
+drag right commits right swipe
+
+release without crossing threshold snaps back
+
+no sticky dragging after release
+
+Acceptance criteria:
+
+Stack reads clearly as a same size card stack behind the active card.
+
+Swiping behaves exactly like it did before the stack update.

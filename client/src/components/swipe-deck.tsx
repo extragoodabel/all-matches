@@ -31,17 +31,35 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const currentOffsetRef = useRef({ x: 0, y: 0 });
+
+  const resetDragState = useCallback(() => {
+    setIsDragging(false);
+    setIsHorizontalSwipe(null);
+    setDragOffset({ x: 0, y: 0 });
+    currentOffsetRef.current = { x: 0, y: 0 };
+    pointerIdRef.current = null;
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (pointerIdRef.current !== null) return;
     e.preventDefault();
+    e.stopPropagation();
+    
+    pointerIdRef.current = e.pointerId;
     setIsDragging(true);
     setIsHorizontalSwipe(null);
     startPos.current = { x: e.clientX, y: e.clientY };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    currentOffsetRef.current = { x: 0, y: 0 };
+    
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || e.pointerId !== pointerIdRef.current) return;
     
     const deltaX = e.clientX - startPos.current.x;
     const deltaY = e.clientY - startPos.current.y;
@@ -52,49 +70,41 @@ function useSwipeGesture(onSwipeComplete: (direction: "left" | "right") => void)
     }
     
     if (isHorizontalSwipe !== false) {
-      setDragOffset({ 
-        x: deltaX, 
-        y: deltaY * VERTICAL_DAMPING 
-      });
+      const newOffset = { x: deltaX, y: deltaY * VERTICAL_DAMPING };
+      currentOffsetRef.current = newOffset;
+      setDragOffset(newOffset);
     }
   }, [isDragging, isHorizontalSwipe]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    
-    setIsDragging(false);
-    setIsHorizontalSwipe(null);
+    if (e.pointerId !== pointerIdRef.current) return;
     
     try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // Pointer may already be released
-    }
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
 
+    const finalOffsetX = currentOffsetRef.current.x;
     const cardWidth = cardRef.current?.offsetWidth || 300;
     const threshold = USE_PERCENT_THRESHOLD 
       ? cardWidth * SWIPE_THRESHOLD_PERCENT 
       : SWIPE_THRESHOLD_PX;
 
-    if (dragOffset.x > threshold) {
+    if (finalOffsetX > threshold) {
       onSwipeComplete("right");
-    } else if (dragOffset.x < -threshold) {
+    } else if (finalOffsetX < -threshold) {
       onSwipeComplete("left");
     }
     
-    setDragOffset({ x: 0, y: 0 });
-  }, [isDragging, dragOffset.x, onSwipeComplete]);
+    resetDragState();
+  }, [onSwipeComplete, resetDragState]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
-    setIsDragging(false);
-    setIsHorizontalSwipe(null);
-    setDragOffset({ x: 0, y: 0 });
+    if (e.pointerId !== pointerIdRef.current) return;
     try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // Pointer may already be released
-    }
-  }, []);
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    resetDragState();
+  }, [resetDragState]);
 
   const rawRotation = dragOffset.x * ROTATION_MULTIPLIER;
   const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, rawRotation));
@@ -280,14 +290,14 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
       <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-12 sm:pb-16">
         
         {/* Static back cards - the deck underneath */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
           {/* Card 3 - deepest */}
           <div 
             className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
             style={{
-              transform: 'translateY(14px) scale(0.94)',
-              opacity: 0.5,
+              transform: 'translate(12px, 12px)',
               background: stackPalette.background,
+              zIndex: 1,
               ...stackPatternStyle,
             }}
           />
@@ -295,9 +305,9 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           <div 
             className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
             style={{
-              transform: 'translateY(8px) scale(0.97)',
-              opacity: 0.7,
+              transform: 'translate(6px, 6px)',
               background: stackPalette.background,
+              zIndex: 2,
               ...stackPatternStyle,
             }}
           />
@@ -327,8 +337,9 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               type: direction ? "tween" : "spring",
               ease: "easeOut",
             }}
-            className="select-none w-full relative z-10"
+            className="select-none w-full relative"
             style={{ 
+              zIndex: 10,
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
               WebkitUserDrag: "none",
