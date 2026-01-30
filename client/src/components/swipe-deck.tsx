@@ -201,6 +201,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
   const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
   const [lastProfileIds, setLastProfileIds] = useState<string>("");
+  const lastPrefetchRef = useRef<number>(0);
 
   const currentProfile = profiles.find(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   
@@ -273,7 +274,6 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const needsMore = profiles.length === 0 || !currentProfile || remainingProfiles.length === 0;
   
   // Prefetch more profiles when running low (before we hit the loading screen)
-  const lastPrefetchRef = useRef<number>(0);
   useEffect(() => {
     const now = Date.now();
     // Debounce: only prefetch if at least 3 seconds since last prefetch
