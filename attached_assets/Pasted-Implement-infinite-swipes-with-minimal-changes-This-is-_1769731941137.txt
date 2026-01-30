@@ -1,0 +1,36 @@
+Implement infinite swipes with minimal changes. This is NOT a schema or backend overhaul.
+
+Current cause: client/src/pages/home.tsx uses a hardcoded mockProfiles array (~5 items) and MemStorage is initialized from that array, so the user runs out of matches after ~6 swipes.
+
+Goal:
+- The app should never run out of profiles.
+- New profiles can be generated on the client for now (no server, no DB changes).
+- Each generated profile must have: id, name, age (21+), bio, imageUrl placeholder, and a personality seed field (string) for later chat variety.
+- Images can be placeholders (existing placeholder system or a stable URL pattern).
+
+Constraints:
+- Do NOT modify database schema
+- Do NOT create background workers
+- Do NOT change API routes
+- Only touch client/src/pages/home.tsx and any existing client-side mock/storage initializer if needed
+- Keep everything compile-safe
+
+Implementation:
+1) Replace the static mockProfiles array with a generator function generateProfile(index or seed) that returns a new profile object each time.
+2) Add an “ensureProfileBuffer” function that guarantees there are always at least 20 available profiles in the swipe deck.
+   - When the remaining profiles drop below 10, generate 20 more and append.
+3) Variety:
+   - Build an in-code archetype library with at least 25 distinct archetypes.
+   - Each archetype includes: vibe label, interests, a goal/angle, and a writing style hint.
+   - Bios should be specific and not generic. Use templated bios with variable inserts (interests, job, quirky detail).
+4) Use deterministic randomness:
+   - Create a seed from profile id or index so the same profile stays consistent during the session.
+5) Image placeholders:
+   - Use a stable placeholder image URL (existing placeholders in repo if present).
+   - If none exist, use a simple pattern like `/images/profiles/{seedMod}.jpg` and ensure it doesn’t crash if missing.
+   - Do not add new image generation.
+
+Deliverables:
+- Show exact changes to client/src/pages/home.tsx (and any other file you touched)
+- Confirm swiping 50 times never runs out
+- Output 10 sample generated profiles (name + bio + archetype label)

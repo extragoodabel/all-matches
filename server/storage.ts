@@ -35,7 +35,10 @@ export class MemStorage implements IStorage {
 
     // Initialize with mock profiles
     mockProfiles.forEach(profile => {
-      this.profiles.set(profile.id, profile);
+      this.profiles.set(profile.id, {
+        ...profile,
+        characterSpec: null
+      });
     });
   }
 
@@ -70,13 +73,23 @@ export class MemStorage implements IStorage {
     return Array.from(this.profiles.values());
   }
 
+  async getUnseenProfiles(userId: number): Promise<Profile[]> {
+    const userMatches = Array.from(this.matches.values())
+      .filter(m => m.userId === userId)
+      .map(m => m.profileId);
+    
+    return Array.from(this.profiles.values())
+      .filter(p => !userMatches.includes(p.id));
+  }
+
   async createProfile(insertProfile: InsertProfile): Promise<Profile> {
     const id = this.currentId.profiles++;
     const profile: Profile = { 
       ...insertProfile, 
       id, 
       isAI: insertProfile.isAI ?? false,
-      gender: insertProfile.gender ?? "other"
+      gender: insertProfile.gender ?? "other",
+      characterSpec: insertProfile.characterSpec ?? null
     };
     this.profiles.set(id, profile);
     return profile;

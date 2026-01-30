@@ -7,8 +7,51 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/profiles", async (req, res) => {
-    const profiles = await storage.getProfiles();
-    res.json(profiles);
+    const userId = 1; // Assuming default user for now
+    let unseen = await storage.getUnseenProfiles(userId);
+
+    if (unseen.length < 20) {
+      const names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Skyler", "Peyton", "Avery", "Dakota", "Reese", "Hayden", "Emerson", "Parker"];
+      const bios = [
+        "Love exploring the outdoors and finding new hiking trails.",
+        "Passionate about cooking and trying out new recipes.",
+        "Avid reader and collector of vintage books.",
+        "Tech enthusiast always looking for the next big thing.",
+        "Music lover, I play three instruments and go to gigs every weekend.",
+        "Artist who finds beauty in the everyday ordinary things.",
+        "Traveler at heart, I've been to 15 countries and counting.",
+        "Yoga practitioner and firm believer in mindfulness.",
+        "Dog person who spends way too much time at the park.",
+        "Movie buff with a soft spot for 80s classics.",
+        "Competitive board gamer and puzzle enthusiast.",
+        "Fitness junkie who loves a good sunrise run.",
+        "Coffee connoisseur on a mission to find the best latte.",
+        "Amateur astronomer who loves stargazing on clear nights.",
+        "DIY project addict, currently renovating my home."
+      ];
+
+      for (let i = 0; i < 30; i++) {
+        const name = names[Math.floor(Math.random() * names.length)];
+        const bio = bios[Math.floor(Math.random() * bios.length)];
+        const age = 21 + Math.floor(Math.random() * 20);
+        const gender = Math.random() > 0.5 ? "male" : "female";
+        const id = Math.floor(Math.random() * 1000);
+        
+        // Simple check to avoid exact duplicates in this batch
+        await storage.createProfile({
+          name,
+          age,
+          bio,
+          gender,
+          imageUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}`,
+          isAI: true,
+          characterSpec: null
+        });
+      }
+      unseen = await storage.getUnseenProfiles(userId);
+    }
+
+    res.json(unseen);
   });
 
   app.post("/api/matches", async (req, res) => {

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
-import { mockProfiles } from "@/lib/mock-profiles";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Profile } from "@shared/schema";
 import { Heart, Settings2 } from "lucide-react";
@@ -29,14 +29,18 @@ export default function Home() {
   const [ageRange, setAgeRange] = useState([21, 50]);
   const [genderPref, setGenderPref] = useState("all");
 
+  const { data: profiles = [] } = useQuery<Profile[]>({
+    queryKey: ["/api/profiles"],
+  });
+
   const filteredProfiles = useMemo(() => {
-    return mockProfiles.filter((p) => {
+    return profiles.filter((p) => {
       const ageMatch = p.age >= ageRange[0] && p.age <= ageRange[1];
       const genderMatch =
         genderPref === "all" || p.gender === genderPref;
       return ageMatch && genderMatch;
     });
-  }, [ageRange, genderPref]);
+  }, [profiles, ageRange, genderPref]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
     if (direction === "right") {
