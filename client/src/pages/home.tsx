@@ -6,7 +6,8 @@ import { PatternBackground, getRandomPatternIndex } from "@/components/pattern-b
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
-import { Heart, Settings2, MessageCircle, RotateCcw, X, Sparkles } from "lucide-react";
+import { Settings2, MessageCircle, RotateCcw, X, Heart } from "lucide-react";
+import { HeartKiss, StarFirework } from "@/components/easter-eggs";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
 import { getSessionPalette } from "@/styles/theme";
@@ -170,7 +171,7 @@ export default function Home() {
           
           <div className="flex-1 text-center">
             <h1 className="eg-hero-title inline-flex items-center gap-3">
-              <Heart className="w-8 h-8 md:w-10 md:h-10" style={{ color: palette.primary }} />
+              <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
                 className="relative px-4 py-1"
                 style={{ 
@@ -181,7 +182,7 @@ export default function Home() {
               >
                 All Matches!
               </span>
-              <Sparkles className="w-7 h-7 md:w-9 md:h-9" style={{ color: palette.secondary }} />
+              <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>
             <a 
               href="https://extragood.studio" 

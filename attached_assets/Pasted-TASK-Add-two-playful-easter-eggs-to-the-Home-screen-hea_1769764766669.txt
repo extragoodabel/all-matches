@@ -1,0 +1,60 @@
+TASK
+Add two playful easter eggs to the Home screen header without breaking any existing swipe, match, or chat functionality. This should be plug-and-play and copy/paste safe.
+
+CONTEXT
+On the Home screen, there is a header that says “ALL MATCHES!” with:
+- a heart icon on the upper left of the header
+- a star icon on the upper right of the header
+These icons are clickable.
+
+EASTER EGG 1: STAR FIREWORK
+When the user clicks the STAR icon (top right):
+- The star should spin wildly “out of control” for about 1.0–1.5 seconds (accelerating rotation feels good).
+- While spinning, it should emit sparks like a spinning fireworks wheel:
+  - Use a burst of small particles (tiny lines/dots) that spray outward in a circular pattern.
+  - Sparks should be warm and bright (yellows, oranges, hot pinks are ok to match our bold palette).
+  - Sparks should fade out and fall slightly as they disappear (gravity), not straight-line glitch.
+- After the spin finishes, the star should “shoot off” diagonally (up-right) and fly off screen, leaving a trailing sparkle tail for ~0.5s.
+- After it exits, the star returns to its original position, restored and clickable again after the animation completes.
+- Prevent spam clicking: clicking repeatedly should either do nothing until finished or restart cleanly.
+
+EASTER EGG 2: HEART KISS + “I LOVE YOU” HIT
+When the user clicks the HEART icon (upper left):
+- A large kiss emoji (💋) should drop/land onto the screen with a satisfying bounce (center-ish, not blocking the header entirely).
+- Immediately after the kiss lands, show big bold text words one after another in quick succession:
+  - “I.” then “LOVE.” then “YOU.”
+  - Each word should hit the screen like a kinetic typography beat:
+    - scale up quickly (pop), slight squash/stretch, then settle
+    - timing: ~180ms–280ms between words
+- The text should be huge and bold and playful (use Space Grotesk), and styled like our brand:
+  - Use thick, high-contrast fill with maybe an outline or shadow so it reads over patterns.
+- Total sequence duration should be short and punchy (about 1.5s–2.5s), then everything fades/flies away and the UI returns to normal.
+- Prevent spam clicking: disable the heart click until animation completes.
+
+ANIMATION QUALITY RULES
+- These should feel smooth and intentional, not glitchy.
+- Use requestAnimationFrame or a lightweight animation library already in project (prefer framer-motion if present). If no library is present, implement with CSS keyframes + minimal JS.
+- Respect “prefers-reduced-motion”: if the user prefers reduced motion, replace with a minimal version:
+  - Star: quick rotation + tiny sparkle fade
+  - Heart: kiss emoji fade + static “I LOVE YOU” text for 600ms
+
+ENGINEERING REQUIREMENTS
+- Do NOT introduce paid APIs, do NOT call OpenAI, do NOT increase runtime costs.
+- Use purely client-side animation.
+- Keep all existing click handlers and navigation working (do not interfere with swipe buttons or match modal).
+- Keep header layout unchanged except adding animation wrappers.
+- Ensure pointer events and z-index work so the animation is visible above the card, but does not permanently block UI interaction.
+
+DELIVERABLE
+Return full updated code (copy/paste) for any files you modify.
+- Likely: Home screen component (where the header icons live)
+- If you create a reusable component for particles/overlays, include full code for that new component file too.
+- Include brief notes at the top of the file showing where to paste it.
+
+IMPLEMENTATION HINTS
+- For sparks: generate ~24–60 particles with random angle + velocity + lifetime, animate with CSS variables or framer-motion.
+- For the star “shoot off”: animate translateX/translateY + rotate + scale slightly + opacity fade.
+- For the “I. LOVE. YOU.”: create a sequence timeline that triggers each word in order, each with pop-in animation.
+
+START NOW
+Implement both easter eggs exactly as described.
