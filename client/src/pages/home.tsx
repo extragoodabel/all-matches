@@ -172,6 +172,19 @@ export default function Home() {
               </span>
               <Sparkles className="w-7 h-7 md:w-9 md:h-9" style={{ color: palette.secondary }} />
             </h1>
+            <a 
+              href="https://extragood.studio" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block mt-2 text-xs opacity-60 hover:opacity-100 hover:underline transition-opacity"
+              style={{ 
+                fontFamily: "var(--font-display)", 
+                letterSpacing: '0.05em',
+                color: palette.accent,
+              }}
+            >
+              an extragood.studio production
+            </a>
           </div>
           
           <button 
