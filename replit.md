@@ -65,7 +65,12 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: Drizzle Kit configured to output migrations to `./migrations`
 
 ### Third-Party Services
-- **Unsplash**: Profile images sourced from Unsplash URLs (mock data)
+- **Multi-Source Image System**: Profile images from multiple sources via `PortraitAsset` type
+  - **Unsplash**: ~100+ portrait IDs per gender category  
+  - **Burst (Shopify)**: 20 men + 20 women CDN URLs (royalty-free)
+  - **Local**: Placeholder for future local assets
+  - **Key files**: `server/portrait-library.ts`, `server/burst-library.ts`
+  - **Admin validation**: `/api/admin/images/validate?source=burst` to check URL validity
 
 ### Key NPM Packages
 - `drizzle-orm` / `drizzle-kit`: Database ORM and migration tooling
