@@ -1,0 +1,40 @@
+GOAL
+Adjust the swipe screen so the X and heart buttons do NOT feel like a layout bug where the card overlaps them. Instead, intentionally style the buttons to “hover” over the lower portion of the card with a slow, subtle bobbing animation that feels playful and deliberate, while still allowing the bio behind them to remain readable.
+
+WHAT I WANT (UX)
+- The buttons should float slightly over the bottom edge of the profile card (on top of it), like they’re hovering and begging to be tapped.
+- They should gently drift up and down (slow, controlled bounce), not fast or glitchy.
+- The hover should be subtle and elegant. Think: slow bob, small distance.
+- The bio must remain readable behind them. The hover should not block reading or feel cluttered.
+- The buttons can overlap the card area, but it must look intentional, not accidental.
+
+LAYOUT RULES
+- Keep the card and bio layout as-is (compact mobile layout already improved).
+- Reserve enough vertical space so the buttons never cover the MOST IMPORTANT bio area:
+  - Add bottom padding to the bio/card container equal to the button height plus a little extra breathing room.
+  - The buttons should visually overlap, but the text should flow behind with space so it doesn’t get hidden.
+- Ensure the buttons stay within the swipe screen viewport and never cause scrolling.
+
+ANIMATION SPEC
+- Add a subtle “hover bob” animation to the entire button cluster (or each button with slightly different timing):
+  - Duration: 3.5s to 5.5s
+  - Translate Y range: 6px to 14px total movement
+  - Easing: ease-in-out
+  - Infinite loop
+- OPTIONAL (nice touch): slightly offset the phase so the X and heart aren’t perfectly synchronized (feels organic).
+- Respect accessibility:
+  - If user prefers reduced motion, disable animation (use CSS prefers-reduced-motion).
+
+IMPLEMENTATION DETAILS (TAILWIND/CSS)
+- Put the buttons in an absolutely positioned container anchored near the bottom of the card area:
+  - Example: position absolute, left 0, right 0, bottom something like 8px–18px depending on layout
+- Set pointer events correctly so the buttons are always clickable.
+- Add a soft shadow or glow so they separate visually from the card.
+- Add a subtle translucent backing or blur behind the buttons ONLY if needed for readability (keep it minimal).
+
+DELIVERABLE
+Return full updated code for the files you changed (copy/paste ready). No partial diffs. Ensure the resulting UI:
+- Looks intentional (hovering CTA buttons)
+- Bio remains readable
+- Buttons remain clickable
+- Animation is slow and polished, not distracting
