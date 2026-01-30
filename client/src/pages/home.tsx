@@ -29,7 +29,7 @@ export default function Home() {
   const [ageRange, setAgeRange] = useState([21, 50]);
   const [genderPref, setGenderPref] = useState("all");
 
-  const { data: profiles = [] } = useQuery<Profile[]>({
+  const { data: profiles = [], refetch } = useQuery<Profile[]>({
     queryKey: ["/api/profiles"],
   });
 
@@ -53,6 +53,12 @@ export default function Home() {
       } catch (error) {
         console.error("Failed to create match:", error);
       }
+    }
+    
+    // When getting low on profiles in the filtered list, trigger a background refetch
+    // The server will handle the replenishment
+    if (filteredProfiles.length < 10) {
+      refetch();
     }
   };
 
