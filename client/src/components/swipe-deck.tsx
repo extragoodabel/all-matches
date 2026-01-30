@@ -278,7 +278,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
         {/* Visual card stack - purely decorative, no interaction */}
         <div 
           className="absolute inset-0 pointer-events-none select-none flex items-center justify-center"
-          style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
+          style={{ userSelect: 'none', WebkitUserDrag: 'none', transform: 'translateY(-12px)' } as React.CSSProperties}
           aria-hidden="true"
         >
           {[3, 2, 1].map((i) => {
