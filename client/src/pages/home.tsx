@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
-import { PatternBackground } from "@/components/pattern-background";
+import { PatternBackground, getRandomPatternIndex } from "@/components/pattern-background";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
@@ -15,6 +15,7 @@ import { getPatternStyle } from "@/styles/patterns";
 export default function Home() {
   const [, setLocation] = useLocation();
   const [currentMatch, setCurrentMatch] = useState<{ profile: Profile; matchId: number | null } | null>(null);
+  const [bgPatternIndex] = useState(() => getRandomPatternIndex());
   
   const { preferences, setPreferences, resetPreferences, DEFAULT_PREFERENCES } = usePreferences();
   const palette = getSessionPalette();
@@ -139,7 +140,7 @@ export default function Home() {
   const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 99 && draftAgeRange[0] <= draftAgeRange[1];
 
   return (
-    <PatternBackground baseColor={palette.background}>
+    <PatternBackground baseColor={palette.background} patternIndex={bgPatternIndex}>
       <div 
         className="min-h-screen"
         style={{
