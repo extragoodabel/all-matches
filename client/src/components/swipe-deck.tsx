@@ -290,8 +290,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             ];
             const patternIdx = (currentProfile.id + i) % stackPatterns.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
-            // Subtle height variation: 0.58 to 0.62 ratio (base is 0.6 for 3:5)
-            const heightVariation = 0.60 + ((currentProfile.id * i) % 5 - 2) * 0.01;
+            // Subtle height variation: 0.62 to 0.66 ratio (reduced by 5%)
+            const heightVariation = 0.63 + ((currentProfile.id * i) % 5 - 2) * 0.01;
             return (
               <div
                 key={`stack-${i}-${currentProfile.id}`}

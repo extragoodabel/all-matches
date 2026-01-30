@@ -40,7 +40,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
       } as React.CSSProperties}
     >
       <div
-        className="absolute inset-0 -z-10 rounded-2xl opacity-60"
+        className="absolute inset-0 -z-10 rounded-2xl"
         style={{
           ...patternStyle,
           transform: 'rotate(-2deg) scale(1.05)',
