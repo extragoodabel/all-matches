@@ -250,34 +250,54 @@ export function ToughCrowdEffect({ isActive }: { isActive: boolean }) {
     <AnimatePresence>
       {isActive && (
         <>
+          {/* Gradual grayscale overlay */}
           <motion.div
             className="fixed inset-0 z-[100] pointer-events-none"
             initial={{ opacity: 0 }}
-            animate={{ opacity: [1, 1, 0] }}
-            transition={{ duration: 0.8, times: [0, 0.5, 1] }}
+            animate={{ opacity: [0, 1, 1, 1, 0] }}
+            transition={{ duration: 2.5, times: [0, 0.2, 0.5, 0.8, 1], ease: "easeInOut" }}
             style={{
               backdropFilter: 'grayscale(100%)',
               WebkitBackdropFilter: 'grayscale(100%)',
             }}
           />
+          {/* Speech bubble - positioned to the left of the swipe buttons */}
           <motion.div
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] pointer-events-none"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed bottom-32 left-4 sm:left-8 z-[101] pointer-events-none"
+            initial={{ opacity: 0, scale: 0.5, x: -20 }}
+            animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1.1, 1, 0.9], x: 0 }}
+            transition={{ duration: 2.5, times: [0, 0.15, 0.7, 1], ease: "easeOut" }}
           >
             <div 
-              className="px-6 py-3 bg-white rounded-full border-2 border-black shadow-lg"
+              className="px-5 py-2.5 bg-white rounded-2xl border-2 border-black shadow-lg relative"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              <span className="text-lg font-bold">tough crowd</span>
+              <span className="text-base font-bold whitespace-nowrap">tough crowd...</span>
+              {/* Speech bubble tail pointing right */}
+              <div 
+                className="absolute -right-2 top-1/2 -translate-y-1/2 w-0 h-0"
+                style={{
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderLeft: '10px solid black',
+                }}
+              />
+              <div 
+                className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-0 h-0"
+                style={{
+                  borderTop: '6px solid transparent',
+                  borderBottom: '6px solid transparent',
+                  borderLeft: '8px solid white',
+                }}
+              />
             </div>
           </motion.div>
+          {/* Dripping heart in corner */}
           <motion.div
             className="fixed top-20 right-8 z-[101] pointer-events-none"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 2.5, times: [0, 0.1, 0.7, 1] }}
           >
             <div className="relative">
               <Heart className="w-10 h-10 text-gray-400" />
@@ -298,8 +318,8 @@ export function ToughCrowdEffect({ isActive }: { isActive: boolean }) {
                     scaleY: [0, 1, 0.8, 0.3],
                   }}
                   transition={{ 
-                    duration: 0.7,
-                    delay: i * 0.1,
+                    duration: 1.2,
+                    delay: 0.3 + i * 0.15,
                     ease: "easeIn",
                   }}
                 />
