@@ -1,0 +1,69 @@
+we are re-adding the “card stack” as a purely visual layer.
+
+Absolute rule
+
+Do NOT modify any swipe mechanics, drag handlers, thresholds, pointer events, gesture code, transforms, or match logic. Do NOT refactor the swipe component. The swipe behavior must remain exactly as it currently works.
+
+This change is design-only: add a passive background layer that looks like a stack of cards.
+
+What to build
+
+On the swipe screen, behind the active profile card, add 2–4 “stack cards” that:
+
+Are the exact same width, height, border radius, and overall shape as the active profile card.
+
+Sit behind the active card (lower z-index).
+
+Are positioned with small offsets so you can see the edges of the cards underneath (example: 6px, 12px, 18px down and right).
+
+Use the same “stacked patterned border” styling concept as we already have, but applied consistently across the stack so it reads clearly.
+
+Visibility rule
+
+Because the stack cards are the same dimensions as the active card, they should be mostly hidden when the active card is centered.
+
+The stack should only become visible when the active card is swiped left or right (because the top card moves out of the way). No special animation is required for the new card appearing. The active card can continue behaving exactly as it does now.
+
+Interaction rule (critical)
+
+The stack layer must be completely non-interactive:
+
+stack cards must not capture mouse or touch input
+
+must not interfere with dragging or clicking
+
+must never affect swipe direction, threshold, or “sticky” behavior
+
+Implementation requirements:
+
+Add the stack as sibling elements behind the active card, not wrapped around it
+
+Apply pointer-events: none to the entire stack container and each stack card
+
+Apply user-select: none and disable drag image behavior on stack elements
+
+Ensure only the existing active card receives pointer events and transforms
+
+Technical constraints
+
+Do not change the existing swipe card element’s DOM structure except adding this stack behind it.
+
+Do not change the active card’s transform logic. Only the active card should move.
+
+Do not change desktop or mobile layout sizing. The stack must inherit the same sizing as the active card so dimensions match perfectly.
+
+Acceptance criteria
+
+Swiping behaves exactly the same as it does right now. No new bugs.
+
+When the card is centered, you barely see the stack (only tiny edges).
+
+When you swipe away the top card, the stack is clearly revealed underneath.
+
+The next profile card appears exactly as it already does today (no new flip animation needed).
+
+Deliverable:
+
+Implement this in the swipe screen component only.
+
+If any code changes touch the swipe gesture logic, undo them.

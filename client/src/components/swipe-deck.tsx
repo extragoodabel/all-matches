@@ -275,6 +275,33 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   return (
     <div className="flex-1 flex flex-col items-center min-h-0 relative">
       <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-12 sm:pb-16">
+        {/* Visual card stack - purely decorative, no interaction */}
+        <div 
+          className="absolute inset-0 pointer-events-none select-none flex items-center justify-center"
+          style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
+          aria-hidden="true"
+        >
+          {[3, 2, 1].map((i) => (
+            <div
+              key={`stack-${i}`}
+              className="absolute w-full px-0 pointer-events-none"
+              style={{
+                transform: `translateX(${i * 4}px) translateY(${i * 6}px)`,
+                zIndex: -i,
+                opacity: 0.85 - (i * 0.15),
+              }}
+            >
+              <div 
+                className="w-full bg-white rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
+                style={{
+                  aspectRatio: '3/4',
+                  boxShadow: `${4 + i}px ${4 + i}px 0 #1A1A1A`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        
         <AnimatePresence>
           <motion.div
             ref={cardRef}
