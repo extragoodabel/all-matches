@@ -713,20 +713,10 @@ ${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
 FORMAT: ${targetLines} line(s) max. 0-2 emojis. No em dashes.
 
-AVOID THESE OVERUSED TOPICS (pick something else):
-- Pizza opinions (ranch, pineapple, etc.)
-- Sunsets, golden hour, nature walks
-- Karaoke, dance parties, playlists
-- Coffee (unless central to their job)
-- "Adventure", "vibes", "energy"
-- Hiking unless it's their actual thing
-
-AVOID THESE PHRASES:
-- Labels: "enthusiast", "aficionado", "connoisseur"
-- Openers: "I'm a", "Usually found", "Secret talent"
-- "Looking for my", "Here for", "Just a"
-
-BE SPECIFIC AND SURPRISING. Pick unexpected details. Write like a real person.
+VARIETY IS KEY:
+Be original. Don't default to common dating app topics. Surprise the reader with something they haven't seen before.
+Pick unexpected details, niche interests, specific memories, unusual opinions.
+Write like a real person with a unique perspective.
 Output ONLY the bio text.`;
 
   try {
