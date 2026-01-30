@@ -1,5 +1,57 @@
 import { type User, type InsertUser, type Profile, type Match, type Message, type InsertProfile, type InsertMatch, type InsertMessage } from "@shared/schema";
 import { mockProfiles } from "../client/src/lib/mock-profiles";
+import crypto from "crypto";
+
+function generateMockCharacterSpec(name: string, bio: string, age: number, gender: string): string {
+  const seed = crypto.createHash('md5').update(name + bio).digest('hex');
+  const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
+
+  const archetypes = [
+    "Chaotic Art Kid", "Aspiring DJ", "Burned Out Grad Student", "Sweet Golden Retriever Energy",
+    "Cynical but Funny", "Mysterious", "Hyper-Competent Techie", "Spiritual Nomad"
+  ];
+  const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend"];
+  const intelligenceVibes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical"];
+  const moralityFlavors = ["kind", "neutral", "messy", "blunt", "slightly toxic", "overly honest"];
+  const interestPool = [
+    "analog photography", "deep-sea diving", "obscure 70s horror", "competitive chess",
+    "brutalist architecture", "DIY synthesizers", "ultra-marathons", "astrology",
+    "quantum physics", "perfecting sourdough", "urban exploration", "vintage manga"
+  ];
+  const stylePool = [
+    { emojis: "frequent", punctuation: "loose", slang: "high", caps: "minimal", length: "short" },
+    { emojis: "rare", punctuation: "perfect", slang: "low", caps: "proper", length: "moderate" },
+    { emojis: "moderate", punctuation: "none", slang: "moderate", caps: "lowercase", length: "punchy" },
+    { emojis: "occasional", punctuation: "minimal", slang: "gen-z", caps: "no caps ever", length: "short bursts" }
+  ];
+  const bits = [
+    "teasing the user relentlessly", "asking weird 'would you rather' questions",
+    "using overly dramatic metaphors", "sending one-word replies then a long follow-up",
+    "constantly referencing a 'secret project'", "dropping random facts"
+  ];
+  const quirks = [
+    "I make playlists for every mood.",
+    "I name all my houseplants.",
+    "I have opinions about font kerning."
+  ];
+
+  const spec = {
+    name,
+    age,
+    gender,
+    archetype: archetypes[n(0) % archetypes.length],
+    goal: goals[n(2) % goals.length],
+    intelligence: intelligenceVibes[n(4) % intelligenceVibes.length],
+    morality: moralityFlavors[n(6) % moralityFlavors.length],
+    interests: [interestPool[n(8) % interestPool.length], interestPool[n(10) % interestPool.length]],
+    quirk: quirks[n(12) % quirks.length],
+    textingStyle: stylePool[n(14) % stylePool.length],
+    signatureBits: [bits[n(16) % bits.length], bits[n(18) % bits.length]],
+    boundaries: "No explicit content. Stay in character. Be engaging but not creepy."
+  };
+
+  return JSON.stringify(spec);
+}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -42,11 +94,12 @@ export class MemStorage implements IStorage {
       messages: 1,
     };
 
-    // Initialize with mock profiles
+    // Initialize with mock profiles (with generated character specs)
     mockProfiles.forEach((profile, idx) => {
+      const charSpec = generateMockCharacterSpec(profile.name, profile.bio, profile.age, profile.gender);
       this.profiles.set(profile.id, {
         ...profile,
-        characterSpec: null
+        characterSpec: charSpec
       });
       // Track mock profile names and bios as used
       this.usedNames.add(profile.name.toLowerCase());
