@@ -533,6 +533,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/matches/by-id/:matchId", async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.matchId);
+      if (isNaN(matchId)) {
+        console.log(`[GET /api/matches/by-id/${req.params.matchId}] Invalid matchId`);
+        return res.status(400).json({ error: "Invalid match ID" });
+      }
+
+      // Find the match by iterating through all user matches (userId=1 for now)
+      const allMatches = await storage.getMatches(1);
+      const match = allMatches.find(m => m.id === matchId);
+      
+      if (!match) {
+        console.log(`[GET /api/matches/by-id/${matchId}] Match NOT found. Available matches: [${allMatches.map(m => m.id).join(', ')}]`);
+        return res.status(404).json({ error: "Match not found" });
+      }
+
+      const profile = await storage.getProfile(match.profileId);
+      if (!profile) {
+        console.log(`[GET /api/matches/by-id/${matchId}] Match found but profile ${match.profileId} NOT found`);
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      console.log(`[GET /api/matches/by-id/${matchId}] Success - match.id=${match.id}, profile.id=${profile.id}, profile.name=${profile.name}`);
+      res.json({ match, profile });
+    } catch (error) {
+      console.error("[GET /api/matches/by-id] Error:", error);
+      res.status(500).json({ error: "Failed to fetch match" });
+    }
+  });
+
   app.get("/api/matches/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);

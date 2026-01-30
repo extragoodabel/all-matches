@@ -4,6 +4,11 @@ import { ChatInterface } from "@/components/chat-interface";
 import type { Message, Profile, Match } from "@shared/schema";
 import { Loader2, ArrowLeft } from "lucide-react";
 
+interface MatchWithProfile {
+  match: Match;
+  profile: Profile;
+}
+
 interface ChatProps {
   params: {
     id: string; // this is matchId from the URL
@@ -15,29 +20,33 @@ export default function Chat({ params }: ChatProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  // Get the match to find profileId
-  const { data: matches = [], isLoading: matchesLoading } = useQuery<Match[]>({
-    queryKey: ["/api/matches/1"],
-  });
-
-  const match = matches.find((m) => m.id === matchId);
-  const profileId = match?.profileId;
-
-  // Load the profile
-  const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
-    queryKey: ["/api/profiles", profileId],
+  // Fetch match and profile together using the dedicated endpoint
+  const { data, isLoading, error } = useQuery<MatchWithProfile>({
+    queryKey: ["/api/matches/by-id", matchId],
     queryFn: async () => {
-      const res = await fetch(`/api/profiles/${profileId}`);
-      if (!res.ok) throw new Error("Profile not found");
-      return res.json();
+      console.log(`[Chat] Fetching match by id: ${matchId}`);
+      const res = await fetch(`/api/matches/by-id/${matchId}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error(`[Chat] Failed to fetch match ${matchId}:`, errorData);
+        throw new Error(errorData.error || "Match not found");
+      }
+      const data = await res.json();
+      console.log(`[Chat] Got match data:`, { matchId: data.match?.id, profileName: data.profile?.name });
+      return data;
     },
-    enabled: !!profileId,
+    enabled: !isNaN(matchId),
+    retry: 3, // Retry a few times in case of race conditions
+    retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
   });
+
+  const match = data?.match;
+  const profile = data?.profile;
 
   // Load messages for this match
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: [`/api/messages/${matchId}`],
-    enabled: !!matchId,
+    enabled: !!matchId && !!match,
   });
 
   const handleNewMessage = () => {
@@ -48,7 +57,7 @@ export default function Chat({ params }: ChatProps) {
     setLocation("/inbox");
   };
 
-  if (matchesLoading || profileLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -56,7 +65,7 @@ export default function Chat({ params }: ChatProps) {
     );
   }
 
-  if (!match) {
+  if (error || !match) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <p className="mb-4">Match not found</p>

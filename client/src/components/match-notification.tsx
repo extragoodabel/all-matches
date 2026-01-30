@@ -6,18 +6,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { type Profile } from "@shared/schema";
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 
 interface MatchNotificationProps {
   profile: Profile;
   onClose: () => void;
   onStartChat: () => void;
+  isPending?: boolean;
 }
 
 export function MatchNotification({
   profile,
   onClose,
   onStartChat,
+  isPending = false,
 }: MatchNotificationProps) {
   return (
     <Dialog open onOpenChange={onClose}>
@@ -44,7 +46,16 @@ export function MatchNotification({
             <Button variant="outline" onClick={onClose}>
               Keep Swiping
             </Button>
-            <Button onClick={onStartChat}>Start Chat</Button>
+            <Button onClick={onStartChat} disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Start Chat"
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>

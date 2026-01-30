@@ -28,7 +28,7 @@ import { usePreferences } from "@/hooks/use-preferences";
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [currentMatch, setCurrentMatch] = useState<{ profile: Profile; matchId: number } | null>(null);
+  const [currentMatch, setCurrentMatch] = useState<{ profile: Profile; matchId: number | null } | null>(null);
   
   const { preferences, setPreferences, resetPreferences, DEFAULT_PREFERENCES } = usePreferences();
   
@@ -95,15 +95,22 @@ export default function Home() {
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
     if (direction === "right") {
+      // Show match modal immediately with pending state
+      setCurrentMatch({ profile, matchId: null });
+      
       try {
+        console.log(`[Swipe] Creating match for profile.id=${profile.id}`);
         const response = await apiRequest("POST", "/api/matches", {
           userId: 1,
           profileId: profile.id,
         });
         const createdMatch: Match = await response.json();
+        console.log(`[Swipe] Match created: match.id=${createdMatch.id}, profile.id=${profile.id}`);
+        // Update with actual matchId
         setCurrentMatch({ profile, matchId: createdMatch.id });
       } catch (error) {
-        console.error("Failed to create match:", error);
+        console.error("[Swipe] Failed to create match:", error);
+        // Keep showing modal but matchId will remain null (Start Chat stays disabled)
       }
     }
     
@@ -224,7 +231,13 @@ export default function Home() {
         <MatchNotification
           profile={currentMatch.profile}
           onClose={() => setCurrentMatch(null)}
-          onStartChat={() => setLocation(`/chat/${currentMatch.matchId}`)}
+          onStartChat={() => {
+            if (currentMatch.matchId) {
+              console.log(`[StartChat] Navigating to chat with matchId=${currentMatch.matchId}`);
+              setLocation(`/chat/${currentMatch.matchId}`);
+            }
+          }}
+          isPending={currentMatch.matchId === null}
         />
       )}
     </div>
