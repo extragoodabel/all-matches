@@ -221,12 +221,18 @@ const JOB_ROLES = [
 const WEIRD_OBSESSIONS = [
   "rollerblading", "kombucha brewing", "urban foraging", "competitive karaoke",
   "ant farms", "handwriting analysis", "perfume sampling", "mushroom IDs",
-  "maps", "train schedules", "airport codes", "microplastics rants",
+  "train schedules", "airport codes", "microplastics rants",
   "facial hair grooming", "mustache wax", "collecting keychains",
   "unreasonably specific ramen opinions", "making spreadsheets for fun",
   "whale facts", "volcano documentaries", "weather radar",
   "haunted hotels", "escape rooms", "lockpicking (legal, hobby)",
-  "tiny spoons", "architecture tours", "medieval history",
+  "architecture tours", "medieval history", "ice cream rankings",
+  "obscure board games", "plant propagation", "vintage cameras",
+];
+
+// Rare obsessions (~5% chance to appear)
+const RARE_OBSESSIONS = [
+  "maps", "tiny spoons", "taxidermy appreciation",
 ];
 
 const VIBES = [
@@ -242,7 +248,8 @@ function buildExpandedPersonaLibrary(): PersonaTemplate[] {
   // Generate lots of combos to get variety without hand-writing 200 lines
   for (const job of JOB_ROLES) {
     const vibe = pick(VIBES);
-    const obsession = pick(WEIRD_OBSESSIONS);
+    // 5% chance for a rare obsession, otherwise pick from common
+    const obsession = chance(0.05) ? pick(RARE_OBSESSIONS) : pick(WEIRD_OBSESSIONS);
 
     generated.push({
       label: `${job} (${vibe})`,
@@ -322,6 +329,30 @@ async function generateBioWithOpenAI(context: {
   const modeInfo = pickWeightedMode();
   const valentinesLine = context.valentinesEager ? "They are actively looking for a Valentine's date (playful, not desperate)." : "No special holiday urgency.";
 
+  // Randomize bio length preference
+  const lengthRoll = Math.random();
+  let lengthInstruction: string;
+  if (lengthRoll < 0.30) {
+    lengthInstruction = "VERY SHORT: 1 line only. Punchy, cryptic, or minimal.";
+  } else if (lengthRoll < 0.55) {
+    lengthInstruction = "SHORT: 1-2 lines. Tight and focused.";
+  } else if (lengthRoll < 0.80) {
+    lengthInstruction = "MEDIUM: 2-3 lines. Some personality but not verbose.";
+  } else {
+    lengthInstruction = "LONGER: 3-5 lines. More detail, but still natural.";
+  }
+
+  // Randomize structure
+  const structureRoll = Math.random();
+  let structureInstruction: string;
+  if (structureRoll < 0.4) {
+    structureInstruction = "Focused and cohesive.";
+  } else if (structureRoll < 0.7) {
+    structureInstruction = "Slightly disjointed, like random thoughts.";
+  } else {
+    structureInstruction = "Stream of consciousness, jumpy but charming.";
+  }
+
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+, not a real person, not a celebrity).
 Character:
 - Name: ${context.name}
@@ -334,16 +365,18 @@ Character:
 - Valentine's urgency: ${valentinesLine}
 
 Bio style: ${modeInfo.mode.replace(/_/g, " ")} - ${modeInfo.desc}
+Length: ${lengthInstruction}
+Structure: ${structureInstruction}
 
 RULES:
-- 1-5 lines max
+- Follow the LENGTH instruction strictly
 - Make it feel like a real dating profile, not marketing copy
 - Do NOT start with: "I'm a", "Usually found", "Secret talent"
 - Do NOT use labels like "Interests:" or "About me:"
-- 0-3 emojis max
-- Include 2-4 specific details woven naturally
-- Avoid repetitive templates and obvious structures
-- Avoid copycat clichés unless it is intentionally funny
+- 0-2 emojis max
+- AVOID emdashes (—). Use periods, commas, or line breaks instead.
+- Include 1-3 specific details woven naturally
+- Vary sentence structure: some fragments OK, some full sentences
 - Output ONLY the bio text, no quotes, no explanation`;
 
   try {
