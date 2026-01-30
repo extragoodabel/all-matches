@@ -284,17 +284,27 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           {[3, 2, 1].map((i) => {
             const stackPatternStyles = [
               // checker
-              `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`,
+              { bg: `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`, size: undefined },
               // stripes
-              `repeating-linear-gradient(-45deg, var(--eg-primary), var(--eg-primary) 10px, var(--eg-secondary) 10px, var(--eg-secondary) 20px)`,
-              // dots
-              `radial-gradient(circle, var(--eg-primary) 8px, transparent 8px) 0 0 / 32px 32px, var(--eg-secondary)`,
-              // halftone
-              `radial-gradient(circle, var(--eg-primary) 2px, transparent 2px) 0 0 / 12px 12px, radial-gradient(circle, var(--eg-primary) 2px, transparent 2px) 6px 6px / 12px 12px, var(--eg-secondary)`,
+              { bg: `repeating-linear-gradient(-45deg, var(--eg-primary), var(--eg-primary) 10px, var(--eg-secondary) 10px, var(--eg-secondary) 20px)`, size: undefined },
+              // chevrons
+              { bg: `repeating-linear-gradient(90deg, var(--eg-secondary), var(--eg-secondary) 10px, transparent 10px, transparent 20px), repeating-linear-gradient(45deg, var(--eg-primary), var(--eg-primary) 5px, var(--eg-secondary) 5px, var(--eg-secondary) 10px)`, size: undefined },
+              // halftone dense
+              { bg: `radial-gradient(circle, var(--eg-primary) 3px, var(--eg-secondary) 3px) 0 0 / 10px 10px`, size: '10px 10px' },
               // grid
-              `linear-gradient(var(--eg-primary) 2px, transparent 2px), linear-gradient(90deg, var(--eg-primary) 2px, var(--eg-secondary) 2px)`,
-              // diamonds
-              `linear-gradient(45deg, var(--eg-primary) 25%, transparent 25%), linear-gradient(-45deg, var(--eg-primary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--eg-primary) 75%), linear-gradient(-45deg, transparent 75%, var(--eg-primary) 75%)`,
+              { bg: `linear-gradient(var(--eg-primary) 2px, var(--eg-secondary) 2px) 0 0 / 24px 24px, linear-gradient(90deg, var(--eg-primary) 2px, var(--eg-secondary) 2px) 0 0 / 24px 24px`, size: '24px 24px' },
+              // diamonds opaque
+              { bg: `linear-gradient(45deg, var(--eg-primary) 25%, var(--eg-secondary) 25%, var(--eg-secondary) 50%, var(--eg-primary) 50%, var(--eg-primary) 75%, var(--eg-secondary) 75%)`, size: '30px 30px' },
+              // waves
+              { bg: `url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='20' fill='%23FFDC00'/%3E%3Cpath d='M0 10c5.5 0 5.5-5 11-5s5.5 5 11 5 5.5-5 11-5 5.5 5 11 5 5.5-5 11-5 5.5 5 11 5 5.5-5 11-5 5.5 5 11 5 5.5-5 11-5v10H0z' fill='%23FF1493'/%3E%3C/svg%3E")`, size: undefined },
+              // hearts
+              { bg: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='40' height='40' fill='%23FFF8E7'/%3E%3Cpath d='M20 30l-1.5-1.4C12 22.7 8 19.2 8 15c0-3.3 2.7-6 6-6 1.9 0 3.7.9 4.8 2.3L20 12.5l1.2-1.2C22.3 9.9 24.1 9 26 9c3.3 0 6 2.7 6 6 0 4.2-4 7.7-10.5 13.6L20 30z' fill='%23FF1493'/%3E%3C/svg%3E")`, size: undefined },
+              // confetti
+              { bg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='%23FFF8E7'/%3E%3Crect x='5' y='5' width='8' height='8' fill='%23FF1493' transform='rotate(15 9 9)'/%3E%3Crect x='35' y='25' width='6' height='6' fill='%23FFDC00' transform='rotate(-20 38 28)'/%3E%3Crect x='15' y='40' width='7' height='7' fill='%2300D9A5' transform='rotate(45 18.5 43.5)'/%3E%3Ccircle cx='45' cy='10' r='4' fill='%23B388FF'/%3E%3Crect x='48' y='42' width='5' height='5' fill='%23FF4136' transform='rotate(30 50 44)'/%3E%3C/svg%3E")`, size: undefined },
+              // love birds
+              { bg: `url("data:image/svg+xml,%3Csvg width='80' height='40' viewBox='0 0 80 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='80' height='40' fill='%23FFF8E7'/%3E%3Cellipse cx='20' cy='22' rx='8' ry='6' fill='%23FF1493'/%3E%3Ccircle cx='16' cy='18' r='4' fill='%23FF1493'/%3E%3Cpolygon points='12,18 8,17 12,16' fill='%23FFDC00'/%3E%3Ccircle cx='14' cy='17' r='1' fill='%231A1A1A'/%3E%3Cellipse cx='60' cy='22' rx='8' ry='6' fill='%2300D9A5'/%3E%3Ccircle cx='64' cy='18' r='4' fill='%2300D9A5'/%3E%3Cpolygon points='68,18 72,17 68,16' fill='%23FFDC00'/%3E%3Ccircle cx='66' cy='17' r='1' fill='%231A1A1A'/%3E%3Cpath d='M28 20 Q40 10 52 20' stroke='%23FF1493' stroke-width='2' fill='none'/%3E%3C/svg%3E")`, size: undefined },
+              // pills rare (only used ~10% of time via modulo)
+              { bg: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='%23FFF8E7'/%3E%3Crect x='10' y='20' width='16' height='8' rx='4' fill='%23FF1493'/%3E%3Crect x='18' y='20' width='8' height='8' rx='0' fill='%23B388FF'/%3E%3Crect x='35' y='35' width='16' height='8' rx='4' fill='%2300D9A5'/%3E%3Crect x='43' y='35' width='8' height='8' rx='0' fill='%23FFDC00'/%3E%3C/svg%3E")`, size: undefined },
             ];
             const stackColors = [
               { primary: '#B388FF', secondary: '#FFDC00' },
@@ -303,11 +313,13 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               { primary: '#00BFFF', secondary: '#FFF8E7' },
               { primary: '#FF1493', secondary: '#FFDC00' },
             ];
-            const patternIdx = (currentProfile.id + i) % stackPatternStyles.length;
+            // Pills pattern (index 10) appears rarely - skip it most of the time
+            const availablePatterns = stackPatternStyles.filter((_, idx) => idx !== 10 || (currentProfile.id % 10 === 0));
+            const patternIdx = (currentProfile.id + i) % availablePatterns.length;
             const colorIdx = (currentProfile.id + i) % stackColors.length;
+            const pattern = availablePatterns[patternIdx];
             // Height variation: shorter cards (10% decrease in height)
             const heightVariation = 0.72 - ((currentProfile.id * i) % 8) * 0.01;
-            const bgSize = patternIdx === 4 ? '24px 24px' : patternIdx === 5 ? '30px 30px' : undefined;
             return (
               <div
                 key={`stack-${i}-${currentProfile.id}`}
@@ -324,8 +336,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
                     className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
                     style={{
                       aspectRatio: `3/${3 / heightVariation}`,
-                      background: stackPatternStyles[patternIdx],
-                      backgroundSize: bgSize,
+                      background: pattern.bg,
+                      backgroundSize: pattern.size,
                     }}
                   />
                 </div>
