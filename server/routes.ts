@@ -560,6 +560,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: "Invalid match data" });
     }
   });
+  
+  app.post("/api/reject", async (req, res) => {
+    try {
+      const { userId, profileId } = req.body;
+      if (!userId || !profileId) {
+        return res.status(400).json({ error: "Missing userId or profileId" });
+      }
+      storage.rejectProfile(userId, profileId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[POST /api/reject] Error:", error);
+      res.status(400).json({ error: "Failed to reject profile" });
+    }
+  });
 
   app.get("/api/matches/by-id/:matchId", async (req, res) => {
     try {

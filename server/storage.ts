@@ -98,6 +98,9 @@ export class MemStorage implements IStorage {
   public recentMaleImageIds: string[];
   public recentFemaleImageIds: string[];
   public recentOtherImageIds: string[];
+  
+  // Track rejected profiles (left swipes) per user
+  public rejectedProfiles: Map<number, Set<number>>;
 
   constructor() {
     this.users = new Map();
@@ -117,6 +120,7 @@ export class MemStorage implements IStorage {
     this.recentMaleImageIds = [];
     this.recentFemaleImageIds = [];
     this.recentOtherImageIds = [];
+    this.rejectedProfiles = new Map();
     
     this.currentId = {
       users: 1,
@@ -258,8 +262,17 @@ export class MemStorage implements IStorage {
       .filter(m => m.userId === userId)
       .map(m => m.profileId);
     
+    const rejectedSet = this.rejectedProfiles.get(userId) || new Set();
+    
     return Array.from(this.profiles.values())
-      .filter(p => !userMatches.includes(p.id));
+      .filter(p => !userMatches.includes(p.id) && !rejectedSet.has(p.id));
+  }
+  
+  rejectProfile(userId: number, profileId: number): void {
+    if (!this.rejectedProfiles.has(userId)) {
+      this.rejectedProfiles.set(userId, new Set());
+    }
+    this.rejectedProfiles.get(userId)!.add(profileId);
   }
 
   async createProfile(insertProfile: InsertProfile): Promise<Profile> {

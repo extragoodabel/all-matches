@@ -98,6 +98,15 @@ export default function Home() {
       } catch (error) {
         console.error("[Swipe] Failed to create match:", error);
       }
+    } else {
+      try {
+        await apiRequest("POST", "/api/reject", {
+          userId: 1,
+          profileId: profile.id,
+        });
+      } catch (error) {
+        console.error("[Swipe] Failed to record rejection:", error);
+      }
     }
     
     if (filteredProfiles.length < 5) {
