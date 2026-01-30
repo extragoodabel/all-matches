@@ -9,8 +9,8 @@ interface StarFireworkProps {
 
 export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [sparks, setSparks] = useState<Array<{ id: number; angle: number; velocity: number; color: string }>>([]);
-  const [phase, setPhase] = useState<"idle" | "spinning" | "shooting">("idle");
+  const [sparks, setSparks] = useState<Array<{ id: number; angle: number; velocity: number; color: string; type: 'circle' | 'line'; delay: number }>>([]);
+  const [phase, setPhase] = useState<"idle" | "spinning">("idle");
   
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -19,20 +19,45 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
     setIsAnimating(true);
     setPhase("spinning");
     
-    const sparkColors = [color, secondaryColor, '#FFD700', '#FF6B35', '#FF1493'];
-    const newSparks = Array.from({ length: 36 }, (_, i) => ({
-      id: i,
-      angle: (i / 36) * 360 + Math.random() * 20,
-      velocity: 120 + Math.random() * 180,
-      color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
-    }));
+    const sparkColors = [color, secondaryColor, '#FFD700', '#FF6B35', '#FF1493', '#FFFFFF', '#FFF700'];
+    const newSparks: typeof sparks = [];
+    
+    // Electric line sparks that spiral clockwise
+    for (let i = 0; i < 24; i++) {
+      const baseAngle = (i / 24) * 360;
+      // Add clockwise offset based on emission time
+      const clockwiseOffset = (i % 8) * 15;
+      newSparks.push({
+        id: i,
+        angle: baseAngle + clockwiseOffset + Math.random() * 30,
+        velocity: 100 + Math.random() * 150,
+        color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
+        type: 'line',
+        delay: (i % 8) * 0.05,
+      });
+    }
+    
+    // Big glowing circle sparks
+    for (let i = 0; i < 16; i++) {
+      const baseAngle = (i / 16) * 360;
+      const clockwiseOffset = (i % 4) * 20;
+      newSparks.push({
+        id: 100 + i,
+        angle: baseAngle + clockwiseOffset + Math.random() * 25,
+        velocity: 80 + Math.random() * 120,
+        color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
+        type: 'circle',
+        delay: (i % 4) * 0.08,
+      });
+    }
+    
     setSparks(newSparks);
 
     setTimeout(() => {
       setPhase("idle");
       setSparks([]);
       setIsAnimating(false);
-    }, prefersReducedMotion ? 400 : 1500);
+    }, prefersReducedMotion ? 400 : 1600);
   }, [isAnimating, color, secondaryColor, prefersReducedMotion]);
 
   return (
@@ -56,20 +81,39 @@ export function StarFirework({ color, secondaryColor }: StarFireworkProps) {
         {phase === "spinning" && sparks.map((spark) => (
           <motion.div
             key={spark.id}
-            className="absolute w-4 h-4 rounded-full"
+            className="absolute"
             style={{ 
-              background: spark.color,
-              boxShadow: `0 0 8px ${spark.color}, 0 0 16px ${spark.color}`,
+              width: spark.type === 'line' ? '3px' : '16px',
+              height: spark.type === 'line' ? '20px' : '16px',
+              borderRadius: spark.type === 'line' ? '2px' : '50%',
+              background: spark.type === 'line' 
+                ? `linear-gradient(to bottom, ${spark.color}, transparent)`
+                : spark.color,
+              boxShadow: spark.type === 'line'
+                ? `0 0 6px ${spark.color}, 0 0 12px ${spark.color}`
+                : `0 0 10px ${spark.color}, 0 0 20px ${spark.color}`,
+              transformOrigin: 'center center',
             }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1.5 }}
+            initial={{ 
+              x: 0, 
+              y: 0, 
+              opacity: 1, 
+              scale: spark.type === 'line' ? 1 : 1.5,
+              rotate: spark.angle + 90,
+            }}
             animate={{
               x: Math.cos((spark.angle * Math.PI) / 180) * spark.velocity,
-              y: Math.sin((spark.angle * Math.PI) / 180) * spark.velocity + 40,
+              y: Math.sin((spark.angle * Math.PI) / 180) * spark.velocity + 30,
               opacity: 0,
-              scale: 0.3,
+              scale: spark.type === 'line' ? 0.5 : 0.2,
+              rotate: spark.angle + 90 + 45,
             }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            transition={{ 
+              duration: spark.type === 'line' ? 0.9 : 1.3, 
+              ease: "easeOut",
+              delay: spark.delay,
+            }}
           />
         ))}
       </AnimatePresence>
