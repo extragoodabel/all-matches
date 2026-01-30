@@ -176,10 +176,10 @@ export default function Home() {
               href="https://extragood.studio" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="block mt-2 text-xs opacity-60 hover:opacity-100 hover:underline transition-opacity"
+              className="block mt-2 text-lg md:text-xl opacity-60 hover:opacity-100 hover:underline transition-opacity"
               style={{ 
                 fontFamily: "var(--font-display)", 
-                letterSpacing: '0.05em',
+                letterSpacing: '0.12em',
                 color: palette.accent,
               }}
             >
