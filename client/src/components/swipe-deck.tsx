@@ -272,33 +272,68 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
     );
   }
 
+  const stackPalette = getSessionPalette();
+  const stackPatternStyle = getPatternStyle('confetti');
+
   return (
     <div className="flex-1 flex flex-col items-center min-h-0 relative">
       <div className="flex-1 w-full max-w-sm relative flex items-center justify-center min-h-0 py-2 pb-12 sm:pb-16">
-        <AnimatePresence>
+        
+        {/* Static back cards - the deck underneath */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Card 3 - deepest */}
+          <div 
+            className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
+            style={{
+              transform: 'translateY(14px) scale(0.94)',
+              opacity: 0.5,
+              background: stackPalette.background,
+              ...stackPatternStyle,
+            }}
+          />
+          {/* Card 2 - middle */}
+          <div 
+            className="absolute w-[calc(100%-32px)] aspect-[3/4] rounded-2xl border-4 border-[#1A1A1A]"
+            style={{
+              transform: 'translateY(8px) scale(0.97)',
+              opacity: 0.7,
+              background: stackPalette.background,
+              ...stackPatternStyle,
+            }}
+          />
+        </div>
+
+        {/* Top card - the active profile that moves */}
+        <AnimatePresence mode="wait">
           <motion.div
             ref={cardRef}
             key={currentProfile.id}
-            initial={{ scale: 1, opacity: 1 }}
+            initial={{ scale: 0.95, opacity: 0, rotateY: -8 }}
             animate={{
               scale: 1,
+              rotateY: 0,
               x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
               y: direction ? 0 : dragOffset.y,
               rotate: direction === "left" ? -MAX_ROTATION : direction === "right" ? MAX_ROTATION : rotation,
               opacity: direction ? 0 : opacity,
             }}
-            exit={{ scale: 0.5, opacity: 0 }}
+            exit={{ 
+              x: direction === "left" ? -EXIT_DISTANCE : EXIT_DISTANCE,
+              rotate: direction === "left" ? -MAX_ROTATION : MAX_ROTATION,
+              opacity: 0,
+            }}
             transition={{ 
-              duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
+              duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0.25,
               type: direction ? "tween" : "spring",
               ease: "easeOut",
             }}
-            className="select-none w-full"
+            className="select-none w-full relative z-10"
             style={{ 
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
               WebkitUserDrag: "none",
               userSelect: "none",
+              transformStyle: 'preserve-3d',
             } as React.CSSProperties}
             {...handlers}
           >

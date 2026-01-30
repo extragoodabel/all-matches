@@ -1,0 +1,73 @@
+Keep a Card “Stack” Underneath While Swiping (Flip Next Card In)
+
+Current behavior:
+Each profile card has a nice “stack of patterned cards” border. But when you swipe, the entire stack (the border + everything) moves together, so you lose the illusion of a deck.
+
+Goal:
+Maintain the illusion of a physical stack of patterned cards beneath the active profile. Only the top card (the active profile) should swipe away. Under it, you should still see 2–3 stacked patterned cards that stay put. When the swipe completes, the next profile should appear as the next top card, with a quick “flip / reveal” animation.
+
+What to build:
+
+Separate the card stack layers
+
+Create a CardStack wrapper that renders:
+
+Back cards (2–3 layers): patterned, slightly offset, non-interactive, do not move during swipe
+
+Top card: active profile content, this is the only element that moves during swipe
+
+Back cards styling
+
+Slight offsets for depth (example):
+
+Card 3: translateY(10px), scale(0.97), lower opacity
+
+Card 2: translateY(6px), scale(0.985), medium opacity
+
+Card 1: translateY(0px), scale(1.0) is the top card
+
+Keep them visually consistent with the current patterned border style.
+
+Swipe behavior
+
+Apply drag/swipe transforms ONLY to the top card container.
+
+Back cards remain fixed, so when the top card moves, the stack stays visible underneath.
+
+Next-card reveal animation
+
+After a swipe resolves, update to the next profile.
+
+Animate the new top card with a quick “flip onto the stack” or “pop forward” feel:
+
+A subtle rotateY or rotateX (like 6–12 degrees) + fade in + slight scale from 0.98 to 1.0
+
+Duration ~200–350ms, easing smooth (no glitchy motion)
+
+Interaction details
+
+Back cards should have pointer-events: none;
+
+Maintain the existing buttons (X / heart) behavior exactly as-is.
+
+Ensure swipe still works from BOTH photo and bio (the entire top card is draggable).
+
+Performance / simplicity
+
+Do NOT render full profile content on the back cards, only the patterned card shapes/backgrounds.
+
+Keep the stack always visible (even during swipe).
+
+No layout changes outside this card area.
+
+Acceptance criteria:
+
+Swiping moves ONLY the top profile card.
+
+The patterned “stack” remains visible underneath during the swipe.
+
+When the swipe completes, the next profile appears as the next card with a quick flip/reveal.
+
+No changes to desktop layout unless already shared by the same card component.
+
+Dragging works on the whole top card, including the photo.
