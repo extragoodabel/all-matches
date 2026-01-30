@@ -168,7 +168,7 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
         
         {/* Overlay message */}
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div className="bg-white/90 rounded-xl px-6 py-4 text-center border-2 border-[#1A1A1A] shadow-lg">
+          <div className="bg-white rounded-xl px-6 py-4 text-center border-2 border-[#1A1A1A] shadow-lg">
             <div className="flex justify-center gap-2 mb-3">
               <Sparkles 
                 className="w-6 h-6 eg-bounce" 
@@ -273,8 +273,12 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const needsMore = profiles.length === 0 || !currentProfile || remainingProfiles.length === 0;
   
   // Prefetch more profiles when running low (before we hit the loading screen)
+  const lastPrefetchRef = useRef<number>(0);
   useEffect(() => {
-    if (remainingProfiles.length < 5 && remainingProfiles.length > 0 && onNeedsMore) {
+    const now = Date.now();
+    // Debounce: only prefetch if at least 3 seconds since last prefetch
+    if (remainingProfiles.length < 5 && remainingProfiles.length > 0 && onNeedsMore && now - lastPrefetchRef.current > 3000) {
+      lastPrefetchRef.current = now;
       console.log(`[SwipeDeck] Running low (${remainingProfiles.length} remaining), prefetching...`);
       onNeedsMore();
     }
