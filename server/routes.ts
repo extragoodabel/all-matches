@@ -554,7 +554,6 @@ function pickQuirk(): string {
     "I name all my houseplants.",
     "I have opinions about font kerning.",
     "I've memorized way too many movie quotes.",
-    "I'm weirdly good at naming pets.",
     "I'm a semi-pro at GeoGuessr.",
     "I still have a flip phone for the aesthetic.",
     "I can't eat pizza without ranch.",
@@ -571,11 +570,13 @@ function pickQuirk(): string {
   const rareQuirks = [
     `I only drink coffee from one specific ${mugColor} mug. No exceptions.`,
     "I collect tiny spoons like it's an Olympic sport.",
+    "I'm weirdly good at naming pets.",
   ];
 
   // 3% chance for each rare quirk
   if (chance(0.03)) return rareQuirks[0]; // mug
   if (chance(0.03)) return rareQuirks[1]; // spoons
+  if (chance(0.03)) return rareQuirks[2]; // naming pets
   
   return pick(commonQuirks);
 }
