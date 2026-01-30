@@ -335,8 +335,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           await storage.updateProfile(created.id, { imageUrl: imgUrl });
         } catch (e) {
-          console.error("Portrait generation failed:", e);
-          await storage.updateProfile(created.id, { imageUrl: "" });
+          console.error("Portrait generation failed, using fallback:", e);
+          // Fallback: use a unique Unsplash portrait URL with cache buster
+          const fallbackIds = [
+            "1494790108377-be9c29b29330", "1507003211169-0a1dd7228f2d", 
+            "1534528741775-53994a69daeb", "1517841905240-472988babdf9",
+            "1539571696357-5a69c17a67c6", "1524504388940-b1c1722653e1"
+          ];
+          const idx = created.id % fallbackIds.length;
+          const fallbackUrl = `https://images.unsplash.com/photo-${fallbackIds[idx]}?auto=format&fit=crop&w=400&h=600&q=80&v=${created.id}&t=${Date.now()}`;
+          await storage.updateProfile(created.id, { imageUrl: fallbackUrl });
         }
       }
 
