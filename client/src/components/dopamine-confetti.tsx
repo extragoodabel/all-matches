@@ -130,9 +130,24 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
   const [phase, setPhase] = useState<"pulse" | "active" | "done">("pulse");
   const [visible, setVisible] = useState(true);
   const [showSubliminal, setShowSubliminal] = useState(false);
-  const [subliminalWord] = useState(() => 
-    SUBLIMINAL_WORDS[Math.floor(Math.random() * SUBLIMINAL_WORDS.length)]
-  );
+  const [subliminalWords] = useState(() => {
+    const positions = [
+      { x: 15, y: 20, rotate: -15 },
+      { x: 75, y: 25, rotate: 12 },
+      { x: 10, y: 55, rotate: -8 },
+      { x: 80, y: 50, rotate: 10 },
+      { x: 20, y: 80, rotate: 5 },
+      { x: 70, y: 75, rotate: -12 },
+      { x: 50, y: 15, rotate: 3 },
+      { x: 45, y: 85, rotate: -5 },
+    ];
+    return positions.map((pos, i) => ({
+      word: SUBLIMINAL_WORDS[Math.floor(Math.random() * SUBLIMINAL_WORDS.length)],
+      ...pos,
+      delay: Math.random() * 100,
+      size: 2.5 + Math.random() * 1.5,
+    }));
+  });
 
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -189,21 +204,27 @@ export function DopamineConfetti({ onComplete }: DopamineConfettiProps) {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-      {showSubliminal && (
+      {showSubliminal && subliminalWords.map((sw, i) => (
         <div 
-          className="absolute inset-0 flex items-center justify-center"
+          key={i}
+          className="absolute"
           style={{
-            opacity: 0.06,
-            fontSize: "8vw",
+            left: `${sw.x}%`,
+            top: `${sw.y}%`,
+            transform: `translate(-50%, -50%) rotate(${sw.rotate}deg)`,
+            opacity: 0.04 + Math.random() * 0.03,
+            fontSize: `${sw.size}vw`,
             fontWeight: 900,
-            letterSpacing: "0.3em",
+            letterSpacing: "0.15em",
             color: "#FF1493",
-            animation: "dopamine-flash 250ms ease-out",
+            animation: `dopamine-flash 300ms ease-out ${sw.delay}ms`,
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
           }}
         >
-          {subliminalWord}
+          {sw.word}
         </div>
-      )}
+      ))}
 
       <div
         className="absolute inset-0 transition-opacity duration-150"
