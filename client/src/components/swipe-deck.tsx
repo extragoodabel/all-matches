@@ -120,9 +120,36 @@ function reportBadImage(profileId: number) {
     .catch(() => {});
 }
 
+function SkeletonCard({ index }: { index: number }) {
+  const palette = getSessionPalette();
+  const patterns = ['checker', 'stripes', 'dots'] as const;
+  const patternStyle = getPatternStyle(patterns[index % 3]);
+  
+  return (
+    <div 
+      className="absolute w-full pointer-events-none animate-pulse"
+      style={{
+        transform: `translateX(${index * 4}px) translateY(${index * 5}px)`,
+        zIndex: -index,
+        '--eg-primary': palette.primary,
+        '--eg-secondary': palette.secondary,
+      } as React.CSSProperties}
+    >
+      <div className="relative pb-12">
+        <div 
+          className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
+          style={{
+            aspectRatio: '3/4.5',
+            ...patternStyle,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function LoadingCard({ message, submessage }: { message: string; submessage?: string }) {
   const palette = getSessionPalette();
-  const patternStyle = getPatternStyle('confetti');
   
   return (
     <div 
@@ -133,39 +160,36 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
         '--eg-accent': palette.accent,
       } as React.CSSProperties}
     >
-      <div 
-        className="absolute inset-0 rounded-2xl opacity-40"
-        style={patternStyle}
-      />
-      
-      <div className="relative eg-card p-8 text-center max-w-sm w-full">
-        <div className="flex justify-center gap-2 mb-6">
-          <Sparkles 
-            className="w-8 h-8 eg-bounce" 
-            style={{ color: palette.primary, animationDelay: '0ms' }} 
-          />
-          <Heart 
-            className="w-8 h-8 eg-bounce" 
-            style={{ color: palette.secondary, animationDelay: '150ms' }} 
-          />
-          <Sparkles 
-            className="w-8 h-8 eg-bounce" 
-            style={{ color: palette.primary, animationDelay: '300ms' }} 
-          />
+      {/* Skeleton card stack */}
+      <div className="relative w-full max-w-sm flex items-center justify-center">
+        {[3, 2, 1, 0].map((i) => (
+          <SkeletonCard key={i} index={i} />
+        ))}
+        
+        {/* Overlay message */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="bg-white/90 rounded-xl px-6 py-4 text-center border-2 border-[#1A1A1A] shadow-lg">
+            <div className="flex justify-center gap-2 mb-3">
+              <Sparkles 
+                className="w-6 h-6 eg-bounce" 
+                style={{ color: palette.primary, animationDelay: '0ms' }} 
+              />
+              <Heart 
+                className="w-6 h-6 eg-bounce" 
+                style={{ color: palette.secondary, animationDelay: '150ms' }} 
+              />
+            </div>
+            <h2 
+              className="text-lg font-black tracking-tight"
+              style={{ color: palette.text }}
+            >
+              {message} matches<span className="eg-loading-dots" />
+            </h2>
+            {submessage && (
+              <p className="text-sm text-gray-600 mt-1">{submessage}</p>
+            )}
+          </div>
         </div>
-        
-        <h2 
-          className="text-2xl md:text-3xl font-black tracking-tight mb-2"
-          style={{ color: palette.text }}
-        >
-          {message}
-          <br />
-          <span>matches<span className="eg-loading-dots" /></span>
-        </h2>
-        
-        {submessage && (
-          <p className="text-gray-600 font-medium">{submessage}</p>
-        )}
       </div>
     </div>
   );
@@ -248,12 +272,20 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const remainingProfiles = profiles.filter(p => !seenProfileIds.has(p.id) && !badImageIds.has(p.id));
   const needsMore = profiles.length === 0 || !currentProfile || remainingProfiles.length === 0;
   
+  // Prefetch more profiles when running low (before we hit the loading screen)
+  useEffect(() => {
+    if (remainingProfiles.length < 5 && remainingProfiles.length > 0 && onNeedsMore) {
+      console.log(`[SwipeDeck] Running low (${remainingProfiles.length} remaining), prefetching...`);
+      onNeedsMore();
+    }
+  }, [remainingProfiles.length, onNeedsMore]);
+  
   // Poll for more profiles when showing loading screen
   useEffect(() => {
     if (needsMore && onNeedsMore) {
       const interval = setInterval(() => {
         onNeedsMore();
-      }, 2000);
+      }, 1500); // Poll faster (1.5s instead of 2s)
       onNeedsMore(); // Call immediately too
       return () => clearInterval(interval);
     }
