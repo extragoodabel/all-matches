@@ -793,24 +793,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/images/tags", async (req, res) => {
     try {
-      const { tags } = req.body as { tags: Record<string, "male" | "female" | "other"> };
+      const { tags } = req.body as { tags: Record<string, "male" | "female" | "other" | "broken"> };
       
       const changes = {
         toMale: [] as string[],
         toFemale: [] as string[],
         toOther: [] as string[],
+        broken: [] as string[],
       };
       
-      for (const [id, newGender] of Object.entries(tags)) {
-        if (newGender === "male") changes.toMale.push(id);
-        else if (newGender === "female") changes.toFemale.push(id);
-        else changes.toOther.push(id);
+      for (const [id, newTag] of Object.entries(tags)) {
+        if (newTag === "male") changes.toMale.push(id);
+        else if (newTag === "female") changes.toFemale.push(id);
+        else if (newTag === "other") changes.toOther.push(id);
+        else if (newTag === "broken") changes.broken.push(id);
       }
       
       console.log("[Admin] Image tag changes:", {
         toMale: changes.toMale.length,
         toFemale: changes.toFemale.length,
         toOther: changes.toOther.length,
+        broken: changes.broken.length,
       });
       
       console.log("\n=== COPY THESE CHANGES TO portrait-library.ts ===");
@@ -825,6 +828,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (changes.toOther.length > 0) {
         console.log("\nRemove from both arrays (other/ambiguous):");
         changes.toOther.forEach(id => console.log(`  "${id}",`));
+      }
+      if (changes.broken.length > 0) {
+        console.log("\nBROKEN - Remove from all arrays:");
+        changes.broken.forEach(id => console.log(`  "${id}",`));
       }
       console.log("\n=== END CHANGES ===\n");
       

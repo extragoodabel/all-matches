@@ -3,9 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2, X } from "lucide-react";
 
 type Gender = "male" | "female" | "other";
+type Tag = Gender | "broken";
 
 interface ImageTag {
   id: string;
@@ -14,8 +15,8 @@ interface ImageTag {
 }
 
 export default function TagImagesPage() {
-  const [tags, setTags] = useState<Record<string, Gender>>({});
-  const [filter, setFilter] = useState<Gender | "all">("all");
+  const [tags, setTags] = useState<Record<string, Tag>>({});
+  const [filter, setFilter] = useState<Tag | "all">("all");
   const [saving, setSaving] = useState(false);
 
   const { data: images, isLoading } = useQuery<{ id: string; gender: Gender }[]>({
@@ -23,7 +24,7 @@ export default function TagImagesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (updates: Record<string, Gender>) => {
+    mutationFn: async (updates: Record<string, Tag>) => {
       return apiRequest("POST", "/api/admin/images/tags", { tags: updates });
     },
     onSuccess: () => {
@@ -32,8 +33,8 @@ export default function TagImagesPage() {
     },
   });
 
-  const handleTag = (imageId: string, gender: Gender) => {
-    setTags((prev) => ({ ...prev, [imageId]: gender }));
+  const handleTag = (imageId: string, tag: Tag) => {
+    setTags((prev) => ({ ...prev, [imageId]: tag }));
   };
 
   const handleSave = async () => {
@@ -76,12 +77,13 @@ export default function TagImagesPage() {
           
           <div className="flex items-center gap-4">
             <div className="flex gap-2">
-              {(["all", "male", "female", "other"] as const).map((f) => (
+              {(["all", "male", "female", "other", "broken"] as const).map((f) => (
                 <Button
                   key={f}
                   variant={filter === f ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilter(f)}
+                  className={f === "broken" && filter === f ? "bg-red-600 hover:bg-red-700" : ""}
                 >
                   {f.charAt(0).toUpperCase() + f.slice(1)}
                 </Button>
@@ -110,15 +112,24 @@ export default function TagImagesPage() {
               <div
                 key={img.id}
                 className={`relative rounded-lg overflow-hidden shadow-md ${
-                  isChanged ? "ring-4 ring-green-500" : ""
+                  isChanged 
+                    ? currentTag === "broken" 
+                      ? "ring-4 ring-red-500" 
+                      : "ring-4 ring-green-500" 
+                    : ""
                 }`}
               >
                 <img
                   src={buildImageUrl(img.id)}
                   alt=""
-                  className="w-full h-48 object-cover"
+                  className={`w-full h-48 object-cover ${currentTag === "broken" ? "opacity-30" : ""}`}
                   loading="lazy"
                 />
+                {currentTag === "broken" && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <X className="w-16 h-16 text-red-500" />
+                  </div>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
                   <div className="flex gap-1 justify-center">
                     {(["male", "female", "other"] as const).map((g) => (
@@ -138,6 +149,16 @@ export default function TagImagesPage() {
                         {g === "male" ? "M" : g === "female" ? "F" : "O"}
                       </button>
                     ))}
+                    <button
+                      onClick={() => handleTag(img.id, "broken")}
+                      className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
+                        currentTag === "broken"
+                          ? "bg-red-600 text-white"
+                          : "bg-gray-600 text-gray-300 hover:bg-red-500"
+                      }`}
+                    >
+                      X
+                    </button>
                   </div>
                 </div>
               </div>
