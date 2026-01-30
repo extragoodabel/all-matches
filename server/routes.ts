@@ -218,10 +218,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const rawGender = (req.query.gender as string) || "all";
     const genderPref = ["male", "female", "all"].includes(rawGender) ? rawGender : "all";
     const rawMinAge = parseInt(req.query.minAge as string) || 21;
-    const rawMaxAge = parseInt(req.query.maxAge as string) || 50;
+    const rawMaxAge = parseInt(req.query.maxAge as string) || 99;
     // Clamp ages to valid range
-    const minAge = Math.max(21, Math.min(50, rawMinAge));
-    const maxAge = Math.max(21, Math.min(50, rawMaxAge));
+    const minAge = Math.max(21, Math.min(99, rawMinAge));
+    const maxAge = Math.max(21, Math.min(99, rawMaxAge));
     
     console.log(`[Profiles] Filters: gender=${genderPref}, age=${minAge}-${maxAge}`);
 

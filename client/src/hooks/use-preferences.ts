@@ -10,7 +10,7 @@ export type MatchPreferences = {
 
 const DEFAULT_PREFERENCES: MatchPreferences = {
   minAge: 21,
-  maxAge: 50,
+  maxAge: 99,
   genderPreference: "all",
 };
 

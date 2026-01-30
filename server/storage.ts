@@ -188,7 +188,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       minAge: 21,
-      maxAge: 50,
+      maxAge: 99,
       genderPreference: "all"
     };
     this.users.set(id, user);

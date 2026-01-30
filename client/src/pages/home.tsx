@@ -121,7 +121,7 @@ export default function Home() {
     resetPreferences();
   };
 
-  const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 50 && draftAgeRange[0] <= draftAgeRange[1];
+  const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 99 && draftAgeRange[0] <= draftAgeRange[1];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -160,7 +160,7 @@ export default function Home() {
               <Label>Age Range: {draftAgeRange[0]} - {draftAgeRange[1]}</Label>
               <Slider
                 min={21}
-                max={50}
+                max={99}
                 step={1}
                 value={draftAgeRange}
                 onValueChange={(val) => setDraftAgeRange(val as [number, number])}
