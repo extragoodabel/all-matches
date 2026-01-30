@@ -305,7 +305,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
                   <div 
                     className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
                     style={{
-                      aspectRatio: '3/4',
+                      aspectRatio: '3/5',
                       background: stackPatterns[patternIdx] === 'checker' 
                         ? `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`
                         : stackPatterns[patternIdx] === 'stripes'
