@@ -52,9 +52,10 @@ const PORTRAIT_IDS = [
   "1537511446984-935f663eb1f4"
 ];
 
-function getPortraitUrl(index: number): string {
+function getPortraitUrl(index: number, profileId?: number): string {
   const id = PORTRAIT_IDS[index % PORTRAIT_IDS.length];
-  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&h=600&q=80`;
+  const cacheBuster = profileId ? `&v=${profileId}&t=${Date.now()}` : '';
+  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&h=600&q=80${cacheBuster}`;
 }
 
 function getUnusedImageIndex(usedIndices: Set<number>): number {
@@ -307,13 +308,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get unique image index
         const imageIndex = getUnusedImageIndex(storage.usedImageIndices);
         storage.usedImageIndices.add(imageIndex);
+        
+        // Generate unique profile ID for cache-busting
+        const uniqueId = Date.now() + i;
 
         await storage.createProfile({
           name,
           age,
           bio,
           gender,
-          imageUrl: getPortraitUrl(imageIndex),
+          imageUrl: getPortraitUrl(imageIndex, uniqueId),
           isAI: true,
           characterSpec: null
         });
