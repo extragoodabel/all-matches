@@ -328,25 +328,38 @@ function isBadBio(text: string): boolean {
   const lines = t.split("\n").filter(Boolean);
   if (lines.length > 4) return true;
 
-  // Avoid obvious surreal phrases in bios
+  // Avoid surreal phrases and overused patterns
   const banned = [
     "mothership", "prophecy", "third eye", "the council",
-    "summon", "destiny", "time traveler", "string board"
+    "summon", "destiny", "time traveler", "string board",
+    "enthusiast", "aficionado", "connoisseur", "lover of",
+    "confession:", "hot take:", "warning:", "fact:",
+    "usually found", "secret talent", "about me:",
+    "interests:", "looking for:"
   ];
   const lower = t.toLowerCase();
   if (banned.some(b => lower.includes(b))) return true;
+  
+  // Reject if too many generic filler words
+  const fillerWords = ["passionate", "adventurous", "down-to-earth", "easy-going", "laid-back"];
+  const fillerCount = fillerWords.filter(w => lower.includes(w)).length;
+  if (fillerCount >= 2) return true;
 
   return false;
 }
 
 // Bio lead priorities - what each persona leads with (not all traits)
 const BIO_LEAD_TYPES = [
-  "humor",      // lead with a joke or witty observation
-  "vibe",       // lead with energy/mood/aesthetic
-  "interest",   // lead with one specific passion
-  "quirk",      // lead with something quirky about them
-  "question",   // lead by asking or challenging the reader
-  "confession", // lead with an admission or hot take
+  "humor",       // lead with a joke or witty observation
+  "vibe",        // lead with energy/mood/aesthetic
+  "interest",    // lead with one specific passion
+  "quirk",       // lead with something quirky
+  "question",    // ask or challenge the reader
+  "hot_take",    // unpopular opinion or bold claim
+  "random_fact", // one weird fact about themselves
+  "dealbreaker", // something they won't compromise on
+  "brag",        // humble brag or actual flex
+  "warning",     // playful warning about themselves
 ];
 
 async function generateBioWithOpenAI(context: {
@@ -375,45 +388,58 @@ async function generateBioWithOpenAI(context: {
   // Build instruction for each lead type
   const getLeadInstruction = (lead: string): string => {
     switch (lead) {
-      case "humor": return "something funny, a witty observation, or a joke";
-      case "vibe": return "your energy, mood, or aesthetic";
-      case "interest": return `your passion for: ${featuredInterest}`;
-      case "quirk": return context.quirk ? `this quirk: ${context.quirk}` : "something unusual about yourself";
-      case "question": return "a question or challenge to the reader";
-      case "confession": return "an admission, hot take, or confession";
-      default: return "something interesting about yourself";
+      case "humor": return "a joke, dry observation, or something genuinely funny";
+      case "vibe": return "your energy or aesthetic (not using labels)";
+      case "interest": return `a genuine passion for ${featuredInterest} (show, don't label)`;
+      case "quirk": return context.quirk ? `this quirk naturally: ${context.quirk}` : "something unusual you do";
+      case "question": return "a question or playful challenge to the reader";
+      case "hot_take": return "an unpopular opinion or bold claim you stand by";
+      case "random_fact": return "one weird or surprising fact about yourself";
+      case "dealbreaker": return "something you absolutely need or won't compromise on";
+      case "brag": return "something you're genuinely good at (humble or not)";
+      case "warning": return "a playful warning about what dating you is like";
+      default: return "something distinctive about yourself";
     }
   };
 
   const leadInstruction = numHighlights === 1
     ? `Lead with ${getLeadInstruction(leadTypes[0])}.`
-    : `Highlight TWO things: ${getLeadInstruction(leadTypes[0])} AND ${getLeadInstruction(leadTypes[1])}.`;
+    : `Weave together: ${getLeadInstruction(leadTypes[0])} AND ${getLeadInstruction(leadTypes[1])}.`;
+
+  // Pick a random structure style
+  const structures = [
+    "Single punchy statement.",
+    "Two unrelated thoughts, no transition.",
+    "A question followed by context.",
+    "Statement then punchline.",
+    "List of 2-3 things (no labels).",
+    "Stream of consciousness fragment.",
+  ];
+  const structureHint = pick(structures);
 
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
-LEAD PRIORITY: ${leadInstruction}
+APPROACH: ${leadInstruction}
+STRUCTURE: ${structureHint}
 
-Character context (use sparingly, NOT all of this):
-- Archetype hint: ${context.archetypeLabel}
-- One interest: ${featuredInterest}
+Character seed (use ONE element, weave naturally):
+- Personality: ${context.archetypeLabel}
+- Interest: ${featuredInterest}
 ${context.quirk ? `- Quirk: ${context.quirk}` : ""}
-- Flirt vibe: ${context.flirtPercent}/100 (PG-13)
+- Flirt energy: ${context.flirtPercent}/100
 
-${context.lookingForLine ? `Optional line about what they want:\n- ${context.lookingForLine}\n` : ""}
+${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
-FORMAT:
-- Exactly ${targetLines} line(s). Max 4 lines.
-- 0-2 emojis max.
-- Never use em dashes.
+FORMAT: ${targetLines} line(s) max. 0-2 emojis. No em dashes.
 
-RULES:
-- This is a TEASER, not a resume. Highlight only what's specified above.
-- Do NOT list more than what's asked.
-- Leave mystery for conversation.
-- Grounded and human, not surreal.
-- No labels like "Interests:" or "About me:"
-- Do not start with: "I'm a", "Usually found", "Secret talent"
+BANNED WORDS/PHRASES (do not use):
+- "enthusiast", "aficionado", "connoisseur", "lover of"
+- "coffee" (unless specifically in their interest)
+- "confession:", "hot take:", "warning:" (no labels)
+- "I'm a", "Usually found", "Secret talent"
+- "Interests:", "About me:", "Looking for:"
 
+Write like a real person, not a template. Be specific, not generic.
 Output ONLY the bio text.`;
 
   try {
