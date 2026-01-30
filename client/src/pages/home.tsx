@@ -36,6 +36,9 @@ export default function Home() {
     preferences.genderPreference
   );
 
+  // Track swiped profile IDs to never show them again
+  const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
+  
   const { data: profiles = [], refetch } = useQuery<Profile[]>({
     queryKey: [
       "/api/profiles",
@@ -59,34 +62,35 @@ export default function Home() {
       
       return data;
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
     refetchOnMount: "always",
     refetchOnReconnect: false,
-    refetchInterval: 30000,
+    // No auto refetch - only refetch when we explicitly call refetch()
   });
 
-  const shuffledProfiles = useMemo(() => {
-    if (profiles.length === 0) return [];
-    const arr = [...profiles];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }, [profiles]);
-
+  // Filter out swiped profiles and apply preferences
   const filteredProfiles = useMemo(() => {
-    return (shuffledProfiles.length > 0 ? shuffledProfiles : profiles).filter((p) => {
+    return profiles.filter((p) => {
+      // Never show swiped profiles again
+      if (swipedIds.has(p.id)) return false;
+      
       const ageMatch = p.age >= preferences.minAge && p.age <= preferences.maxAge;
       const genderMatch =
         preferences.genderPreference === "all" || p.gender === preferences.genderPreference;
       return ageMatch && genderMatch;
     });
-  }, [shuffledProfiles, profiles, preferences]);
+  }, [profiles, preferences, swipedIds]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
+    // Immediately mark as swiped so it never shows again
+    setSwipedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(profile.id);
+      return newSet;
+    });
+    
     if (direction === "right") {
       setCurrentMatch({ profile, matchId: null });
       
@@ -114,7 +118,8 @@ export default function Home() {
       }
     }
     
-    if (filteredProfiles.length < 10) {
+    // Only refetch when running very low on profiles
+    if (filteredProfiles.length < 5) {
       refetch();
     }
   };
