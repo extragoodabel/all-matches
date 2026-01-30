@@ -28,6 +28,7 @@ export default function Home() {
     preferences.minAge,
     preferences.maxAge,
   ]);
+  const [secretText, setSecretText] = useState(false);
   const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
   );
@@ -173,14 +174,38 @@ export default function Home() {
             <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer"
                 style={{ 
                   color: palette.background,
                   background: palette.primary,
                   boxShadow: `4px 4px 0 ${palette.accent}`,
                 }}
+                onMouseDown={() => {
+                  const timeout = setTimeout(() => setSecretText(true), 700);
+                  (window as any).__secretTimeout = timeout;
+                }}
+                onMouseUp={() => {
+                  clearTimeout((window as any).__secretTimeout);
+                  setTimeout(() => setSecretText(false), 2000);
+                }}
+                onMouseLeave={() => {
+                  clearTimeout((window as any).__secretTimeout);
+                }}
+                onTouchStart={() => {
+                  const timeout = setTimeout(() => setSecretText(true), 700);
+                  (window as any).__secretTimeout = timeout;
+                }}
+                onTouchEnd={() => {
+                  clearTimeout((window as any).__secretTimeout);
+                  setTimeout(() => setSecretText(false), 2000);
+                }}
               >
-                All Matches!
+                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 0 : 1, position: secretText ? 'absolute' : 'relative' }}>
+                  All Matches!
+                </span>
+                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 1 : 0, position: secretText ? 'relative' : 'absolute' }}>
+                  Validation Vending Machine
+                </span>
               </span>
               <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>
