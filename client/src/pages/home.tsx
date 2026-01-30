@@ -4,8 +4,8 @@ import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { Profile } from "@shared/schema";
-import { Heart, Settings2 } from "lucide-react";
+import type { Profile, Match } from "@shared/schema";
+import { Heart, Settings2, MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [currentMatch, setCurrentMatch] = useState<Profile | null>(null);
+  const [currentMatch, setCurrentMatch] = useState<{ profile: Profile; matchId: number } | null>(null);
   
   // Saved preferences (persisted state)
   const [ageRange, setAgeRange] = useState<[number, number]>([21, 50]);
@@ -66,11 +66,12 @@ export default function Home() {
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
     if (direction === "right") {
       try {
-        await apiRequest("POST", "/api/matches", {
+        const response = await apiRequest("POST", "/api/matches", {
           userId: 1,
           profileId: profile.id,
         });
-        setCurrentMatch(profile);
+        const createdMatch: Match = await response.json();
+        setCurrentMatch({ profile, matchId: createdMatch.id });
       } catch (error) {
         console.error("Failed to create match:", error);
       }
@@ -107,7 +108,12 @@ export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8 relative z-50">
-        <div className="w-10" />
+        <button 
+          onClick={() => setLocation("/inbox")}
+          className="p-3 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-gray-100 rounded-full transition-all group active:scale-95"
+        >
+          <MessageCircle className="w-6 h-6 text-gray-600 group-hover:text-pink-500 transition-colors" />
+        </button>
         <h1 className="text-5xl font-extrabold flex-1 text-center">
           <div className="flex items-center justify-center gap-2">
             <Heart className="w-6 h-6 text-red-500" />
@@ -172,9 +178,9 @@ export default function Home() {
       
       {currentMatch && (
         <MatchNotification
-          profile={currentMatch}
+          profile={currentMatch.profile}
           onClose={() => setCurrentMatch(null)}
-          onStartChat={() => setLocation(`/chat/${currentMatch.id}`)}
+          onStartChat={() => setLocation(`/chat/${currentMatch.matchId}`)}
         />
       )}
     </div>

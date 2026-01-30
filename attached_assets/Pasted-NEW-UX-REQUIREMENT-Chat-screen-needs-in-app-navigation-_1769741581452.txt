@@ -1,0 +1,58 @@
+NEW UX REQUIREMENT: Chat screen needs in-app navigation + a persistent inbox.
+
+PROBLEMS:
+1) When user is inside a chat thread, there is no UI to exit chat. They must use browser back.
+2) There is no “Messages/Matches” list (inbox). Users need to see all matches and re-open chats anytime, like iMessage/Tinder inbox.
+
+GOAL:
+- Add a top “Chat Header” with:
+  - Back button (left) that navigates back to an Inbox screen inside the app (NOT browser back)
+  - Profile avatar + name
+- Create an Inbox (Messages) page that:
+  - Shows a scrollable list of matched profiles
+  - Each row shows: avatar, name, last message snippet, timestamp (if available)
+  - Clicking a row opens that chat thread
+
+DATA REQUIREMENTS:
+- Use existing API endpoints:
+  - GET /api/matches/:userId for match list (assume userId=1 for now)
+  - For each match, resolve profile via GET /api/profiles/:id (or storage.getProfile(match.profileId) via server route if you prefer a single combined endpoint)
+  - GET /api/messages/:matchId for messages
+- IMPORTANT: Fix matchId vs profileId confusion cleanly:
+  - Client should pass actual matchId to ChatInterface as matchId
+  - Chat route should be /chat/:matchId (NOT /chat/:profileId)
+  - Inbox links to /chat/{match.id}
+
+IMPLEMENTATION REQUIREMENTS:
+A) Routing
+- Add a new route: /inbox (Messages screen)
+- Update existing chat route to: /chat/:matchId
+- Update any navigation so matches lead to /chat/:matchId
+- Add default navigation entry point (button/tab) from Home to Inbox
+
+B) Chat Screen changes
+- Add a visible back button in the chat header that routes to /inbox
+- Ensure Chat component loads the match by matchId, then loads the profile using match.profileId
+- Ensure messages query uses matchId, not profileId
+- ChatInterface should continue to POST /api/messages with matchId
+
+C) Inbox screen
+- Fetch matches for userId=1
+- For each match, display:
+  - Profile image
+  - Name + age
+  - Last message snippet (from messages endpoint or include it in a combined server response)
+- Sort inbox by most recent message time (descending). If no messages yet, newest match first.
+- Clicking opens /chat/:matchId
+
+DELIVERABLES (NO SURGERY):
+- Provide full replacement code for:
+  1) Chat page component
+  2) New Inbox page component
+  3) Any router file changes (where routes are defined)
+- If you need to add a new server endpoint to return matches with profile + lastMessage in one call, provide full code for server/routes.ts changes too.
+
+SUCCESS CRITERIA:
+- I can enter a chat, hit Back, and return to Inbox without using browser back.
+- Inbox always lists existing matches and lets me reopen chats.
+- Messages appear correctly and do not freeze due to match/profile id mismatch.

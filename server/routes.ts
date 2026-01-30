@@ -402,6 +402,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Combined endpoint for inbox: matches with profile data + last message
+  app.get("/api/inbox/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
+
+      const matches = await storage.getMatches(userId);
+      
+      const inboxItems = await Promise.all(
+        matches.map(async (match) => {
+          const profile = await storage.getProfile(match.profileId);
+          const messages = await storage.getMessages(match.id);
+          const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+          
+          return {
+            matchId: match.id,
+            profileId: match.profileId,
+            createdAt: match.createdAt,
+            profile: profile ? {
+              name: profile.name,
+              age: profile.age,
+              imageUrl: profile.imageUrl,
+            } : null,
+            lastMessage: lastMessage ? {
+              content: lastMessage.content,
+              isAI: lastMessage.isAI,
+              createdAt: lastMessage.createdAt,
+            } : null,
+          };
+        })
+      );
+
+      // Sort by last message time (descending), then by match creation time
+      inboxItems.sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt || a.createdAt;
+        const bTime = b.lastMessage?.createdAt || b.createdAt;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+
+      res.json(inboxItems);
+    } catch (error) {
+      console.error("Inbox error:", error);
+      res.status(500).json({ error: "Failed to fetch inbox" });
+    }
+  });
+
   app.get("/api/messages/:id", async (req, res) => {
     try {
       const incoming = parseInt(req.params.id);
