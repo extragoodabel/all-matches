@@ -1,26 +1,43 @@
 import OpenAI from "openai";
 
-// Simulate typing delay based on message length and add randomness
+// Typing delay: fast for short replies, longer for longer replies, with jitter.
+// Hard floor 350ms, hard cap 4000ms.
 function calculateTypingDelay(message: string): number {
-  const wordsPerMinute = 40;
-  const wordCount = message.trim().split(/\s+/).length;
-  const minutes = wordCount / wordsPerMinute;
+  const words = message.trim().split(/\s+/).filter(Boolean).length;
 
-  const baseDelay = minutes * 60 * 1000;
-  const randomFactor = 0.2;
-  const randomDelay = baseDelay * (1 + (Math.random() * 2 - 1) * randomFactor);
+  let min = 450;
+  let max = 1400;
 
-  return Math.min(Math.max(randomDelay, 2000), 6000);
+  if (words <= 10) {
+    min = 450;
+    max = 1400;
+  } else if (words <= 25) {
+    min = 900;
+    max = 2200;
+  } else if (words <= 60) {
+    min = 1400;
+    max = 3000;
+  } else {
+    min = 2000;
+    max = 4000;
+  }
+
+  // 10–25% jitter inside the range
+  const base = min + Math.random() * (max - min);
+  const jitterFactor = 1 + (Math.random() * 0.3 - 0.15); // ~±15%
+  const withJitter = base * jitterFactor;
+
+  return Math.max(350, Math.min(4000, Math.round(withJitter)));
 }
 
-const mockResponses = [
-  "Wait lol my app glitched for a sec. What were you saying? 😅",
-  "Hold up, my brain froze. Say that again? 😭",
-  "I think my phone just lagged. One more time? 😅",
+const fallbackResponses = [
+  "Wait lol my app glitched for a sec. Say that again? 😅",
+  "Hold up, my brain froze. One more time? 😭",
+  "I think my phone lagged. What’d you say? 😅",
 ];
 
 function getFallbackResponse(): string {
-  return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+  return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
 }
 
 export async function generateAIResponse(
@@ -31,7 +48,7 @@ export async function generateAIResponse(
   },
   userMessage: string
 ): Promise<{ content: string; typingDelay: number }> {
-  // If no API key at all, return a graceful fallback
+  // No key: graceful fallback
   if (!process.env.OPENAI_API_KEY) {
     const content = getFallbackResponse();
     return { content, typingDelay: calculateTypingDelay(content) };
@@ -53,10 +70,12 @@ Your profile bio is: "${context.profileBio}"
 
 ROLEPLAY RULES:
 - Never mention being an AI or a language model.
-- Keep replies short (1-2 sentences), casual, and specific to what the user just said.
+- Keep replies short like texting (usually 1-2 sentences, sometimes 3).
+- Be specific to what the user just said. No generic canned replies.
 - Use the chat history to stay consistent.
 - Ask natural follow-up questions sometimes.
-- Use emojis occasionally, not every message.`,
+- Use emojis occasionally, not every message.
+- Avoid explicit sexual content and hateful content.`,
     };
 
     const response = await openai.chat.completions.create({
@@ -72,5 +91,7 @@ ROLEPLAY RULES:
     return { content, typingDelay: calculateTypingDelay(content) };
   } catch (error) {
     console.error("Error generating AI response:", error);
-
-    // If OpenAI is out of quota or errors, don't respond with unrelated canned flirt
+    const content = getFallbackResponse();
+    return { content, typingDelay: calculateTypingDelay(content) };
+  }
+}
