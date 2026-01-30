@@ -281,25 +281,42 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
           aria-hidden="true"
         >
-          {[3, 2, 1].map((i) => (
-            <div
-              key={`stack-${i}`}
-              className="absolute w-full px-0 pointer-events-none"
-              style={{
-                transform: `translateX(${i * 4}px) translateY(${i * 6}px)`,
-                zIndex: -i,
-                opacity: 0.85 - (i * 0.15),
-              }}
-            >
-              <div 
-                className="w-full bg-white rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
+          {[3, 2, 1].map((i) => {
+            const stackPatterns = ['checker', 'stripes', 'dots'];
+            const stackColors = [
+              { primary: '#B388FF', secondary: '#FFDC00' },
+              { primary: '#00D9A5', secondary: '#FFF8E7' },
+              { primary: '#FF6B6B', secondary: '#FFDC00' },
+            ];
+            const patternIdx = (currentProfile.id + i) % stackPatterns.length;
+            const colorIdx = (currentProfile.id + i) % stackColors.length;
+            return (
+              <div
+                key={`stack-${i}-${currentProfile.id}`}
+                className="absolute w-full pointer-events-none"
                 style={{
-                  aspectRatio: '3/4',
-                  boxShadow: `${4 + i}px ${4 + i}px 0 #1A1A1A`,
-                }}
-              />
-            </div>
-          ))}
+                  transform: `translateX(${i * 5}px) translateY(${i * 7}px)`,
+                  zIndex: -10 - i,
+                  '--eg-primary': stackColors[colorIdx].primary,
+                  '--eg-secondary': stackColors[colorIdx].secondary,
+                } as React.CSSProperties}
+              >
+                <div className="relative pb-12">
+                  <div 
+                    className="w-full max-w-sm mx-auto rounded-2xl border-[3px] border-[#1A1A1A] overflow-hidden"
+                    style={{
+                      aspectRatio: '3/4',
+                      background: stackPatterns[patternIdx] === 'checker' 
+                        ? `repeating-conic-gradient(var(--eg-primary) 0% 25%, var(--eg-secondary) 0% 50%) 50% / 40px 40px`
+                        : stackPatterns[patternIdx] === 'stripes'
+                        ? `repeating-linear-gradient(-45deg, var(--eg-primary), var(--eg-primary) 10px, var(--eg-secondary) 10px, var(--eg-secondary) 20px)`
+                        : `radial-gradient(circle, var(--eg-primary) 8px, transparent 8px) 0 0 / 32px 32px, var(--eg-secondary)`,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
         
         <AnimatePresence>
