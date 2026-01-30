@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
@@ -29,6 +29,8 @@ export default function Home() {
     preferences.maxAge,
   ]);
   const [secretText, setSecretText] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
   );
@@ -180,30 +182,36 @@ export default function Home() {
                   background: palette.primary,
                   boxShadow: `4px 4px 0 ${palette.accent}`,
                 }}
-                onMouseDown={() => {
-                  const timeout = setTimeout(() => setSecretText(true), 700);
-                  (window as any).__secretTimeout = timeout;
-                }}
-                onMouseUp={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                  setTimeout(() => setSecretText(false), 2000);
-                }}
-                onMouseLeave={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                }}
-                onTouchStart={() => {
-                  const timeout = setTimeout(() => setSecretText(true), 700);
-                  (window as any).__secretTimeout = timeout;
-                }}
-                onTouchEnd={() => {
-                  clearTimeout((window as any).__secretTimeout);
-                  setTimeout(() => setSecretText(false), 2000);
+                onClick={() => {
+                  if (secretText) return;
+                  tapCountRef.current += 1;
+                  if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+                  tapTimeoutRef.current = setTimeout(() => {
+                    tapCountRef.current = 0;
+                  }, 1000);
+                  if (tapCountRef.current >= 5) {
+                    setSecretText(true);
+                    tapCountRef.current = 0;
+                    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+                    setTimeout(() => setSecretText(false), 1500);
+                  }
                 }}
               >
-                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 0 : 1, position: secretText ? 'absolute' : 'relative' }}>
+                <span 
+                  className="transition-opacity duration-300" 
+                  style={{ opacity: secretText ? 0 : 1, position: secretText ? 'absolute' : 'relative' }}
+                >
                   All Matches!
                 </span>
-                <span className="transition-opacity duration-300" style={{ opacity: secretText ? 1 : 0, position: secretText ? 'relative' : 'absolute' }}>
+                <span 
+                  className="transition-opacity duration-300" 
+                  style={{ 
+                    opacity: secretText ? 1 : 0, 
+                    position: secretText ? 'relative' : 'absolute',
+                    letterSpacing: '0.02em',
+                    fontWeight: 800,
+                  }}
+                >
                   Validation Vending Machine
                 </span>
               </span>
