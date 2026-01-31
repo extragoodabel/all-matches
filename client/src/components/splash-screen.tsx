@@ -42,7 +42,6 @@ export function SplashScreen({
   maxDuration = 2500 
 }: SplashScreenProps) {
   const [phase, setPhase] = useState<"logo" | "emojis" | "card" | "exit">("logo");
-  const [startTime] = useState(() => Date.now());
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   
   const emojis = useMemo(() => generateEmojis(18), []);
@@ -117,7 +116,7 @@ export function SplashScreen({
           <div className="splash-logo-text">All Matches</div>
         </div>
 
-        <div className={`splash-emoji-container ${phase === "emojis" || phase === "card" || phase === "exit" ? "splash-emoji-active" : ""}`}>
+        <div className={`splash-emoji-container ${phase === "emojis" || phase === "card" || phase === "exit" ? "splash-emoji-active" : ""}`} aria-hidden="true">
           {emojis.map((e) => (
             <span
               key={e.id}
