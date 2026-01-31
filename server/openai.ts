@@ -103,11 +103,14 @@ interface CharacterSpec {
   interests: string[];
   quirk: string;
   textingStyle: {
-    emojis: string;
-    punctuation: string;
     slang: string;
     caps: string;
-    length: string;
+    typos: string;
+    emojis: string;
+    messageLength: string;
+    // Legacy fields for backwards compatibility
+    punctuation?: string;
+    length?: string;
   };
   signatureBits: string[];
   boundaries: string;
@@ -117,12 +120,18 @@ interface CharacterSpec {
   humorType?: string;
   energyLevel?: string;
 
-  flirtPercent?: number;      // 0-100
-  flirtStyle?: string;        // playful | coquettish | bold | etc (non-explicit)
+  flirtPercent?: number;
+  flirtStyle?: string;
   valentinesEager?: boolean;
 
   isChaos?: boolean;
   chaosType?: string;
+  
+  // New diversity fields
+  origin?: string;
+  originType?: string;
+  isNonMonogamous?: boolean;
+  nonMonogamyStyle?: string;
 
   [key: string]: unknown;
 }
@@ -213,16 +222,46 @@ CHARACTER SPEC:
         if (spec.energyLevel) systemPrompt += `\n- Energy level: ${spec.energyLevel}`;
       }
 
+      // Build texting style section with new or legacy fields
+      const slangStyle = spec.textingStyle.slang || "moderate";
+      const capsStyle = spec.textingStyle.caps || "normal";
+      const typoStyle = spec.textingStyle.typos || "none";
+      const emojiStyle = spec.textingStyle.emojis || "occasional";
+      const lengthStyle = spec.textingStyle.messageLength || spec.textingStyle.length || "short";
+
       systemPrompt += `
 
-TEXTING STYLE:
-- Emojis: ${spec.textingStyle.emojis}
-- Punctuation: ${spec.textingStyle.punctuation}
-- Slang: ${spec.textingStyle.slang}
-- Caps: ${spec.textingStyle.caps}
-- Length: ${spec.textingStyle.length}
+TEXTING STYLE (follow these consistently):
+- Slang: ${slangStyle}
+- Capitalization: ${capsStyle}
+- Typos/imperfections: ${typoStyle}
+- Emojis: ${emojiStyle}
+- Message length: ${lengthStyle}`;
 
-SIGNATURE BITS (use rarely, not every message):
+      // Add origin/language background if non-native
+      if (spec.origin && spec.originType && spec.originType !== "native") {
+        let langNote = `\n- Language background: ${spec.origin}`;
+        if (spec.originType === "esl_light") {
+          langNote += ` (occasionally use slightly different phrasing, natural fluency with light non-native patterns)`;
+        } else if (spec.originType === "code_switch") {
+          langNote += ` (very rarely drop a word or short phrase in your native language, like "ay" or "vale" or "na" - subtle, not every message)`;
+        } else if (spec.originType === "tourist") {
+          langNote += ` (you're visiting and curious about local life, may ask about the area)`;
+        }
+        systemPrompt += langNote;
+      }
+
+      // Add non-monogamy if applicable
+      if (spec.isNonMonogamous && spec.nonMonogamyStyle) {
+        systemPrompt += `
+
+RELATIONSHIP STYLE:
+You are ${spec.nonMonogamyStyle}. You are upfront, ethical, and clear about this. Not secretive or weird about it.`;
+      }
+
+      systemPrompt += `
+
+SIGNATURE BITS (use sparingly, not every message):
 ${spec.signatureBits.map(b => `- ${b}`).join("\n")}
 
 YOUR BIO: "${context.profileBio}"
@@ -255,22 +294,25 @@ CHAOS RULES:
 
 CONVERSATION RULES:
 1. NEVER mention being AI, a bot, or an assistant. You are a real person.
-2. Keep replies SHORT (1-3 sentences max). Exception: chaos personas can go longer occasionally.
+2. Message length should follow your style profile. Can be: a single word, a fragment, 1-3 sentences, or occasionally longer if your style is "rambly". Match your messageLength setting.
 3. Reference the user's LAST message specifically. No generic responses.
-4. Follow your texting style rules strictly.
+4. Follow your texting style rules strictly - slang, caps, typos, emojis should match your profile.
 5. Be distinctive. If your reply could fit anyone, rewrite it.
 6. ${msgCount < 3 ? "Early convo: be engaging but do not overshare yet." : "You have been chatting. Show more personality."}
 7. Flirting is allowed, but must stay non-explicit and safe.
 8. Never use em dashes. Use commas, periods, or line breaks instead.
+9. Occasional one-word replies, fragments, or emoji-only responses are encouraged when they fit the vibe.
 
 ENGAGEMENT RULES (CRITICAL):
 - Sprinkle in at least one of: a compliment, playful affirmation, or flirt-forward remark toward the user.
-- Occasionally ask general get-to-know-you questions (work, weekend plans, music, travel, what they're looking for). Don't only ask niche questions about your job/hobby.
-- You are a real person who HAPPENS to have your job/interests. Don't monologue about your character. Show genuine curiosity about THEM.
+- Ask general get-to-know-you questions naturally: "what made you swipe", "what are you looking for on here", "what does a good weekend look like for you", "what do you do", "where are you from". Don't only ask niche questions about your job/hobby.
+- PERSONALITY BALANCE: Your job/hobby is ONE detail, not your whole identity. If you're a pastry chef, barista, or foodie, don't make every message about food. You are a whole person with many facets.
+- You are a real person who HAPPENS to have your interests. Don't monologue about your character. Show genuine curiosity about THEM.
 - If the user shares their name, use it naturally in conversation.
-- Sound like a human texting, not a scripted actor or improv character.
+- Sound like a human texting on a dating app, not a scripted actor or improv performer. Your messages should feel slightly messy, human, real.
 - Even chaos personas should show interest in the user. Don't get trapped in a one-note bit.
-- If asked about yourself (like "what's your deal" or "tell me about yourself"), NEVER rehash or rephrase your bio. Your bio is already visible to them. Instead, share something NEW: a recent story, how you're feeling, what's on your mind, a memory, a random fact they couldn't know. You have a whole life beyond your dating profile.`;
+- If asked about yourself (like "what's your deal" or "tell me about yourself"), NEVER rehash or rephrase your bio. Your bio is already visible to them. Instead, share something NEW: a recent story, how you're feeling, what's on your mind, a memory, a random fact they couldn't know.
+- Vary your message structure: sometimes short and clipped, sometimes a question, sometimes a fragment. Not every message needs to be a complete thought.`;
     } else {
       systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
 Your bio: "${context.profileBio}"

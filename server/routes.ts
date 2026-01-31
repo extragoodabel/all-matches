@@ -1000,19 +1000,76 @@ function generateCharacterSpec(context: {
   const humorTypes = ["dry", "absurdist", "roast", "sardonic", "wholesome"];
   const energyLevels = ["low", "medium", "high"];
 
-  const stylePool = [
-    { emojis: "rare", punctuation: "normal", slang: "moderate", caps: "minimal", length: "short" },
-    { emojis: "occasional", punctuation: "minimal", slang: "gen-z", caps: "no caps ever", length: "short bursts" },
-    { emojis: "none", punctuation: "proper", slang: "low", caps: "normal", length: "thoughtful" },
-    { emojis: "moderate", punctuation: "loose", slang: "high", caps: "minimal", length: "punchy" },
+  // WRITING STYLE VARIABILITY
+  const slangProfiles = [
+    "no slang / formal",
+    "light casual slang",
+    "heavy internet slang (lol, tbh, ngl, idk, rn)",
+    "text shorthand (u, ur, bc, omg)",
+    "chronically-online tone",
+    "regional casual",
+    "professional / jargon-heavy",
+    "slightly outdated slang (rad, dope, sick)"
   ];
+  
+  const capsStyles = [
+    "proper capitalization",
+    "all lowercase",
+    "occasional ALL CAPS for emphasis",
+    "frequent ALL CAPS",
+    "inconsistent capitalization"
+  ];
+  
+  const typoFrequencies = [
+    "none",
+    "rare (1 in 10 messages)",
+    "occasional (1 in 5 messages)",
+    "frequent (most messages have small imperfections)"
+  ];
+  
+  const emojiProfiles = [
+    "no emojis at all",
+    "rare emojis (1-2 per convo)",
+    "occasional emojis",
+    "frequent emojis",
+    "emoticons only (:-) :/ <3)",
+    "emoji-heavy but context-aware"
+  ];
+  
+  const messageLengthStyles = [
+    "very short, clipped",
+    "short and punchy",
+    "medium, conversational",
+    "slightly rambly",
+    "varies wildly"
+  ];
+
+  // LANGUAGE & ORIGIN DIVERSITY (~20% non-native speakers)
+  const originProfiles = [
+    { type: "native", desc: "native English speaker" },
+    { type: "native", desc: "native English speaker" },
+    { type: "native", desc: "native English speaker" },
+    { type: "native", desc: "native English speaker" },
+    { type: "esl_light", desc: "English as second language (light accent in writing, fully fluent)" },
+    { type: "code_switch", desc: "bilingual, occasionally drops words in native language" },
+    { type: "immigrant", desc: "immigrated to the U.S., American but connected to heritage" },
+    { type: "dual_citizen", desc: "dual citizenship, travels between countries" },
+    { type: "tourist", desc: "visiting/traveling through, curious about locals" },
+    { type: "expat", desc: "American living abroad, currently visiting home" }
+  ];
+
+  // NON-MONOGAMY (~1 in 30) - use random sampling for better distribution
+  const isNonMonogamous = Math.random() < (1/30);
+  const nonMonogamyStyles = ["open relationship", "polyamorous", "ENM (ethically non-monogamous)", "relationship anarchist"];
 
   const bits = [
     "teasing the user (lightly)",
-    "asking a specific question",
+    "asking a specific question about the user",
     "being blunt in a funny way",
-    "dropping one random fact sometimes",
     "turning things into a playful challenge",
+    "showing genuine curiosity about user's life",
+    "giving a sincere compliment",
+    "asking what they're looking for on here"
   ];
 
   const chaosTypes = [
@@ -1025,8 +1082,17 @@ function generateCharacterSpec(context: {
   const goal = goals[n(0) % goals.length];
   const intelligence = intelligenceVibes[n(2) % intelligenceVibes.length];
   const morality = moralityFlavors[n(4) % moralityFlavors.length];
-  const style = stylePool[n(6) % stylePool.length];
   const signatureBits = [bits[n(8) % bits.length], bits[n(10) % bits.length]];
+  const origin = originProfiles[n(24) % originProfiles.length];
+
+  // Build detailed texting style
+  const textingStyle = {
+    slang: slangProfiles[n(6) % slangProfiles.length],
+    caps: capsStyles[n(26) % capsStyles.length],
+    typos: typoFrequencies[n(28) % typoFrequencies.length],
+    emojis: emojiProfiles[n(30) % emojiProfiles.length],
+    messageLength: messageLengthStyles[n(32) % messageLengthStyles.length]
+  };
 
   const spec = {
     name: context.name,
@@ -1038,7 +1104,7 @@ function generateCharacterSpec(context: {
     morality,
     interests: context.interests,
     quirk: context.quirk,
-    textingStyle: style,
+    textingStyle,
     signatureBits,
     boundaries: "No explicit sexual content. Stay in character. Be engaging but not creepy.",
 
@@ -1053,6 +1119,12 @@ function generateCharacterSpec(context: {
 
     isChaos: context.isChaos,
     chaosType: context.isChaos ? (context.chaosType || chaosTypes[n(20) % chaosTypes.length]) : undefined,
+    
+    // New diversity fields
+    origin: origin.desc,
+    originType: origin.type,
+    isNonMonogamous,
+    nonMonogamyStyle: isNonMonogamous ? nonMonogamyStyles[n(34) % nonMonogamyStyles.length] : undefined,
   };
 
   return JSON.stringify(spec);
