@@ -663,7 +663,25 @@ const PRIMARY_TRAITS: PersonaTemplate[] = [
   { label: "Philosophy Nerd", interests: ["big questions", "debates"], flirtBias: 4, chaosBias: 0.02 },
   { label: "Psych Nerd", interests: ["behavior", "patterns"], flirtBias: 5 },
   { label: "True Neutral", interests: ["balance", "not picking sides"], flirtBias: 4 },
-  { label: "Chaotic Good", interests: ["doing right", "unconventionally"], flirtBias: 7, chaosBias: 0.05 }
+  { label: "Chaotic Good", interests: ["doing right", "unconventionally"], flirtBias: 7, chaosBias: 0.05 },
+  // Unusual professions
+  { label: "Clown", interests: ["parties", "balloon animals"], flirtBias: 8, chaosBias: 0.08 },
+  { label: "Ventriloquist", interests: ["voices", "performances"], flirtBias: 6, chaosBias: 0.06 },
+  { label: "Acrobat", interests: ["flexibility", "circus life"], flirtBias: 9, chaosBias: 0.04 },
+  { label: "Contortionist", interests: ["stretching", "performances"], flirtBias: 8, chaosBias: 0.05 },
+  { label: "Carny", interests: ["fairgrounds", "travel"], flirtBias: 7, chaosBias: 0.06 },
+  { label: "Circus Performer", interests: ["the big top", "spectacle"], flirtBias: 9, chaosBias: 0.05 },
+  { label: "Dog Trainer", interests: ["dogs", "patience"], flirtBias: 7 },
+  { label: "Snake Wrangler", interests: ["reptiles", "danger"], flirtBias: 7, chaosBias: 0.04 },
+  { label: "Hypnotist", interests: ["the mind", "suggestion"], flirtBias: 8, chaosBias: 0.06 },
+  { label: "Underwater Welder", interests: ["the deep", "adrenaline"], flirtBias: 8, chaosBias: 0.03 },
+  { label: "Mall Santa", interests: ["holidays", "costumes"], flirtBias: 6, chaosBias: 0.05 },
+  { label: "Escort", interests: ["conversation", "nights out"], flirtBias: 12, chaosBias: 0.04 },
+  { label: "Wedding Dress Salesperson", interests: ["weddings", "big decisions"], flirtBias: 7, chaosBias: 0.03 },
+  { label: "Street Sweeper", interests: ["early mornings", "city life"], flirtBias: 5 },
+  { label: "Spirit Halloween Security Guard", interests: ["seasonal work", "costumes"], flirtBias: 6, chaosBias: 0.07 },
+  { label: "Elevator Operator", interests: ["floors", "small talk"], flirtBias: 5, chaosBias: 0.04 },
+  { label: "Miniature Doll Furniture Salesperson", interests: ["tiny things", "collectors"], flirtBias: 5, chaosBias: 0.06 }
 ];
 
 // ------------------------------------------------------------
