@@ -87,25 +87,24 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
-    // Spawn emojis function - spawn ON SCREEN so they're visible immediately
-    const spawnEmojis = () => {
-      const count = clamp(Math.round((w * h) / 8000), 80, 150);
-      const minR = Math.round(Math.min(w, h) * 0.03);
-      const maxR = Math.round(Math.min(w, h) * 0.05);
+    // Spawn emojis function - spawn ABOVE screen and fall down
+    const spawnEmojis = (fromTop: boolean = true) => {
+      const count = 300; // Fixed at 300 for dense coverage
+      const minR = Math.round(Math.min(w, h) * 0.025);
+      const maxR = Math.round(Math.min(w, h) * 0.045);
 
       const bodies: Matter.Body[] = [];
 
-      // Spawn emojis scattered across the visible screen area
       for (let i = 0; i < count; i++) {
         const r = minR + Math.random() * (maxR - minR);
-        // Spawn across the entire screen
+        // Spawn above the screen so they fall into view
         const x = r + Math.random() * (w - r * 2);
-        const y = r + Math.random() * (h * 0.7); // Upper 70% of screen
+        const y = fromTop ? -r - Math.random() * h * 0.8 : -r - Math.random() * h * 0.5;
         const body = Matter.Bodies.circle(x, y, r, {
-          restitution: 0.4,
-          friction: 0.1,
-          frictionAir: 0.01,
-          density: 0.001,
+          restitution: 0.3,
+          friction: 0.15,
+          frictionAir: 0.008,
+          density: 0.0015,
         });
         (body as any).emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
         (body as any).radius = r;
@@ -115,11 +114,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       Matter.Composite.add(engine.world, bodies);
       emojiBodiesRef.current = bodies;
 
-      // Give them small random velocities to make them bounce around
+      // Small random horizontal velocity so they spread out as they fall
       bodies.forEach((b) => {
         Matter.Body.setVelocity(b, {
-          x: (Math.random() - 0.5) * 8,
-          y: (Math.random() - 0.5) * 4,
+          x: (Math.random() - 0.5) * 3,
+          y: 2 + Math.random() * 3, // Falling downward
         });
       });
     };
@@ -221,18 +220,22 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       timers.push(window.setTimeout(fn, ms));
     };
 
-    setT(1000, () => {
-      setPhase("logoBob");
-      // Create logo physics body
-      const logoBody = Matter.Bodies.rectangle(w / 2, -100, 300 * dpr, 70 * dpr, {
-        restitution: 0.3,
+    // Create logo immediately and let it fall with the emojis
+    setTimeout(() => {
+      const logoBody = Matter.Bodies.rectangle(w / 2, -150, 280 * dpr, 60 * dpr, {
+        restitution: 0.35,
         friction: 0.2,
-        frictionAir: 0.03,
-        density: 0.0008,
+        frictionAir: 0.015,
+        density: 0.0006, // Lighter so it floats on top
       });
+      (logoBody as any).isLogo = true;
       logoBodyRef.current = logoBody;
       Matter.Composite.add(engine.world, logoBody);
-      Matter.Body.setVelocity(logoBody, { x: 0, y: 10 });
+      Matter.Body.setVelocity(logoBody, { x: 0, y: 5 });
+    }, 200);
+
+    setT(1000, () => {
+      setPhase("logoBob");
     });
 
     setT(2000, () => {
@@ -312,7 +315,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     );
   }
 
-  const showLogo = phase === "logoBob" || phase === "drain1";
+  const showLogo = phase === "flood1" || phase === "logoBob" || phase === "drain1";
   const showCard = phase === "cardHold" || phase === "flood2" || phase === "drain2";
 
   return (
