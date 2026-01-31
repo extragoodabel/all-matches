@@ -791,6 +791,16 @@ async function generateBioWithOpenAI(context: {
   lookingForLine?: string | null;
   isChaos?: boolean;
   chaosType?: string;
+  // Texting style for bio voice
+  textingStyle?: {
+    slang: string;
+    caps: string;
+    typos: string;
+    emojis: string;
+    messageLength: string;
+    punctuation: string;
+  };
+  hometown?: string;
 }): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY) return null;
 
@@ -911,20 +921,85 @@ CHAOS MODE ACTIVE - This person is ${context.chaosType}:
 `;
   }
 
+  // Build WRITING STYLE instructions - THIS IS CRITICAL FOR VARIETY
+  let writingStyleInstruction = '';
+  if (context.textingStyle) {
+    const ts = context.textingStyle;
+    const styleRules: string[] = [];
+    
+    // Capitalization
+    if (ts.caps.toLowerCase().includes('lowercase')) {
+      styleRules.push('Write in ALL LOWERCASE. No capitals anywhere, not even "i".');
+    } else if (ts.caps.toLowerCase().includes('all caps enthusiast') || ts.caps.toLowerCase().includes('caps a lot')) {
+      styleRules.push('Write in ALL CAPS or mostly caps. Be LOUD.');
+    } else if (ts.caps.toLowerCase().includes('chaotic') || ts.caps.toLowerCase().includes('random')) {
+      styleRules.push('Use cHaOtIc CaPiTaLiZaTiOn for emphasis.');
+    }
+    
+    // Slang
+    if (ts.slang.toLowerCase().includes('no slang') || ts.slang.toLowerCase().includes('formal')) {
+      styleRules.push('Use proper, formal vocabulary. No slang.');
+    } else if (ts.slang.toLowerCase().includes('heavy') || ts.slang.toLowerCase().includes('internet')) {
+      styleRules.push('Use internet slang: lol, tbh, ngl, idk, fr.');
+    } else if (ts.slang.toLowerCase().includes('gen-z') || ts.slang.toLowerCase().includes('zoomer')) {
+      styleRules.push('Use gen-z speak: no cap, slay, ate, bestie, its giving.');
+    } else if (ts.slang.toLowerCase().includes('text shorthand')) {
+      styleRules.push('Use text shorthand: u, ur, bc, pls, thx.');
+    } else if (ts.slang.toLowerCase().includes('regional')) {
+      styleRules.push(`Use regional slang from ${context.hometown || 'your area'}.`);
+    } else if (ts.slang.toLowerCase().includes('aave')) {
+      styleRules.push('Use AAVE-influenced language naturally.');
+    }
+    
+    // Punctuation
+    if (ts.punctuation.toLowerCase().includes('no punctuation') || ts.punctuation.toLowerCase().includes('just vibes')) {
+      styleRules.push('NO PUNCTUATION at all just let it flow');
+    } else if (ts.punctuation.toLowerCase().includes('minimal')) {
+      styleRules.push('Minimal punctuation. Skip periods and commas mostly.');
+    } else if (ts.punctuation.toLowerCase().includes('excessive') || ts.punctuation.toLowerCase().includes('!!!')) {
+      styleRules.push('Use excessive punctuation!!! Lots of !!! and ???');
+    } else if (ts.punctuation.toLowerCase().includes('ellipsis')) {
+      styleRules.push('Trail off with ellipses... like you do...');
+    }
+    
+    // Emojis
+    if (ts.emojis.toLowerCase().includes('no emoji')) {
+      styleRules.push('NO emojis.');
+    } else if (ts.emojis.toLowerCase().includes('heavy') || ts.emojis.toLowerCase().includes('liberal')) {
+      styleRules.push('Use lots of emojis 😭🔥💀');
+    } else if (ts.emojis.toLowerCase().includes('emoticon')) {
+      styleRules.push('Use old-school emoticons only :) :/ <3');
+    }
+    
+    // Typos
+    if (ts.typos.toLowerCase().includes('frequent')) {
+      styleRules.push('Include natural typos like a fast texter.');
+    }
+    
+    if (styleRules.length > 0) {
+      writingStyleInstruction = `
+WRITING STYLE (MANDATORY - this is what makes you sound UNIQUE):
+${styleRules.map(r => `- ${r}`).join('\n')}
+The way you write is your VOICE. If every bio sounds the same, we failed.
+`;
+    }
+  }
+
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
 APPROACH: ${leadInstruction}
 STRUCTURE: ${structureHint}
-${chaosInstruction}
+${chaosInstruction}${writingStyleInstruction}
 Character seed (use ONE element, weave naturally):
 - Personality: ${context.archetypeLabel}
 - Interest: ${featuredInterest}
 ${context.quirk ? `- Quirk: ${context.quirk}` : ""}
 - Flirt energy: ${context.flirtPercent}/100
+${context.hometown ? `- From: ${context.hometown}` : ""}
 
 ${context.lookingForLine ? `What they want: ${context.lookingForLine}\n` : ""}
 
-FORMAT: STRICT ${targetLines} line(s) max. Short punchy lines. 0-2 emojis. No em dashes.
+FORMAT: STRICT ${targetLines} line(s) max. Short punchy lines. 0-2 emojis max. No em dashes.
 
 VARIETY IS KEY:
 Be original. Don't default to common dating app topics. Surprise the reader with something they haven't seen before.
@@ -1005,6 +1080,15 @@ async function generateUniqueBio(context: {
   lookingForLine?: string | null;
   isChaos?: boolean;
   chaosType?: string;
+  textingStyle?: {
+    slang: string;
+    caps: string;
+    typos: string;
+    emojis: string;
+    messageLength: string;
+    punctuation: string;
+  };
+  hometown?: string;
 }): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const bio = await generateBioWithOpenAI(context);
@@ -1041,6 +1125,17 @@ function generateCharacterSpec(context: {
   valentinesEager: boolean;
   isChaos: boolean;
   chaosType?: string;
+  // Optional pre-built texting style (to match bio)
+  preTextingStyle?: {
+    slang: string;
+    caps: string;
+    typos: string;
+    emojis: string;
+    messageLength: string;
+    punctuation: string;
+  };
+  preHometown?: string;
+  preHometownRegion?: string;
 }): string {
   const seed = crypto.createHash("md5").update(context.name + context.archetypeLabel + context.quirk).digest("hex");
   const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
@@ -1194,24 +1289,31 @@ function generateCharacterSpec(context: {
   const signatureBits = [bits[n(8) % bits.length], bits[n(10) % bits.length]];
   const origin = originProfiles[n(24) % originProfiles.length];
 
-  // Pick a hometown for regional flavor
-  const hometown = hometowns[n(34) % hometowns.length];
+  // Pick a hometown for regional flavor - use pre-built if provided
+  const hometown = context.preHometown 
+    ? { city: context.preHometown, region: context.preHometownRegion || "unknown", slang: "" }
+    : hometowns[n(34) % hometowns.length];
   
-  // Build detailed texting style
-  let selectedSlang = slangProfiles[n(6) % slangProfiles.length];
-  // If they got "regional hometown slang", substitute with their actual hometown slang
-  if (selectedSlang.includes("regional")) {
-    selectedSlang = `regional slang from ${hometown.city}: ${hometown.slang}`;
+  // Build detailed texting style - USE PRE-BUILT IF PROVIDED (to match bio)
+  let textingStyle;
+  if (context.preTextingStyle) {
+    textingStyle = context.preTextingStyle;
+  } else {
+    let selectedSlang = slangProfiles[n(6) % slangProfiles.length];
+    // If they got "regional hometown slang", substitute with their actual hometown slang
+    if (selectedSlang.includes("regional")) {
+      selectedSlang = `regional slang from ${hometown.city}: ${hometown.slang}`;
+    }
+    
+    textingStyle = {
+      slang: selectedSlang,
+      caps: capsStyles[n(26) % capsStyles.length],
+      typos: typoFrequencies[n(28) % typoFrequencies.length],
+      emojis: emojiProfiles[n(30) % emojiProfiles.length],
+      messageLength: messageLengthStyles[n(32) % messageLengthStyles.length],
+      punctuation: punctuationStyles[n(36) % punctuationStyles.length]
+    };
   }
-  
-  const textingStyle = {
-    slang: selectedSlang,
-    caps: capsStyles[n(26) % capsStyles.length],
-    typos: typoFrequencies[n(28) % typoFrequencies.length],
-    emojis: emojiProfiles[n(30) % emojiProfiles.length],
-    messageLength: messageLengthStyles[n(32) % messageLengthStyles.length],
-    punctuation: punctuationStyles[n(36) % punctuationStyles.length]
-  };
 
   const spec = {
     name: context.name,
@@ -1420,6 +1522,99 @@ async function generateProfilesInBackground(
           // Quirk: optional
           const quirk = persona.quirkHint && chance(0.25) ? persona.quirkHint : pickQuirk();
 
+          // PRE-GENERATE TEXTING STYLE so bio and charSpec share the same voice
+          const pregenSlangProfiles = [
+            "no slang / formal - proper vocabulary only",
+            "light casual slang",
+            "heavy internet slang (lol, tbh, ngl, idk, rn, fr fr)",
+            "text shorthand (u, ur, bc, omg, pls, thx)",
+            "gen-z zoomer speak (no cap, slay, ate, bestie, lowkey, highkey, its giving)",
+            "chronically-online (parasocial, based, cope, touch grass)",
+            "regional hometown slang",
+            "slightly outdated slang (rad, dope, sick, gnarly)",
+            "AAVE-influenced (bet, finna, ion, lowkey)",
+            "millennial tumblr era (I can't even, literally dying, screaming)"
+          ];
+          const pregenCapsStyles = [
+            "proper capitalization",
+            "proper capitalization",
+            "all lowercase always",
+            "all lowercase always",
+            "ALL CAPS ENTHUSIAST - types in caps a lot",
+            "ALL CAPS WHEN EXCITED",
+            "occasional caps for EMPHASIS",
+            "chaotic random CaPiTaLiZaTiOn",
+            "no caps ever, minimal punctuation too"
+          ];
+          const pregenPunctuationStyles = [
+            "proper punctuation",
+            "proper punctuation",
+            "minimal punctuation - few periods or commas",
+            "no punctuation just vibes",
+            "excessive punctuation!!! and ???",
+            "ellipsis person... trails off...",
+            "period after every sentence. very deliberate."
+          ];
+          const pregenEmojiProfiles = [
+            "no emojis ever",
+            "no emojis ever",
+            "rare emojis (1-2 per convo max)",
+            "occasional emojis",
+            "frequent emojis 🔥😂",
+            "emoji-heavy - multiple per message 😭💀🙏✨",
+            "emoticons only :) :/ <3 xD",
+            "skull emoji enthusiast 💀💀💀"
+          ];
+          const pregenTypoFrequencies = [
+            "none - clean typing",
+            "none - clean typing",
+            "rare typos (1 in 10)",
+            "occasional typos",
+            "frequent typos - types fast doesnt proofread",
+            "autocorrect chaos - wrong words sometimes"
+          ];
+          const pregenMessageLengthStyles = [
+            "terse - 2-5 words max, fragments only",
+            "very short and clipped",
+            "short and punchy",
+            "short and punchy",
+            "medium conversational",
+            "medium conversational",
+            "longer and expressive",
+            "rambly - goes on tangents"
+          ];
+          const pregenHometowns = [
+            { city: "Brooklyn", region: "NYC" },
+            { city: "Boston", region: "New England" },
+            { city: "Philly", region: "Mid-Atlantic" },
+            { city: "Atlanta", region: "Deep South" },
+            { city: "Houston", region: "Texas" },
+            { city: "Chicago", region: "Midwest" },
+            { city: "LA", region: "SoCal" },
+            { city: "Bay Area", region: "NorCal" },
+            { city: "Seattle", region: "Pacific Northwest" },
+            { city: "Denver", region: "Mountain West" },
+            { city: "Miami", region: "Florida" },
+            { city: "Nashville", region: "Tennessee" },
+            { city: "small town", region: "rural America" },
+            { city: "suburbs", region: "generic" },
+          ];
+          
+          const preHometown = pick(pregenHometowns);
+          let preSlang = pick(pregenSlangProfiles);
+          if (preSlang.includes("regional")) {
+            preSlang = `regional slang from ${preHometown.city}`;
+          }
+          
+          const preTextingStyle = {
+            slang: preSlang,
+            caps: pick(pregenCapsStyles),
+            typos: pick(pregenTypoFrequencies),
+            emojis: pick(pregenEmojiProfiles),
+            messageLength: pick(pregenMessageLengthStyles),
+            punctuation: pick(pregenPunctuationStyles)
+          };
+
           const bio = await generateUniqueBio({
             name,
             age,
@@ -1432,6 +1627,8 @@ async function generateProfilesInBackground(
             lookingForLine,
             isChaos,
             chaosType,
+            textingStyle: preTextingStyle,
+            hometown: preHometown.city,
           });
 
           const charSpec = generateCharacterSpec({
@@ -1445,6 +1642,10 @@ async function generateProfilesInBackground(
             flirtStyle,
             valentinesEager: false,
             isChaos,
+            chaosType,
+            preTextingStyle: preTextingStyle,
+            preHometown: preHometown.city,
+            preHometownRegion: preHometown.region,
           });
 
           const imageAsset = storage.getUniqueImageAsset(gender as "male" | "female" | "other");
