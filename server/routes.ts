@@ -58,7 +58,7 @@ interface TopicLimit {
 }
 
 const TOPIC_LIMITS: Record<string, TopicLimit> = {
-  pizza: { pattern: /pizza|🍕/i, maxRatio: 150, count: 0 },
+  pizza: { pattern: /pizza|🍕/i, maxRatio: 50, count: 0 },
   ranch_pizza: { pattern: /ranch.{0,20}pizza|pizza.{0,20}ranch/i, maxRatio: 150, count: 0 },
   pineapple_pizza: { pattern: /pineapple.{0,20}pizza|pizza.{0,20}pineapple/i, maxRatio: 150, count: 0 },
   three_five_stars: { pattern: /3\.5\s*star|three\s*and\s*a\s*half\s*star/i, maxRatio: 200, count: 0 },
