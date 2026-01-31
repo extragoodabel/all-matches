@@ -61,7 +61,7 @@ const TOPIC_LIMITS: Record<string, TopicLimit> = {
   pizza: { pattern: /pizza|🍕/i, maxRatio: 50, count: 0 },
   ranch_pizza: { pattern: /ranch.{0,20}pizza|pizza.{0,20}ranch/i, maxRatio: 150, count: 0 },
   pineapple_pizza: { pattern: /pineapple.{0,20}pizza|pizza.{0,20}pineapple/i, maxRatio: 150, count: 0 },
-  three_five_stars: { pattern: /3\.5\s*star|three\s*and\s*a\s*half\s*star/i, maxRatio: 200, count: 0 },
+  three_five_stars: { pattern: /3\.5\s*star|three\s*and\s*a\s*half\s*star/i, maxRatio: 150, count: 0 },
   kerning: { pattern: /kerning/i, maxRatio: 200, count: 0 },
   coffee: { pattern: /coffee/i, maxRatio: 20, count: 0 },
   playlist: { pattern: /playlist/i, maxRatio: 30, count: 0 },
@@ -85,6 +85,10 @@ const TOPIC_LIMITS: Record<string, TopicLimit> = {
   flip_phone: { pattern: /flip\s*phone/i, maxRatio: 100, count: 0 },
   movie_quotes: { pattern: /you can't handle|i'll be back|here's looking at you|frankly.*don't give|may the force|life is like a box|you talking to me|i see dead people|show me the money|houston.*problem|bond.*james bond|i'm gonna make.*offer|there's no place like|we're gonna need a bigger|say hello to my|you had me at|nobody puts baby|i feel the need|to infinity and beyond|why so serious|i am your father/i, maxRatio: 20, count: 0 },
   movie_quote_phrase: { pattern: /movie\s*quote/i, maxRatio: 30, count: 0 },
+  small_talk: { pattern: /terrible at small talk|bad at small talk|hate small talk|not great at small talk|can't do small talk|skip the small talk/i, maxRatio: 50, count: 0 },
+  life_happens_quote: { pattern: /life is what happens.{0,20}busy making.{0,10}plans/i, maxRatio: 100, count: 0 },
+  ferris_bueller_quote: { pattern: /life moves pretty fast|stop and look around/i, maxRatio: 100, count: 0 },
+  warning_bio: { pattern: /^warning:/i, maxRatio: 50, count: 0 },
 };
 
 let totalProfilesGenerated = 0;
@@ -109,7 +113,8 @@ function checkBioForBannedTopics(bio: string): string | null {
     'fan_sleeping', 'princess_bride',
     'fur_baby', 'dog', 'cat',
     'date_ideas_notes', 'snacks', 'politics', 'flashlight', 'google',
-    'deadlines', 'spreadsheets', 'flip_phone', 'movie_quotes', 'movie_quote_phrase'
+    'deadlines', 'spreadsheets', 'flip_phone', 'movie_quotes', 'movie_quote_phrase',
+    'small_talk', 'life_happens_quote', 'ferris_bueller_quote', 'warning_bio'
   ];
   
   for (const key of ordered) {
@@ -163,6 +168,10 @@ function registerTopicsInBio(bio: string): void {
   if (TOPIC_LIMITS.flip_phone.pattern.test(bio)) TOPIC_LIMITS.flip_phone.count++;
   if (TOPIC_LIMITS.movie_quotes.pattern.test(bio)) TOPIC_LIMITS.movie_quotes.count++;
   if (TOPIC_LIMITS.movie_quote_phrase.pattern.test(bio)) TOPIC_LIMITS.movie_quote_phrase.count++;
+  if (TOPIC_LIMITS.small_talk.pattern.test(bio)) TOPIC_LIMITS.small_talk.count++;
+  if (TOPIC_LIMITS.life_happens_quote.pattern.test(bio)) TOPIC_LIMITS.life_happens_quote.count++;
+  if (TOPIC_LIMITS.ferris_bueller_quote.pattern.test(bio)) TOPIC_LIMITS.ferris_bueller_quote.count++;
+  if (TOPIC_LIMITS.warning_bio.pattern.test(bio)) TOPIC_LIMITS.warning_bio.count++;
   
   totalProfilesGenerated++;
 }
@@ -196,6 +205,10 @@ function getBannedTopicsForPrompt(): string[] {
   if (!isTopicAllowed('flip_phone')) banned.push('flip phone');
   if (!isTopicAllowed('movie_quotes')) banned.push('movie quotes', 'famous movie lines');
   if (!isTopicAllowed('movie_quote_phrase')) banned.push('saying "movie quote"');
+  if (!isTopicAllowed('small_talk')) banned.push('terrible at small talk', 'bad at small talk');
+  if (!isTopicAllowed('life_happens_quote')) banned.push('life is what happens quote');
+  if (!isTopicAllowed('ferris_bueller_quote')) banned.push('life moves pretty fast quote', 'Ferris Bueller quote');
+  if (!isTopicAllowed('warning_bio')) banned.push('starting bio with "Warning:"');
   return banned;
 }
 
