@@ -1,0 +1,69 @@
+FEATURE: Add a short, brand-forward splash screen shown only at app start.
+
+WHY:
+We need a 1–2 second buffer at first load to:
+1) give the app time to load data/components
+2) prime the user for the vibe without revealing too much
+
+HIGH-LEVEL UX:
+- Show a splash overlay immediately on first app render.
+- Play a quick animation (total duration ~1200–1800ms).
+- Then fade/slide into the main experience.
+- IMPORTANT: Do not block core app loading. Load data/components in parallel under the hood.
+
+VISUAL DIRECTION (ON THEME):
+- Maximalist, loud, playful. Pattern-heavy background.
+- The “All Matches” wordmark/logo drops into frame (smooth, slightly bouncy easing).
+- A wave/surge of our brand emojis swirls across the screen (like a brief gust), momentarily “wiping” the screen, then disperses quickly.
+- The emoji motion should feel chaotic but controlled, not like confetti at a kid’s party. More like a stylish dopamine storm.
+- After the swirl disperses, reveal a centered card with punchy copy.
+
+COPY (keep it minimal, don’t overexplain):
+Headline: “All validation. No obligation.”
+Subhead: “No profile. No pressure. Your matches are already waiting.”
+Optional tiny line (if it fits): “Tap to begin” (only if we want users to feel in control; otherwise auto-advance)
+
+DESIGN SPEC:
+- Background: maximalist pattern layer (repeatable SVG or CSS pattern). Use 2–3 layers with low opacity to create depth.
+- Foreground: floating emoji layer during animation only.
+- Card: high contrast, rounded corners, subtle shadow, bold type. Keep it readable against the pattern.
+- Make it feel premium, not cheesy. Avoid “food themed” framing. Food alone is not a personality.
+
+ANIMATION SPEC (simple + performant):
+Sequence:
+1) Background pattern visible instantly.
+2) Logo drops in from above with a soft bounce (300–500ms).
+3) Emoji wave swirls upward/diagonal across the screen (500–900ms), acts like a wipe.
+4) Emojis disperse/fade out quickly (200–400ms).
+5) Copy card fades in + slight scale up (200–300ms).
+6) Whole splash fades out or slides up to reveal main UI.
+
+PERFORMANCE / FUNCTIONAL REQUIREMENTS:
+- Splash should not delay initial data fetching. Load app content in parallel.
+- Splash should not cause layout shift in the underlying app.
+- Accessible: respect “prefers-reduced-motion” and use a simpler fade version for those users.
+- Mobile safe: no jank, no huge CPU usage. Keep emoji count modest (e.g., 12–24 elements) and reuse transforms, avoid heavy filters.
+- Z-index: splash sits above all UI while active.
+- Dismiss rules:
+  - Default: auto-dismiss after animation finishes OR as soon as core content is ready, whichever is later, with a max cap (ex: 2.5s) so it never hangs.
+  - If core content loads instantly, still show splash for at least ~900ms so it reads intentionally (minimum duration).
+- Show only once per session (or once per day) using localStorage flag:
+  - Example: localStorage.setItem("seenSplash", "true")
+  - On refresh, skip splash and go straight to content.
+
+IMPLEMENTATION GUIDANCE:
+- Create a <SplashScreen /> component and render conditionally in the app root/layout.
+- Use CSS animations or a lightweight animation library if already installed (prefer CSS if possible).
+- Emoji assets: use our existing emoji set (or fallback to unicode emojis if needed).
+- Pattern: implement as a CSS background using repeating-linear-gradient or a small tiled SVG to avoid large images.
+
+DELIVERABLE:
+- Provide code changes in full for:
+  1) SplashScreen component
+  2) App root integration (state timing + localStorage)
+  3) CSS animations / styles
+- Confirm:
+  - Splash plays smoothly on desktop + mobile
+  - App still loads in parallel
+  - Splash never traps the user (max duration cap)
+  - Reduced motion mode works
