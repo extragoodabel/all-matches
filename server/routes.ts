@@ -66,7 +66,19 @@ const TOPIC_LIMITS: Record<string, TopicLimit> = {
   playlist: { pattern: /playlist/i, maxRatio: 30, count: 0 },
   geoguessr: { pattern: /geoguessr/i, maxRatio: 200, count: 0 },
   star_wars: { pattern: /star\s*wars/i, maxRatio: 100, count: 0 },
-  plant_parent: { pattern: /plant\s*(parent|mom|dad|baby)|houseplant|name.{0,15}plant/i, maxRatio: 50, count: 0 },
+  plant_parent: { pattern: /plant\s*(parent|mom|dad)|houseplant/i, maxRatio: 50, count: 0 },
+  naming_plants: { pattern: /nam(e|ing|ed).{0,15}plant/i, maxRatio: 50, count: 0 },
+  fan_sleeping: { pattern: /fan.{0,20}(sleep|winter|on at night)|sleep.{0,20}fan/i, maxRatio: 300, count: 0 },
+  princess_bride: { pattern: /princess\s*bride|inconceivable|as you wish/i, maxRatio: 100, count: 0 },
+  dog: { pattern: /\bdog(s|go)?\b|\bpup(py|pies|s)?\b|\bcanine/i, maxRatio: 25, count: 0 },
+  cat: { pattern: /\bcat(s)?\b|\bkitt(y|ies|en)/i, maxRatio: 40, count: 0 },
+  fur_baby: { pattern: /fur\s*bab(y|ies)/i, maxRatio: 50, count: 0 },
+  date_ideas_notes: { pattern: /date\s*(idea|spot|list).{0,15}note|notes?\s*app.{0,15}date/i, maxRatio: 200, count: 0 },
+  fonts: { pattern: /\bfont(s)?\b|typography|typeface/i, maxRatio: 100, count: 0 },
+  snacks: { pattern: /\bsnack(s|ing)?\b/i, maxRatio: 50, count: 0 },
+  politics: { pattern: /politic(s|al)|democrat|republican|liberal|conservative|vote|voting|election/i, maxRatio: 50, count: 0 },
+  flashlight: { pattern: /flashlight/i, maxRatio: 200, count: 0 },
+  google: { pattern: /googl(e|ing|ed)/i, maxRatio: 75, count: 0 },
 };
 
 let totalProfilesGenerated = 0;
@@ -81,8 +93,16 @@ function isTopicAllowed(topicKey: string): boolean {
 }
 
 function checkBioForBannedTopics(bio: string): string | null {
-  // Check more specific patterns first (ranch_pizza, pineapple_pizza before pizza)
-  const ordered = ['ranch_pizza', 'pineapple_pizza', 'pizza', 'kerning', 'coffee', 'playlist', 'geoguessr', 'star_wars', 'plant_parent'];
+  // Check more specific patterns first (ranch_pizza, pineapple_pizza before pizza, fur_baby before dog/cat)
+  const ordered = [
+    'ranch_pizza', 'pineapple_pizza', 'pizza', 
+    'kerning', 'fonts',
+    'coffee', 'playlist', 'geoguessr', 'star_wars', 
+    'plant_parent', 'naming_plants',
+    'fan_sleeping', 'princess_bride',
+    'fur_baby', 'dog', 'cat',
+    'date_ideas_notes', 'snacks', 'politics', 'flashlight', 'google'
+  ];
   
   for (const key of ordered) {
     const limit = TOPIC_LIMITS[key];
@@ -96,37 +116,40 @@ function checkBioForBannedTopics(bio: string): string | null {
 }
 
 function registerTopicsInBio(bio: string): void {
-  // Check specific patterns first
-  if (TOPIC_LIMITS.ranch_pizza.pattern.test(bio)) {
-    TOPIC_LIMITS.ranch_pizza.count++;
-  }
-  if (TOPIC_LIMITS.pineapple_pizza.pattern.test(bio)) {
-    TOPIC_LIMITS.pineapple_pizza.count++;
-  }
+  // Check specific patterns first (more specific before general)
+  if (TOPIC_LIMITS.ranch_pizza.pattern.test(bio)) TOPIC_LIMITS.ranch_pizza.count++;
+  if (TOPIC_LIMITS.pineapple_pizza.pattern.test(bio)) TOPIC_LIMITS.pineapple_pizza.count++;
   // Only count general pizza if not already counted as ranch/pineapple
   if (TOPIC_LIMITS.pizza.pattern.test(bio) && 
       !TOPIC_LIMITS.ranch_pizza.pattern.test(bio) && 
       !TOPIC_LIMITS.pineapple_pizza.pattern.test(bio)) {
     TOPIC_LIMITS.pizza.count++;
   }
-  if (TOPIC_LIMITS.kerning.pattern.test(bio)) {
-    TOPIC_LIMITS.kerning.count++;
-  }
-  if (TOPIC_LIMITS.coffee.pattern.test(bio)) {
-    TOPIC_LIMITS.coffee.count++;
-  }
-  if (TOPIC_LIMITS.playlist.pattern.test(bio)) {
-    TOPIC_LIMITS.playlist.count++;
-  }
-  if (TOPIC_LIMITS.geoguessr.pattern.test(bio)) {
-    TOPIC_LIMITS.geoguessr.count++;
-  }
-  if (TOPIC_LIMITS.star_wars.pattern.test(bio)) {
-    TOPIC_LIMITS.star_wars.count++;
-  }
-  if (TOPIC_LIMITS.plant_parent.pattern.test(bio)) {
-    TOPIC_LIMITS.plant_parent.count++;
-  }
+  
+  // Standard topics
+  if (TOPIC_LIMITS.kerning.pattern.test(bio)) TOPIC_LIMITS.kerning.count++;
+  if (TOPIC_LIMITS.fonts.pattern.test(bio)) TOPIC_LIMITS.fonts.count++;
+  if (TOPIC_LIMITS.coffee.pattern.test(bio)) TOPIC_LIMITS.coffee.count++;
+  if (TOPIC_LIMITS.playlist.pattern.test(bio)) TOPIC_LIMITS.playlist.count++;
+  if (TOPIC_LIMITS.geoguessr.pattern.test(bio)) TOPIC_LIMITS.geoguessr.count++;
+  if (TOPIC_LIMITS.star_wars.pattern.test(bio)) TOPIC_LIMITS.star_wars.count++;
+  if (TOPIC_LIMITS.plant_parent.pattern.test(bio)) TOPIC_LIMITS.plant_parent.count++;
+  if (TOPIC_LIMITS.naming_plants.pattern.test(bio)) TOPIC_LIMITS.naming_plants.count++;
+  if (TOPIC_LIMITS.fan_sleeping.pattern.test(bio)) TOPIC_LIMITS.fan_sleeping.count++;
+  if (TOPIC_LIMITS.princess_bride.pattern.test(bio)) TOPIC_LIMITS.princess_bride.count++;
+  
+  // Pets: fur_baby counted separately, dog/cat are general
+  if (TOPIC_LIMITS.fur_baby.pattern.test(bio)) TOPIC_LIMITS.fur_baby.count++;
+  if (TOPIC_LIMITS.dog.pattern.test(bio)) TOPIC_LIMITS.dog.count++;
+  if (TOPIC_LIMITS.cat.pattern.test(bio)) TOPIC_LIMITS.cat.count++;
+  
+  // Other topics
+  if (TOPIC_LIMITS.date_ideas_notes.pattern.test(bio)) TOPIC_LIMITS.date_ideas_notes.count++;
+  if (TOPIC_LIMITS.snacks.pattern.test(bio)) TOPIC_LIMITS.snacks.count++;
+  if (TOPIC_LIMITS.politics.pattern.test(bio)) TOPIC_LIMITS.politics.count++;
+  if (TOPIC_LIMITS.flashlight.pattern.test(bio)) TOPIC_LIMITS.flashlight.count++;
+  if (TOPIC_LIMITS.google.pattern.test(bio)) TOPIC_LIMITS.google.count++;
+  
   totalProfilesGenerated++;
 }
 
@@ -135,12 +158,24 @@ function getBannedTopicsForPrompt(): string[] {
   if (!isTopicAllowed('pizza')) banned.push('pizza');
   if (!isTopicAllowed('ranch_pizza')) banned.push('ranch on pizza');
   if (!isTopicAllowed('pineapple_pizza')) banned.push('pineapple on pizza');
-  if (!isTopicAllowed('kerning')) banned.push('kerning', 'typography', 'fonts');
+  if (!isTopicAllowed('kerning')) banned.push('kerning');
+  if (!isTopicAllowed('fonts')) banned.push('fonts', 'typography', 'typefaces');
   if (!isTopicAllowed('coffee')) banned.push('coffee');
   if (!isTopicAllowed('playlist')) banned.push('playlists');
   if (!isTopicAllowed('geoguessr')) banned.push('GeoGuessr');
   if (!isTopicAllowed('star_wars')) banned.push('Star Wars');
-  if (!isTopicAllowed('plant_parent')) banned.push('houseplants', 'plant parent', 'naming plants');
+  if (!isTopicAllowed('plant_parent')) banned.push('houseplants', 'plant parent');
+  if (!isTopicAllowed('naming_plants')) banned.push('naming plants');
+  if (!isTopicAllowed('fan_sleeping')) banned.push('sleeping with fan on', 'fan at night');
+  if (!isTopicAllowed('princess_bride')) banned.push('Princess Bride', 'inconceivable', 'as you wish');
+  if (!isTopicAllowed('dog')) banned.push('dogs', 'puppies');
+  if (!isTopicAllowed('cat')) banned.push('cats', 'kittens');
+  if (!isTopicAllowed('fur_baby')) banned.push('fur baby', 'fur babies');
+  if (!isTopicAllowed('date_ideas_notes')) banned.push('date ideas in notes app', 'date spots list');
+  if (!isTopicAllowed('snacks')) banned.push('snacks', 'snacking');
+  if (!isTopicAllowed('politics')) banned.push('politics', 'voting', 'elections');
+  if (!isTopicAllowed('flashlight')) banned.push('flashlight');
+  if (!isTopicAllowed('google')) banned.push('googling', 'Google search');
   return banned;
 }
 
