@@ -48,6 +48,102 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+// ------------------------------------------------------------
+// Topic Rate Limiting - HARD LIMITS on overused topics
+// ------------------------------------------------------------
+interface TopicLimit {
+  pattern: RegExp;
+  maxRatio: number; // 1/N - e.g., 50 means 1 in 50 profiles can mention this
+  count: number;
+}
+
+const TOPIC_LIMITS: Record<string, TopicLimit> = {
+  pizza: { pattern: /pizza/i, maxRatio: 50, count: 0 },
+  ranch_pizza: { pattern: /ranch.{0,20}pizza|pizza.{0,20}ranch/i, maxRatio: 150, count: 0 },
+  pineapple_pizza: { pattern: /pineapple.{0,20}pizza|pizza.{0,20}pineapple/i, maxRatio: 150, count: 0 },
+  kerning: { pattern: /kerning/i, maxRatio: 200, count: 0 },
+  coffee: { pattern: /coffee/i, maxRatio: 20, count: 0 },
+  playlist: { pattern: /playlist/i, maxRatio: 30, count: 0 },
+  geoguessr: { pattern: /geoguessr/i, maxRatio: 200, count: 0 },
+  star_wars: { pattern: /star\s*wars/i, maxRatio: 100, count: 0 },
+  plant_parent: { pattern: /plant\s*(parent|mom|dad|baby)|houseplant|name.{0,15}plant/i, maxRatio: 50, count: 0 },
+};
+
+let totalProfilesGenerated = 0;
+
+function isTopicAllowed(topicKey: string): boolean {
+  const limit = TOPIC_LIMITS[topicKey];
+  if (!limit) return true;
+  
+  // Calculate max allowed for current profile count
+  const maxAllowed = Math.floor(totalProfilesGenerated / limit.maxRatio);
+  return limit.count < maxAllowed + 1; // Allow one more if we're at the edge
+}
+
+function checkBioForBannedTopics(bio: string): string | null {
+  // Check more specific patterns first (ranch_pizza, pineapple_pizza before pizza)
+  const ordered = ['ranch_pizza', 'pineapple_pizza', 'pizza', 'kerning', 'coffee', 'playlist', 'geoguessr', 'star_wars', 'plant_parent'];
+  
+  for (const key of ordered) {
+    const limit = TOPIC_LIMITS[key];
+    if (limit.pattern.test(bio)) {
+      if (!isTopicAllowed(key)) {
+        return key;
+      }
+    }
+  }
+  return null;
+}
+
+function registerTopicsInBio(bio: string): void {
+  // Check specific patterns first
+  if (TOPIC_LIMITS.ranch_pizza.pattern.test(bio)) {
+    TOPIC_LIMITS.ranch_pizza.count++;
+  }
+  if (TOPIC_LIMITS.pineapple_pizza.pattern.test(bio)) {
+    TOPIC_LIMITS.pineapple_pizza.count++;
+  }
+  // Only count general pizza if not already counted as ranch/pineapple
+  if (TOPIC_LIMITS.pizza.pattern.test(bio) && 
+      !TOPIC_LIMITS.ranch_pizza.pattern.test(bio) && 
+      !TOPIC_LIMITS.pineapple_pizza.pattern.test(bio)) {
+    TOPIC_LIMITS.pizza.count++;
+  }
+  if (TOPIC_LIMITS.kerning.pattern.test(bio)) {
+    TOPIC_LIMITS.kerning.count++;
+  }
+  if (TOPIC_LIMITS.coffee.pattern.test(bio)) {
+    TOPIC_LIMITS.coffee.count++;
+  }
+  if (TOPIC_LIMITS.playlist.pattern.test(bio)) {
+    TOPIC_LIMITS.playlist.count++;
+  }
+  if (TOPIC_LIMITS.geoguessr.pattern.test(bio)) {
+    TOPIC_LIMITS.geoguessr.count++;
+  }
+  if (TOPIC_LIMITS.star_wars.pattern.test(bio)) {
+    TOPIC_LIMITS.star_wars.count++;
+  }
+  if (TOPIC_LIMITS.plant_parent.pattern.test(bio)) {
+    TOPIC_LIMITS.plant_parent.count++;
+  }
+  totalProfilesGenerated++;
+}
+
+function getBannedTopicsForPrompt(): string[] {
+  const banned: string[] = [];
+  if (!isTopicAllowed('pizza')) banned.push('pizza');
+  if (!isTopicAllowed('ranch_pizza')) banned.push('ranch on pizza');
+  if (!isTopicAllowed('pineapple_pizza')) banned.push('pineapple on pizza');
+  if (!isTopicAllowed('kerning')) banned.push('kerning', 'typography', 'fonts');
+  if (!isTopicAllowed('coffee')) banned.push('coffee');
+  if (!isTopicAllowed('playlist')) banned.push('playlists');
+  if (!isTopicAllowed('geoguessr')) banned.push('GeoGuessr');
+  if (!isTopicAllowed('star_wars')) banned.push('Star Wars');
+  if (!isTopicAllowed('plant_parent')) banned.push('houseplants', 'plant parent', 'naming plants');
+  return banned;
+}
+
 function chance(p: number): boolean {
   return Math.random() < p;
 }
@@ -709,6 +805,12 @@ async function generateBioWithOpenAI(context: {
   ];
   const structureHint = pick(structures);
 
+  // Get list of topics that have hit their rate limit
+  const bannedTopics = getBannedTopicsForPrompt();
+  const bannedLine = bannedTopics.length > 0 
+    ? `\nDO NOT MENTION: ${bannedTopics.join(', ')} - these topics are overused.` 
+    : '';
+
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
 APPROACH: ${leadInstruction}
@@ -727,7 +829,7 @@ FORMAT: STRICT ${targetLines} line(s) max. Short punchy lines. 0-2 emojis. No em
 VARIETY IS KEY:
 Be original. Don't default to common dating app topics. Surprise the reader with something they haven't seen before.
 Pick unexpected details, niche interests, specific memories, unusual opinions.
-Write like a real person with a unique perspective.
+Write like a real person with a unique perspective.${bannedLine}
 Output ONLY the bio text.`;
 
   try {
@@ -751,6 +853,13 @@ Output ONLY the bio text.`;
       const lines = text.split('\n').filter(l => l.trim());
       if (lines.length > 4) {
         text = lines.slice(0, 4).join('\n');
+      }
+      
+      // Check for rate-limited topics
+      const bannedTopic = checkBioForBannedTopics(text);
+      if (bannedTopic) {
+        console.log(`[Bio] Rejected: contains rate-limited topic '${bannedTopic}'`);
+        continue;
       }
       
       if (!isBadBio(text)) return text;
@@ -801,6 +910,8 @@ async function generateUniqueBio(context: {
       const h = hashBio(bio);
       if (!storage.usedBioHashes.has(h)) {
         storage.usedBioHashes.add(h);
+        // Register topics for rate limiting
+        registerTopicsInBio(bio);
         return bio;
       }
     }
@@ -808,6 +919,8 @@ async function generateUniqueBio(context: {
 
   const fallback = generateFallbackBio(context.interests, context.quirk, context.lookingForLine || null);
   storage.usedBioHashes.add(hashBio(fallback));
+  // Register topics for rate limiting
+  registerTopicsInBio(fallback);
   return fallback;
 }
 
@@ -935,33 +1048,43 @@ function pickQuirk(): string | null {
   if (!chance(0.35)) return null;
 
   const mugColor = pick(["green", "orange", "black", "clear glass", "ceramic", "metal", "pink", "yellow", "white"]);
-  const pool: { text: string; weight: number }[] = [
-    { text: "I make playlists for every mood.", weight: 14 },
-    { text: "I name all my houseplants.", weight: 12 },
-    { text: "I have opinions about font kerning.", weight: 10 },
+  
+  // Build pool with topic-gated quirks
+  const pool: { text: string; weight: number; topicKey?: string }[] = [
+    { text: "I make playlists for every mood.", weight: 14, topicKey: 'playlist' },
+    { text: "I name all my houseplants.", weight: 12, topicKey: 'plant_parent' },
+    { text: "I have opinions about font kerning.", weight: 10, topicKey: 'kerning' },
     { text: "I've memorized way too many movie quotes.", weight: 10 },
-    { text: "I'm a semi-pro at GeoGuessr.", weight: 8 },
+    { text: "I'm a semi-pro at GeoGuessr.", weight: 8, topicKey: 'geoguessr' },
     { text: "I still have a flip phone for the aesthetic.", weight: 6 },
-    { text: "I can't eat pizza without ranch.", weight: 10 },
+    { text: "I can't eat pizza without ranch.", weight: 10, topicKey: 'ranch_pizza' },
     { text: "I sleep with a fan on, even in winter.", weight: 10 },
-    { text: "I've never seen Star Wars. Be gentle.", weight: 8 },
+    { text: "I've never seen Star Wars. Be gentle.", weight: 8, topicKey: 'star_wars' },
     { text: "I have a notes app full of first-date ideas.", weight: 8 },
     { text: "I keep emergency snacks in every bag I own.", weight: 8 },
 
     // Ultra rare specifics
-    { text: `I only drink coffee from one specific ${mugColor} mug. No exceptions.`, weight: 0.35 },
+    { text: `I only drink coffee from one specific ${mugColor} mug. No exceptions.`, weight: 0.35, topicKey: 'coffee' },
     { text: "I collect tiny spoons like it's an Olympic sport.", weight: 0.20 },
     { text: "I'm weirdly good at naming pets.", weight: 0.20 },
     { text: "I am weirdly into maps.", weight: 0.18 },
   ];
 
-  const total = pool.reduce((s, p) => s + p.weight, 0);
+  // Filter out quirks for topics that have hit their rate limit
+  const allowed = pool.filter(item => {
+    if (!item.topicKey) return true;
+    return isTopicAllowed(item.topicKey);
+  });
+  
+  if (allowed.length === 0) return null;
+
+  const total = allowed.reduce((s, p) => s + p.weight, 0);
   let r = Math.random() * total;
-  for (const item of pool) {
+  for (const item of allowed) {
     r -= item.weight;
     if (r <= 0) return item.text;
   }
-  return pool[0].text;
+  return allowed[0].text;
 }
 
 // ------------------------------------------------------------
