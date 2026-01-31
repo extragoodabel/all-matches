@@ -189,7 +189,7 @@ export default function Home() {
               transition: 'transform 0.3s ease-out',
             }}
           >
-            Validation Vending Machine
+            Dopamine Vending Machine
           </span>
         </div>
         <div className="flex-shrink-0 px-4 sm:px-4 pt-3 pb-2">

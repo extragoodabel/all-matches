@@ -10,7 +10,7 @@ const SECONDARY_ICONS = [
   "🧪", "🧠", "🔥", "⚡", "💥", "🦩", "🍄", "🍒", "🌶️", "🍆", "💦", "🧨", "🩸", "🔗", "🔗"
 ];
 const RARE_ICONS = ["💉", "💉", "🧬", "👁️", "🪞", "🧿", "🫀", "🎭", "🔗"];
-const SUBLIMINAL_WORDS = ["MATCH", "VALIDATED", "SEEN", "REWARDED", "DOPAMINE", "SEROTONIN", "FEELS GOOD"];
+const SUBLIMINAL_WORDS = ["MATCH", "VALIDATED", "SEEN", "REWARDED", "DOPAMINE", "SEROTONIN", "FEELS GOOD", "HOT STREAK"];
 
 function getRandomIcon(allowRare: boolean = true): string {
   const roll = Math.random();
