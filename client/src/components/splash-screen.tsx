@@ -156,7 +156,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         ))}
       </div>
 
-      <div className={`splash-wipe-layer ${phase === "wipe" || phase === "exit" ? "splash-wipe-active" : ""}`} aria-hidden="true">
+      <div className={`splash-wipe-layer ${phase === "wipe" ? "splash-wipe-active" : ""}`} aria-hidden="true">
         {emojis.slice(0, 30).map((e, i) => (
           <span
             key={`wipe-${e.id}`}
@@ -171,8 +171,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           </span>
         ))}
       </div>
-
-      <div className={`splash-exit-layer ${phase === "exit" ? "splash-exit-active" : ""}`} />
     </div>
   );
 }

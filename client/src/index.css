@@ -362,14 +362,17 @@
     }
   }
 
-  .splash-phase-exit .splash-emoji {
-    animation: splash-emoji-disperse 300ms ease-out forwards;
+  .splash-phase-exit .splash-emoji-layer .splash-emoji {
+    animation: splash-emoji-disperse 300ms ease-out forwards !important;
   }
 
   @keyframes splash-emoji-disperse {
-    to {
+    0% {
+      opacity: 1;
+    }
+    100% {
       opacity: 0;
-      transform: translate(var(--x), -150vh) rotate(var(--rotation)) scale(0);
+      transform: translateY(-100vh) rotate(var(--rotation)) scale(0.3);
     }
   }
 
@@ -518,28 +521,21 @@
     }
   }
 
-  .splash-exit-layer {
-    @apply fixed inset-0 pointer-events-none;
-    z-index: 35;
-    background: var(--eg-background, #FFF8E7);
-    opacity: 0;
-  }
-
-  .splash-exit-active {
-    animation: splash-final-fade 300ms ease-out forwards;
-  }
-
-  @keyframes splash-final-fade {
-    0% { opacity: 0; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
-  }
-
   .splash-phase-exit {
-    animation: splash-overlay-exit 300ms ease-out 200ms forwards;
+    animation: splash-overlay-fade-out 300ms ease-out forwards;
   }
 
-  @keyframes splash-overlay-exit {
-    to { opacity: 0; }
+  @keyframes splash-overlay-fade-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .splash-phase-exit .splash-pattern-layer,
+  .splash-phase-exit .splash-pattern-base {
+    animation: splash-bg-fade 250ms ease-out forwards;
+  }
+
+  @keyframes splash-bg-fade {
+    to { opacity: 0.3; }
   }
 }
