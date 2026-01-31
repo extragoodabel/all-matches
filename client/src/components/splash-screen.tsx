@@ -318,11 +318,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const showLogo = phase === "flood1" || phase === "logoBob" || phase === "drain1";
   const showCard = phase === "cardHold" || phase === "flood2" || phase === "drain2";
 
+  const contentAboveCanvas = showCard;
+
   return (
     <div ref={overlayRef} className="am-splash-overlay">
       <canvas ref={canvasRef} className="am-splash-canvas" aria-hidden="true" />
 
-      <div className="am-splash-content">
+      <div className={`am-splash-content ${contentAboveCanvas ? "am-content-above-canvas" : ""}`}>
         <div
           ref={logoElRef}
           className={`am-logo-card ${showLogo ? "am-visible" : "am-hidden"}`}
