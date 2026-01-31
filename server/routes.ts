@@ -1053,48 +1053,104 @@ function generateCharacterSpec(context: {
   const humorTypes = ["dry", "absurdist", "roast", "sardonic", "wholesome"];
   const energyLevels = ["low", "medium", "high"];
 
-  // WRITING STYLE VARIABILITY
+  // REGIONAL ORIGINS - Everyone has a hometown
+  const hometowns = [
+    // Northeast
+    { city: "Brooklyn", region: "NYC", slang: "yo, deadass, mad, son, bodega" },
+    { city: "Boston", region: "New England", slang: "wicked, pissah, dunks, the T" },
+    { city: "Philly", region: "Mid-Atlantic", slang: "jawn, wooder, hoagie, down the shore" },
+    { city: "Jersey", region: "Mid-Atlantic", slang: "down the shore, pork roll, jug handle" },
+    // South
+    { city: "Atlanta", region: "Deep South", slang: "finna, y'all, bet, cap, no cap" },
+    { city: "New Orleans", region: "Louisiana", slang: "cher, lagniappe, making groceries, where y'at" },
+    { city: "Houston", region: "Texas", slang: "fixin to, y'all, H-town, trill" },
+    { city: "Austin", region: "Texas", slang: "y'all, howdy, keep it weird" },
+    { city: "Nashville", region: "Tennessee", slang: "y'all, bless your heart, fixin to" },
+    { city: "Miami", region: "Florida", slang: "dale, 305, bro, super, literally" },
+    // Midwest
+    { city: "Chicago", region: "Midwest", slang: "ope, gym shoes, pop, the lake" },
+    { city: "Detroit", region: "Midwest", slang: "finna, what up doe, coney" },
+    { city: "Minneapolis", region: "Upper Midwest", slang: "ope, you betcha, dontcha know, hotdish" },
+    { city: "Cleveland", region: "Ohio", slang: "pop, sweeper, devil strip" },
+    // West
+    { city: "LA", region: "SoCal", slang: "hella (ironically), like, totally, the 405, fire" },
+    { city: "Bay Area", region: "NorCal", slang: "hella, the city, hyphy, slaps, valid" },
+    { city: "Portland", region: "Pacific Northwest", slang: "spendy, sunbreak, the mountain" },
+    { city: "Seattle", region: "Pacific Northwest", slang: "the mountain is out, sunbreak, sketchy" },
+    { city: "Denver", region: "Mountain West", slang: "fourteener, Subaru culture, native sticker" },
+    { city: "Phoenix", region: "Southwest", slang: "it's a dry heat, snowbird, haboob" },
+    // International / Mobile
+    { city: "military brat", region: "various bases", slang: "PCS, commissary, dependapotamus" },
+    { city: "small town", region: "rural America", slang: "ain't, reckon, over yonder" },
+    { city: "suburbs", region: "generic", slang: "basic suburban vocabulary" },
+  ];
+
+  // WRITING STYLE VARIABILITY - EXTREME DIVERSITY
   const slangProfiles = [
-    "no slang / formal",
+    "no slang / formal - proper vocabulary only",
     "light casual slang",
-    "heavy internet slang (lol, tbh, ngl, idk, rn)",
-    "text shorthand (u, ur, bc, omg)",
-    "chronically-online tone",
-    "regional casual",
-    "professional / jargon-heavy",
-    "slightly outdated slang (rad, dope, sick)"
+    "heavy internet slang (lol, tbh, ngl, idk, rn, fr fr)",
+    "text shorthand (u, ur, bc, omg, pls, thx)",
+    "gen-z zoomer speak (no cap, slay, ate, bestie, lowkey, highkey, its giving)",
+    "chronically-online (parasocial, based, cope, touch grass)",
+    "regional hometown slang",
+    "slightly outdated slang (rad, dope, sick, gnarly)",
+    "AAVE-influenced (bet, finna, ion, lowkey)",
+    "millennial tumblr era (I can't even, literally dying, screaming)"
   ];
   
   const capsStyles = [
     "proper capitalization",
-    "all lowercase",
-    "occasional ALL CAPS for emphasis",
-    "frequent ALL CAPS",
-    "inconsistent capitalization"
+    "proper capitalization",
+    "all lowercase always",
+    "all lowercase always",
+    "ALL CAPS ENTHUSIAST - types in caps a lot",
+    "ALL CAPS WHEN EXCITED",
+    "occasional caps for EMPHASIS",
+    "chaotic random CaPiTaLiZaTiOn",
+    "no caps ever, minimal punctuation too"
   ];
   
   const typoFrequencies = [
-    "none",
-    "rare (1 in 10 messages)",
-    "occasional (1 in 5 messages)",
-    "frequent (most messages have small imperfections)"
+    "none - clean typing",
+    "none - clean typing",
+    "rare typos (1 in 10)",
+    "occasional typos",
+    "frequent typos - types fast doesnt proofread",
+    "autocorrect chaos - wrong words sometimes"
   ];
   
   const emojiProfiles = [
-    "no emojis at all",
-    "rare emojis (1-2 per convo)",
+    "no emojis ever",
+    "no emojis ever",
+    "rare emojis (1-2 per convo max)",
     "occasional emojis",
-    "frequent emojis",
-    "emoticons only (:-) :/ <3)",
-    "emoji-heavy but context-aware"
+    "frequent emojis 🔥😂",
+    "emoji-heavy - multiple per message 😭💀🙏✨",
+    "emoticons only :) :/ <3 xD",
+    "skull emoji enthusiast 💀💀💀"
   ];
   
   const messageLengthStyles = [
-    "very short, clipped",
+    "terse - 2-5 words max, fragments only",
+    "very short and clipped",
     "short and punchy",
-    "medium, conversational",
-    "slightly rambly",
-    "varies wildly"
+    "short and punchy",
+    "medium conversational",
+    "medium conversational",
+    "longer and expressive",
+    "rambly - goes on tangents"
+  ];
+  
+  // PUNCTUATION STYLES (new)
+  const punctuationStyles = [
+    "proper punctuation",
+    "proper punctuation",
+    "minimal punctuation - few periods or commas",
+    "no punctuation just vibes",
+    "excessive punctuation!!! and ???",
+    "ellipsis person... trails off...",
+    "period after every sentence. very deliberate."
   ];
 
   // LANGUAGE & ORIGIN DIVERSITY (~20% non-native speakers)
@@ -1138,13 +1194,23 @@ function generateCharacterSpec(context: {
   const signatureBits = [bits[n(8) % bits.length], bits[n(10) % bits.length]];
   const origin = originProfiles[n(24) % originProfiles.length];
 
+  // Pick a hometown for regional flavor
+  const hometown = hometowns[n(34) % hometowns.length];
+  
   // Build detailed texting style
+  let selectedSlang = slangProfiles[n(6) % slangProfiles.length];
+  // If they got "regional hometown slang", substitute with their actual hometown slang
+  if (selectedSlang.includes("regional")) {
+    selectedSlang = `regional slang from ${hometown.city}: ${hometown.slang}`;
+  }
+  
   const textingStyle = {
-    slang: slangProfiles[n(6) % slangProfiles.length],
+    slang: selectedSlang,
     caps: capsStyles[n(26) % capsStyles.length],
     typos: typoFrequencies[n(28) % typoFrequencies.length],
     emojis: emojiProfiles[n(30) % emojiProfiles.length],
-    messageLength: messageLengthStyles[n(32) % messageLengthStyles.length]
+    messageLength: messageLengthStyles[n(32) % messageLengthStyles.length],
+    punctuation: punctuationStyles[n(36) % punctuationStyles.length]
   };
 
   const spec = {
@@ -1177,7 +1243,11 @@ function generateCharacterSpec(context: {
     origin: origin.desc,
     originType: origin.type,
     isNonMonogamous,
-    nonMonogamyStyle: isNonMonogamous ? nonMonogamyStyles[n(34) % nonMonogamyStyles.length] : undefined,
+    nonMonogamyStyle: isNonMonogamous ? nonMonogamyStyles[n(38) % nonMonogamyStyles.length] : undefined,
+    
+    // Hometown for regional flavor
+    hometown: hometown.city,
+    hometownRegion: hometown.region,
   };
 
   return JSON.stringify(spec);

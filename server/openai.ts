@@ -132,6 +132,10 @@ interface CharacterSpec {
   originType?: string;
   isNonMonogamous?: boolean;
   nonMonogamyStyle?: string;
+  
+  // Hometown for regional flavor
+  hometown?: string;
+  hometownRegion?: string;
 
   [key: string]: unknown;
 }
@@ -228,6 +232,7 @@ CHARACTER SPEC:
       const typoStyle = spec.textingStyle.typos || "none";
       const emojiStyle = spec.textingStyle.emojis || "occasional";
       const lengthStyle = spec.textingStyle.messageLength || spec.textingStyle.length || "short";
+      const punctuationStyle = spec.textingStyle.punctuation || "proper punctuation";
 
       // Parse style values for matching
       const slangLower = slangStyle.toLowerCase();
@@ -235,6 +240,7 @@ CHARACTER SPEC:
       const typoLower = typoStyle.toLowerCase();
       const emojiLower = emojiStyle.toLowerCase();
       const lengthLower = lengthStyle.toLowerCase();
+      const punctLower = punctuationStyle.toLowerCase();
 
       let slangInstruction = "";
       if (slangLower.includes("no slang") || slangLower.includes("formal")) {
@@ -245,8 +251,18 @@ CHARACTER SPEC:
         slangInstruction = "→ HEAVY INTERNET SLANG: 'lol', 'tbh', 'ngl', 'idk', 'rn', 'fr', 'lowkey'. Use these often.";
       } else if (slangLower.includes("gen-z") || slangLower.includes("zoomer")) {
         slangInstruction = "→ GEN-Z SPEAK: 'no cap', 'slay', 'ate that', 'bestie', 'its giving', 'main character'. Use liberally.";
-      } else if (slangLower.includes("regional") || slangLower.includes("midwest") || slangLower.includes("southern") || slangLower.includes("east coast")) {
-        slangInstruction = "→ REGIONAL SLANG: Use location-specific phrases naturally.";
+      } else if (slangLower.includes("regional")) {
+        slangInstruction = `→ REGIONAL SLANG from ${spec.hometown || "your area"}. Use local phrases naturally.`;
+      } else if (slangLower.includes("text shorthand")) {
+        slangInstruction = "→ TEXT SHORTHAND: 'u', 'ur', 'bc', 'omg', 'pls', 'thx'. Abbreviate words.";
+      } else if (slangLower.includes("aave")) {
+        slangInstruction = "→ AAVE-INFLUENCED: 'bet', 'finna', 'ion', 'lowkey'. Use naturally.";
+      } else if (slangLower.includes("tumblr") || slangLower.includes("millennial")) {
+        slangInstruction = "→ MILLENNIAL SPEAK: 'I can't even', 'literally dying', 'screaming', 'dead'. Hyperbolic.";
+      } else if (slangLower.includes("chronically")) {
+        slangInstruction = "→ CHRONICALLY ONLINE: 'parasocial', 'based', 'cope', 'touch grass'. Internet brain.";
+      } else if (slangLower.includes("outdated")) {
+        slangInstruction = "→ SLIGHTLY DATED SLANG: 'rad', 'dope', 'sick', 'gnarly'. Throwback vibes.";
       } else {
         slangInstruction = "→ Moderate casual slang is fine.";
       }
@@ -288,6 +304,10 @@ CHARACTER SPEC:
         emojiInstruction = "→ 1-2 emojis per message when fitting.";
       } else if (emojiLower.includes("heavy") || emojiLower.includes("frequent") || emojiLower.includes("liberal")) {
         emojiInstruction = "→ HEAVY EMOJIS 😭🔥💀😂 multiple per message. Be expressive!";
+      } else if (emojiLower.includes("emoticon") || emojiLower.includes(":)") || emojiLower.includes("xd")) {
+        emojiInstruction = "→ OLD SCHOOL EMOTICONS ONLY :) :/ :D <3 xD ;) No modern emojis.";
+      } else if (emojiLower.includes("skull") || emojiLower.includes("💀")) {
+        emojiInstruction = "→ SKULL EMOJI ENTHUSIAST 💀💀💀 this is your go-to reaction.";
       } else {
         emojiInstruction = "→ Use emojis naturally.";
       }
@@ -303,14 +323,36 @@ CHARACTER SPEC:
         lengthInstruction = "→ Longer messages. 3-4 sentences. You like to write.";
       } else if (lengthLower.includes("rambly") || lengthLower.includes("tangent")) {
         lengthInstruction = "→ RAMBLY. Go off on tangents. Multiple sentences that run together.";
+      } else if (lengthLower.includes("varies") || lengthLower.includes("wildly")) {
+        lengthInstruction = "→ UNPREDICTABLE length. Sometimes 2 words, sometimes a paragraph.";
       } else {
         lengthInstruction = "→ Normal message length.";
       }
 
+      let punctInstruction = "";
+      if (punctLower.includes("proper")) {
+        punctInstruction = "→ Proper punctuation. Periods and commas where needed.";
+      } else if (punctLower.includes("minimal") || punctLower.includes("few")) {
+        punctInstruction = "→ MINIMAL PUNCTUATION. Skip most periods and commas. Let it flow.";
+      } else if (punctLower.includes("no punctuation") || punctLower.includes("just vibes")) {
+        punctInstruction = "→ NO PUNCTUATION at all just words flowing together no periods no commas";
+      } else if (punctLower.includes("excessive") || punctLower.includes("!!!")) {
+        punctInstruction = "→ EXCESSIVE PUNCTUATION!!! Use !!! and ??? liberally when excited!!!";
+      } else if (punctLower.includes("ellipsis") || punctLower.includes("...")) {
+        punctInstruction = "→ ELLIPSIS PERSON... you trail off a lot... leave thoughts hanging...";
+      } else if (punctLower.includes("deliberate") || punctLower.includes("period after every")) {
+        punctInstruction = "→ Very. Deliberate. Punctuation. Every. Sentence. Gets. A. Period.";
+      } else {
+        punctInstruction = "→ Natural punctuation.";
+      }
+
+      // Add hometown context if available
+      const hometownNote = spec.hometown ? `\nYou're from ${spec.hometown}${spec.hometownRegion ? ` (${spec.hometownRegion})` : ""}. This might come up naturally in conversation.` : "";
+
       systemPrompt += `
 
 TEXTING STYLE - THIS IS MANDATORY LAW. FOLLOW IT OR FAIL:
-Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:
+Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:${hometownNote}
 
 - SLANG: ${slangStyle}
   ${slangInstruction}
@@ -327,7 +369,10 @@ Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:
 - MESSAGE LENGTH: ${lengthStyle}
   ${lengthInstruction}
 
-THIS IS YOUR VOICE. If you use proper punctuation when you're "all lowercase", you FAILED. If you write 3 sentences when you're "terse", you FAILED. BE DISTINCTIVE.`;
+- PUNCTUATION: ${punctuationStyle}
+  ${punctInstruction}
+
+THIS IS YOUR VOICE. If you use proper punctuation when you're "no punctuation", you FAILED. If you write 3 sentences when you're "terse", you FAILED. If you capitalize when you're "all lowercase", you FAILED. BE DISTINCTIVE.`;
 
       // Add origin/language background if non-native
       if (spec.origin && spec.originType && spec.originType !== "native") {
