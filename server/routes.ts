@@ -900,7 +900,7 @@ function generateCharacterSpec(context: {
 // Profile generation config
 // ------------------------------------------------------------
 const PROFILE_BUFFER_TARGET = 45;
-const PROFILE_GEN_BATCH_SIZE = 12;
+const PROFILE_GEN_BATCH_SIZE = 20;
 const PROFILE_LOW_THRESHOLD = 15;
 
 let isGeneratingProfiles = false;
@@ -1007,7 +1007,7 @@ async function generateProfilesInBackground(
 
     const lastInitials = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-    const batchSize = 5;
+    const batchSize = 8;
     for (let batchStart = 0; batchStart < count; batchStart += batchSize) {
       const batchEnd = Math.min(batchStart + batchSize, count);
       const batchPromises = [];
