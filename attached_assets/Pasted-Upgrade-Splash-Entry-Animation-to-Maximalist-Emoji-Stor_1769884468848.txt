@@ -1,0 +1,70 @@
+Upgrade Splash / Entry Animation to Maximalist “Emoji Storm” (4s total)
+
+GOAL:
+The current load screen isn’t at the level yet. We need way more color, pattern, and playful chaos to match the app. Create a 4-second entry animation that feels like a maximalist emoji storm and then cleanly reveals the functional app. This must be an overlay layer that does NOT impact or reflow any existing app layout or functionality. The app continues loading behind it.
+
+NON-NEGOTIABLE REQUIREMENTS:
+- Total animation length: 4.0 seconds (not longer).
+- The splash is a fixed overlay (position: fixed; inset: 0; high z-index) that sits above the app.
+- Underlying app loads normally behind it (no blocking; do not delay data fetching).
+- No layout shift, no scroll locking issues, no interference with routing.
+- Must work on desktop + mobile.
+- Respect prefers-reduced-motion (fallback to a simpler fade + logo + card, still 2–3s, then dismiss).
+
+VISUAL DIRECTION:
+Maximalist, loud, playful, chaotic, pattern-heavy. The screen should feel “full” and alive, not sparse.
+
+What we should see, in this exact story order:
+
+ANIMATION STORYBOARD (4.0s total):
+1) 0.0s–0.6s — Emoji Storm Arrival
+   - LOTS AND LOTS of our brand emojis (use our emoji set, fallback to unicode) rapidly swirl around the entire screen.
+   - Emojis should cover the full viewport, not just the center. It should feel like the screen is being flooded.
+   - Background should be bold with multiple layered patterns (2–3 pattern layers) to reinforce maximalism.
+
+2) 0.6s–1.3s — Logo Drop + Bounce
+   - “ALL MATCHES” header/logo drops into the CENTER of the screen and bounces playfully (soft elastic easing).
+   - The emojis keep swirling behind and in front (depth layering). The logo feels briefly “celebrated.”
+
+3) 1.3s–2.0s — Logo Gets Overwhelmed
+   - The emoji storm intensifies and overwhelms the logo (emojis pass over it more aggressively, partially obscuring it).
+   - The logo can fade or scale down slightly as if getting swallowed by the storm.
+
+4) 2.0s–3.2s — Clear to Intro Card + Read Time
+   - Emojis swirl away just enough to reveal an intro card centered on screen.
+   - Card copy (use this exact structure):
+     Headline: “all validation. no obligation.”
+     Subhead: “no profile. no pressure. your matches are already waiting.”
+   - Provide enough time for the user to read (card must be clearly visible for at least ~900ms).
+   - Keep subtle motion in the background so it still feels alive, but do not obscure readability during the primary read window.
+
+5) 3.2s–3.7s — Emojis Sweep Over Card
+   - Emojis swirl back over the card, covering it like a wipe transition.
+   - Card disappears behind the emojis (no abrupt cut).
+
+6) 3.7s–4.0s — Emojis Swirl Away + Reveal App
+   - Emojis rapidly disperse off-screen and the overlay fades out.
+   - Underlying app is now fully visible and interactive.
+
+PERFORMANCE / IMPLEMENTATION NOTES:
+- Keep emoji count “high-feel” but not GPU-melting. Use a moderate number of DOM elements (ex: 30–60) and reuse them with CSS transforms; avoid heavy filters.
+- Prefer CSS animations and transform/opacity for performance.
+- Use requestAnimationFrame only if needed, but keep it lightweight.
+- Ensure no pointer events leak through until overlay is removed (overlay should capture clicks while visible).
+- When overlay ends, remove it from DOM (unmount), do not just hide it.
+
+LOADING BEHAVIOR:
+- Underlying app initializes immediately (fetching, routing, rendering).
+- Splash dismiss is time-based (exactly 4s), not dependent on loading state.
+- Optional safety: if app is not ready by 4s, still dismiss overlay and allow the user in (do not trap them).
+
+SESSION RULE:
+- Show only once per session (localStorage flag like “seenSplash=true”).
+- On refresh after seen, skip splash entirely.
+
+DELIVERABLES:
+- Provide full code changes for:
+  1) Updated SplashScreen / EntryAnimation component
+  2) App root integration (mount/unmount logic, localStorage session flag)
+  3) Updated CSS for layered patterns, emoji storm, logo drop/bounce, card reveal, wipe transition
+- Confirm: 4.0s total, no layout shift, app loads behind, desktop + mobile smooth, reduced motion supported.

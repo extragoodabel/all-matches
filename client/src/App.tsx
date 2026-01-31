@@ -45,11 +45,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {showSplash && (
-        <SplashScreen 
-          onComplete={handleSplashComplete}
-          minDuration={900}
-          maxDuration={2500}
-        />
+        <SplashScreen onComplete={handleSplashComplete} />
       )}
       <Router />
       <Toaster />
