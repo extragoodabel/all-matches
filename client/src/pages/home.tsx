@@ -39,6 +39,8 @@ export default function Home() {
   // Track swiped profile IDs to never show them again
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
   
+  const isInitialLoadRef = useRef(true);
+  
   const { data: profiles = [], refetch } = useQuery<Profile[]>({
     queryKey: [
       "/api/profiles",
@@ -54,20 +56,23 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to fetch profiles");
       const data = await res.json();
       
-      const elapsed = Date.now() - startTime;
-      const minDisplayTime = 3000;
-      if (elapsed < minDisplayTime) {
-        await new Promise(resolve => setTimeout(resolve, minDisplayTime - elapsed));
+      // Only show loading animation on initial load, not on refetches
+      if (isInitialLoadRef.current && data.length > 0) {
+        const elapsed = Date.now() - startTime;
+        const minDisplayTime = 2000;
+        if (elapsed < minDisplayTime) {
+          await new Promise(resolve => setTimeout(resolve, minDisplayTime - elapsed));
+        }
+        isInitialLoadRef.current = false;
       }
       
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0, // Always refetch when called
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
     refetchOnMount: "always",
     refetchOnReconnect: false,
-    // No auto refetch - only refetch when we explicitly call refetch()
   });
 
   // Filter out swiped profiles and apply preferences
