@@ -771,6 +771,8 @@ async function generateBioWithOpenAI(context: {
   flirtPercent: number;
   valentinesEager: boolean;
   lookingForLine?: string | null;
+  isChaos?: boolean;
+  chaosType?: string;
 }): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY) return null;
 
@@ -879,11 +881,23 @@ async function generateBioWithOpenAI(context: {
     ? `\nDO NOT MENTION: ${bannedTopics.join(', ')} - these topics are overused.` 
     : '';
 
+  // Chaos mode instructions for ~30% of profiles
+  let chaosInstruction = '';
+  if (context.isChaos && context.chaosType) {
+    chaosInstruction = `
+CHAOS MODE ACTIVE - This person is ${context.chaosType}:
+- Their bio should feel slightly off, intense, or theatrical
+- Lean into the chaos: be dramatic, absurdist, deadpan unhinged, or weirdly specific
+- Don't explain the chaos - let it speak for itself
+- The vibe should make readers pause and think "...what?"
+`;
+  }
+
   const prompt = `Write a dating app bio for a FICTIONAL person (adult 21+).
 
 APPROACH: ${leadInstruction}
 STRUCTURE: ${structureHint}
-
+${chaosInstruction}
 Character seed (use ONE element, weave naturally):
 - Personality: ${context.archetypeLabel}
 - Interest: ${featuredInterest}
@@ -971,6 +985,8 @@ async function generateUniqueBio(context: {
   flirtPercent: number;
   valentinesEager: boolean;
   lookingForLine?: string | null;
+  isChaos?: boolean;
+  chaosType?: string;
 }): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const bio = await generateBioWithOpenAI(context);
@@ -1304,6 +1320,8 @@ async function generateProfilesInBackground(
           // Low chaos, and only if persona nudges it
           const chaosChance = clamp(CHAOS_OVERALL_RATE + (persona.chaosBias || 0), 0, 0.35);
           const isChaos = chance(chaosChance);
+          const chaosTypes = ["extra dramatic", "mildly unhinged", "main character energy", "romcom menace", "deadpan absurdist", "intensely specific", "theatrical villain energy", "cryptic oracle"];
+          const chaosType = isChaos ? pick(chaosTypes) : undefined;
 
           // Looking for line in 5% of bios
           const lookingForLine = chance(0.05) ? pick(LOOKING_FOR_LINES) : null;
@@ -1324,6 +1342,8 @@ async function generateProfilesInBackground(
             flirtPercent,
             valentinesEager: false,
             lookingForLine,
+            isChaos,
+            chaosType,
           });
 
           const charSpec = generateCharacterSpec({
