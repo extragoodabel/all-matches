@@ -58,9 +58,10 @@ interface TopicLimit {
 }
 
 const TOPIC_LIMITS: Record<string, TopicLimit> = {
-  pizza: { pattern: /pizza/i, maxRatio: 50, count: 0 },
+  pizza: { pattern: /pizza|🍕/i, maxRatio: 150, count: 0 },
   ranch_pizza: { pattern: /ranch.{0,20}pizza|pizza.{0,20}ranch/i, maxRatio: 150, count: 0 },
   pineapple_pizza: { pattern: /pineapple.{0,20}pizza|pizza.{0,20}pineapple/i, maxRatio: 150, count: 0 },
+  three_five_stars: { pattern: /3\.5\s*star|three\s*and\s*a\s*half\s*star/i, maxRatio: 200, count: 0 },
   kerning: { pattern: /kerning/i, maxRatio: 200, count: 0 },
   coffee: { pattern: /coffee/i, maxRatio: 20, count: 0 },
   playlist: { pattern: /playlist/i, maxRatio: 30, count: 0 },
@@ -79,6 +80,9 @@ const TOPIC_LIMITS: Record<string, TopicLimit> = {
   politics: { pattern: /politic(s|al)|democrat|republican|liberal|conservative|vote|voting|election/i, maxRatio: 50, count: 0 },
   flashlight: { pattern: /flashlight/i, maxRatio: 200, count: 0 },
   google: { pattern: /googl(e|ing|ed)/i, maxRatio: 75, count: 0 },
+  deadlines: { pattern: /deadline/i, maxRatio: 100, count: 0 },
+  spreadsheets: { pattern: /spreadsheet|excel|google\s*sheet/i, maxRatio: 100, count: 0 },
+  flip_phone: { pattern: /flip\s*phone/i, maxRatio: 100, count: 0 },
 };
 
 let totalProfilesGenerated = 0;
@@ -96,12 +100,14 @@ function checkBioForBannedTopics(bio: string): string | null {
   // Check more specific patterns first (ranch_pizza, pineapple_pizza before pizza, fur_baby before dog/cat)
   const ordered = [
     'ranch_pizza', 'pineapple_pizza', 'pizza', 
+    'three_five_stars',
     'kerning', 'fonts',
     'coffee', 'playlist', 'geoguessr', 'star_wars', 
     'plant_parent', 'naming_plants',
     'fan_sleeping', 'princess_bride',
     'fur_baby', 'dog', 'cat',
-    'date_ideas_notes', 'snacks', 'politics', 'flashlight', 'google'
+    'date_ideas_notes', 'snacks', 'politics', 'flashlight', 'google',
+    'deadlines', 'spreadsheets', 'flip_phone'
   ];
   
   for (const key of ordered) {
@@ -149,6 +155,10 @@ function registerTopicsInBio(bio: string): void {
   if (TOPIC_LIMITS.politics.pattern.test(bio)) TOPIC_LIMITS.politics.count++;
   if (TOPIC_LIMITS.flashlight.pattern.test(bio)) TOPIC_LIMITS.flashlight.count++;
   if (TOPIC_LIMITS.google.pattern.test(bio)) TOPIC_LIMITS.google.count++;
+  if (TOPIC_LIMITS.three_five_stars.pattern.test(bio)) TOPIC_LIMITS.three_five_stars.count++;
+  if (TOPIC_LIMITS.deadlines.pattern.test(bio)) TOPIC_LIMITS.deadlines.count++;
+  if (TOPIC_LIMITS.spreadsheets.pattern.test(bio)) TOPIC_LIMITS.spreadsheets.count++;
+  if (TOPIC_LIMITS.flip_phone.pattern.test(bio)) TOPIC_LIMITS.flip_phone.count++;
   
   totalProfilesGenerated++;
 }
@@ -176,6 +186,10 @@ function getBannedTopicsForPrompt(): string[] {
   if (!isTopicAllowed('politics')) banned.push('politics', 'voting', 'elections');
   if (!isTopicAllowed('flashlight')) banned.push('flashlight');
   if (!isTopicAllowed('google')) banned.push('googling', 'Google search');
+  if (!isTopicAllowed('three_five_stars')) banned.push('3.5 stars', 'star ratings');
+  if (!isTopicAllowed('deadlines')) banned.push('deadlines');
+  if (!isTopicAllowed('spreadsheets')) banned.push('spreadsheets', 'Excel');
+  if (!isTopicAllowed('flip_phone')) banned.push('flip phone');
   return banned;
 }
 
