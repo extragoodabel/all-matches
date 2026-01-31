@@ -87,41 +87,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
-    // Spawn emojis function
+    // Spawn emojis function - spawn ON SCREEN so they're visible immediately
     const spawnEmojis = () => {
-      const count = clamp(Math.round((w * h) / 6500), 100, 200);
-      const minR = Math.round(Math.min(w, h) * 0.025);
-      const maxR = Math.round(Math.min(w, h) * 0.04);
+      const count = clamp(Math.round((w * h) / 8000), 80, 150);
+      const minR = Math.round(Math.min(w, h) * 0.03);
+      const maxR = Math.round(Math.min(w, h) * 0.05);
 
       const bodies: Matter.Body[] = [];
-      const halfCount = Math.floor(count / 2);
 
-      // Spawn from left side
-      for (let i = 0; i < halfCount; i++) {
+      // Spawn emojis scattered across the visible screen area
+      for (let i = 0; i < count; i++) {
         const r = minR + Math.random() * (maxR - minR);
-        const x = -r * 2 - Math.random() * w * 0.3;
-        const y = h * 0.2 + Math.random() * h * 0.6;
+        // Spawn across the entire screen
+        const x = r + Math.random() * (w - r * 2);
+        const y = r + Math.random() * (h * 0.7); // Upper 70% of screen
         const body = Matter.Bodies.circle(x, y, r, {
-          restitution: 0.2,
-          friction: 0.3,
-          frictionAir: 0.02,
-          density: 0.002,
-        });
-        (body as any).emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-        (body as any).radius = r;
-        bodies.push(body);
-      }
-
-      // Spawn from right side
-      for (let i = 0; i < count - halfCount; i++) {
-        const r = minR + Math.random() * (maxR - minR);
-        const x = w + r * 2 + Math.random() * w * 0.3;
-        const y = h * 0.2 + Math.random() * h * 0.6;
-        const body = Matter.Bodies.circle(x, y, r, {
-          restitution: 0.2,
-          friction: 0.3,
-          frictionAir: 0.02,
-          density: 0.002,
+          restitution: 0.4,
+          friction: 0.1,
+          frictionAir: 0.01,
+          density: 0.001,
         });
         (body as any).emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
         (body as any).radius = r;
@@ -131,13 +115,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       Matter.Composite.add(engine.world, bodies);
       emojiBodiesRef.current = bodies;
 
-      // Apply inward velocity
+      // Give them small random velocities to make them bounce around
       bodies.forEach((b) => {
-        const isLeft = b.position.x < w / 2;
-        const speed = 12 + Math.random() * 4;
         Matter.Body.setVelocity(b, {
-          x: isLeft ? speed : -speed,
-          y: (Math.random() - 0.5) * 2,
+          x: (Math.random() - 0.5) * 8,
+          y: (Math.random() - 0.5) * 4,
         });
       });
     };
