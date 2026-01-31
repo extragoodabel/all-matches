@@ -614,6 +614,21 @@
   will-change: transform;
 }
 
+.am-logo-card-sharp {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 32px;
+  background: var(--eg-background, #FFF8E7);
+  border: 4px solid var(--eg-accent, #1A1A1A);
+  border-radius: 0;
+  box-shadow: 8px 8px 0 var(--eg-primary, #FF1493);
+  z-index: 500;
+  transition: opacity 0.2s ease;
+  will-change: transform;
+}
+
 .am-logo-card-static {
   position: relative;
   top: auto;
