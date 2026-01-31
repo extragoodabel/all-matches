@@ -60,24 +60,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     const w = overlay.clientWidth;
     const h = overlay.clientHeight;
-    let floorY = h + 50;
-    let gravity = 0.4;
+    let floorY = h - 20;
+    let gravity = 0.15;
     let hasFloor = true;
+    let draining = false;
 
-    const spawnEmojis = (count: number) => {
+    const spawnEmojis = (count: number, staggered: boolean = true) => {
       const newEmojis: EmojiData[] = [];
       for (let i = 0; i < count; i++) {
-        const size = 20 + Math.random() * 25;
+        const size = 35 + Math.random() * 30;
         newEmojis.push({
           id: Date.now() + i + Math.random() * 10000,
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-          x: size + Math.random() * (w - size * 2),
-          y: -size - Math.random() * h,
-          vx: (Math.random() - 0.5) * 4,
-          vy: 2 + Math.random() * 4,
+          x: size / 2 + Math.random() * (w - size),
+          y: staggered ? -size - Math.random() * h * 1.5 : -size - Math.random() * h * 0.8,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 1 + Math.random() * 2,
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 8,
+          rotationSpeed: (Math.random() - 0.5) * 3,
         });
       }
       emojisRef.current = [...emojisRef.current, ...newEmojis];
@@ -87,36 +88,66 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       emojisRef.current = [];
     };
 
-    let logoY = -80;
-    let logoVy = 3;
+    let logoY = -100;
+    let logoVy = 1.5;
     let logoRotation = 0;
+    let logoTargetY = h * 0.35;
 
     const animate = () => {
       const emojis = emojisRef.current;
 
+      // Sort by y position so lower emojis are processed first (for stacking)
+      emojis.sort((a, b) => b.y - a.y);
+
       for (const e of emojis) {
         e.vy += gravity;
+        e.vy = Math.min(e.vy, 8); // Terminal velocity
         e.x += e.vx;
         e.y += e.vy;
         e.rotation += e.rotationSpeed;
 
-        if (e.x < 0) { e.x = 0; e.vx *= -0.6; }
-        if (e.x > w) { e.x = w; e.vx *= -0.6; }
+        // Wall bounce
+        if (e.x < e.size / 2) { e.x = e.size / 2; e.vx *= -0.5; }
+        if (e.x > w - e.size / 2) { e.x = w - e.size / 2; e.vx *= -0.5; }
 
-        if (hasFloor && e.y + e.size / 2 > floorY) {
-          e.y = floorY - e.size / 2;
-          e.vy *= -0.4;
-          e.vx *= 0.95;
+        // Floor collision with stacking
+        if (hasFloor) {
+          // Find the highest emoji below this one in similar x range
+          let effectiveFloor = floorY;
+          for (const other of emojis) {
+            if (other === e) continue;
+            if (Math.abs(other.x - e.x) < (e.size + other.size) * 0.4) {
+              if (other.y > e.y && other.y < effectiveFloor) {
+                effectiveFloor = other.y - other.size * 0.6;
+              }
+            }
+          }
+
+          if (e.y + e.size / 2 > effectiveFloor) {
+            e.y = effectiveFloor - e.size / 2;
+            e.vy *= -0.25;
+            e.vx *= 0.9;
+            e.rotationSpeed *= 0.8;
+          }
         }
       }
 
-      logoVy += gravity * 0.5;
-      logoY += logoVy;
-      logoRotation += logoVy * 0.3;
-
-      if (hasFloor && logoY > h * 0.4) {
-        logoY = h * 0.4;
-        logoVy *= -0.3;
+      // Logo physics - gentle bobbing
+      if (!draining) {
+        // Float toward target with gentle bobbing
+        const diff = logoTargetY - logoY;
+        logoVy += diff * 0.008;
+        logoVy *= 0.96; // Damping
+        logoY += logoVy;
+        
+        // Gentle rotation based on velocity
+        logoRotation += logoVy * 0.5;
+        logoRotation *= 0.98; // Dampen rotation back to center
+      } else {
+        // Draining - fall with emojis
+        logoVy += gravity * 1.5;
+        logoY += logoVy;
+        logoRotation += logoVy * 0.8;
       }
 
       setLogoPos({ x: w / 2, y: logoY, vy: logoVy, rotation: logoRotation });
@@ -125,7 +156,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    spawnEmojis(200);
+    spawnEmojis(250, true);
     rafRef.current = requestAnimationFrame(animate);
 
     const timers: number[] = [];
@@ -133,34 +164,37 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       timers.push(window.setTimeout(fn, ms));
     };
 
-    setT(1500, () => setPhase("logoBob"));
+    setT(2000, () => setPhase("logoBob"));
 
-    setT(2500, () => {
+    setT(4000, () => {
       setPhase("drain1");
+      draining = true;
       hasFloor = false;
-      gravity = 1.2;
-    });
-
-    setT(3500, () => {
-      setPhase("cardHold");
-      clearEmojis();
+      gravity = 0.3;
     });
 
     setT(5500, () => {
+      setPhase("cardHold");
+      clearEmojis();
+      draining = false;
+    });
+
+    setT(7500, () => {
       setPhase("flood2");
       hasFloor = true;
-      gravity = 0.5;
-      spawnEmojis(200);
+      gravity = 0.2;
+      spawnEmojis(250, false);
     });
 
-    setT(6500, () => {
+    setT(9500, () => {
       setPhase("drain2");
+      draining = true;
       hasFloor = false;
-      gravity = 1.5;
+      gravity = 0.35;
     });
 
-    setT(7500, () => setPhase("done"));
-    setT(8000, safeDismiss);
+    setT(11500, () => setPhase("done"));
+    setT(12000, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -192,12 +226,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   const showLogo = phase === "flood1" || phase === "logoBob" || phase === "drain1";
   const showCard = phase === "cardHold" || phase === "flood2" || phase === "drain2";
+  const emojisAboveCard = phase === "flood2" || phase === "drain2";
 
   return (
     <div ref={overlayRef} className="am-splash-overlay">
       <div className="am-splash-bg" />
 
-      <div className="am-emoji-layer">
+      {/* Emoji layer - z-index changes based on phase */}
+      <div className={`am-emoji-layer ${emojisAboveCard ? "am-emoji-layer-front" : ""}`}>
         {emojiRender.map((e) => (
           <span
             key={e.id}
