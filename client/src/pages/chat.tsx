@@ -104,7 +104,7 @@ export default function Chat({ params }: ChatProps) {
   return (
     <PatternBackground baseColor={theme.palette.background}>
       <div 
-        className="min-h-screen flex flex-col"
+        className="h-screen flex flex-col overflow-hidden"
         style={{
           '--eg-primary': theme.palette.primary,
           '--eg-secondary': theme.palette.secondary,
@@ -112,8 +112,9 @@ export default function Chat({ params }: ChatProps) {
           '--eg-background': theme.palette.background,
         } as React.CSSProperties}
       >
+      {/* Sticky header - stays pinned at top */}
       <div 
-        className="relative overflow-hidden"
+        className="relative overflow-hidden flex-shrink-0 z-10"
         style={{ background: theme.palette.primary }}
       >
         <div 
@@ -150,7 +151,8 @@ export default function Chat({ params }: ChatProps) {
         </div>
       </div>
 
-        <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col overflow-hidden">
+        {/* Chat area - scrolls independently */}
+        <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col min-h-0">
           <ChatInterface matchId={matchId} messages={messages} onNewMessage={handleNewMessage} />
         </div>
       </div>
