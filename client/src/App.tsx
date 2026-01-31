@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -11,8 +11,7 @@ import DesignPreview from "@/pages/design";
 import TagImages from "@/pages/tag-images";
 import NotFound from "@/pages/not-found";
 
-const SPLASH_STORAGE_KEY = "seenSplash";
-const SPLASH_SESSION_DURATION = 24 * 60 * 60 * 1000;
+const SPLASH_SESSION_KEY = "seenSplash";
 
 function Router() {
   return (
@@ -30,11 +29,7 @@ function Router() {
 function App() {
   const [showSplash, setShowSplash] = useState(() => {
     try {
-      const stored = localStorage.getItem(SPLASH_STORAGE_KEY);
-      if (!stored) return true;
-      const timestamp = parseInt(stored, 10);
-      if (isNaN(timestamp)) return true;
-      return Date.now() - timestamp > SPLASH_SESSION_DURATION;
+      return !sessionStorage.getItem(SPLASH_SESSION_KEY);
     } catch {
       return true;
     }
@@ -42,7 +37,7 @@ function App() {
 
   const handleSplashComplete = () => {
     try {
-      localStorage.setItem(SPLASH_STORAGE_KEY, Date.now().toString());
+      sessionStorage.setItem(SPLASH_SESSION_KEY, "true");
     } catch {}
     setShowSplash(false);
   };

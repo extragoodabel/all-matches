@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 
-const EMOJIS = ["💖", "🔥", "✨", "💫", "🎯", "💕", "⚡", "🌟", "💝", "🦋", "🌸", "💜", "🎪", "🎭", "💅", "👀", "😍", "🤩", "💀", "🙈"];
+const EMOJIS = ["💖", "💉", "💊", "🍾", "🥂", "🔥", "✨", "💫", "🎯", "💕", "⚡", "🌟", "💝", "🦋", "🌸", "💜", "🎪", "🎭", "💅", "👀", "😍", "🤩", "💀", "🙈"];
 
 interface FloatingEmoji {
   id: number;
