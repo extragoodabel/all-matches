@@ -127,8 +127,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let frameCount = 0;
     const drawFrame = () => {
-      // Draw background
+      frameCount++;
+      
+      // Clear and draw background
+      ctx.clearRect(0, 0, w, h);
       const grad = ctx.createLinearGradient(0, 0, w, h);
       grad.addColorStop(0, "#ff3bd4");
       grad.addColorStop(0.5, "#7c3aed");
@@ -161,37 +165,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       // Draw emojis
       const bodies = emojiBodiesRef.current;
       
-      // Debug: show emoji count on screen
+      // Debug info
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 30px sans-serif";
+      ctx.font = `bold ${24 * dpr}px sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(`Bodies: ${bodies.length}`, 20, 20);
+      ctx.fillText(`Frame: ${frameCount}, Bodies: ${bodies.length}`, 20 * dpr, 20 * dpr);
       
-      if (bodies.length > 0) {
-        const firstBody = bodies[0];
-        ctx.fillText(`First: (${Math.round(firstBody.position.x)}, ${Math.round(firstBody.position.y)})`, 20, 60);
-      }
-      
+      // Draw emojis
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
       for (const body of bodies) {
         const { x, y } = body.position;
         
-        // Draw a visible circle for each body
-        ctx.fillStyle = "#FF00FF";
-        ctx.beginPath();
-        ctx.arc(x, y, 15, 0, Math.PI * 2);
-        ctx.fill();
-        
-        if (x < -100 || x > w + 100 || y < -100 || y > h + 100) continue;
+        // Skip if way offscreen
+        if (x < -200 || x > w + 200 || y > h + 200) continue;
 
         const emoji = (body as any).emoji || "💖";
         const r = (body as any).radius || 20;
 
-        ctx.fillStyle = "#000000";
-        ctx.font = `${Math.round(r * 2)}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.font = `${Math.round(r * 1.8)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
         ctx.fillText(emoji, x, y);
       }
 
