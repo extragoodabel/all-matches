@@ -539,3 +539,168 @@
     to { opacity: 0.3; }
   }
 }
+
+/* Matter.js Physics Splash Screen Styles */
+.am-splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.am-splash-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.am-splash-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #ff3bd4 0%, #7c3aed 50%, #00e5ff 100%);
+}
+
+.am-splash-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 20px,
+    rgba(255, 255, 255, 0.1) 20px,
+    rgba(255, 255, 255, 0.1) 40px
+  );
+}
+
+.am-splash-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.am-logo-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 28px;
+  background: var(--eg-background, #FFF8E7);
+  border: 4px solid var(--eg-accent, #1A1A1A);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 var(--eg-primary, #FF1493);
+  z-index: 10;
+  transition: opacity 0.2s ease;
+}
+
+.am-logo-card-static {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none !important;
+  margin-bottom: 32px;
+}
+
+.am-logo-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--eg-accent, #1A1A1A);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.am-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.am-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.am-tagline-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.am-tagline-card {
+  position: relative;
+  width: min(360px, 90vw);
+  background: linear-gradient(135deg, #FF1493 0%, #7c3aed 100%);
+  border: 4px solid var(--eg-accent, #1A1A1A);
+  border-radius: 24px;
+  box-shadow: 8px 8px 0 var(--eg-accent, #1A1A1A);
+  overflow: hidden;
+}
+
+.am-tagline-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 12px,
+    rgba(255, 255, 255, 0.08) 12px,
+    rgba(255, 255, 255, 0.08) 24px
+  );
+  pointer-events: none;
+}
+
+.am-tagline-inner {
+  position: relative;
+  padding: 32px 24px;
+  text-align: center;
+  z-index: 1;
+}
+
+.am-tagline-h {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.am-tagline-p {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.am-chyron {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 18px;
+  background: var(--eg-secondary, #FFDC00);
+  border: 3px solid var(--eg-accent, #1A1A1A);
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--eg-accent, #1A1A1A);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--eg-accent, #1A1A1A);
+  z-index: 20;
+}

@@ -1,0 +1,129 @@
+TASK: Replace the current SplashScreen animation with a physics-driven “emoji ocean” splash using Matter.js. The splash must be a fixed overlay layer that does not affect app functionality or layout. The functional app must load behind it. Splash calls onComplete() exactly once at the end.
+
+HIGH LEVEL VIBE
+Maximalist, playful chaos with real “weight” and gravity. The emojis behave like a cohesive liquid mass, like water molecules loosely bonded together but fluid. No frantic zig zags. The motion must be readable and ocean-like.
+
+BRANDING REQUIREMENTS
+1) Logo design must match our header exactly
+- Use Space Grotesk.
+- Text is “All Matches!” with only A and M capitalized, rest lowercase.
+- The logo is inside a rounded rectangle border.
+- There is a contrasting color rectangle drop shadow behind it, like a sticker.
+- This should be implemented as a reusable component or use the same CSS variables as the header so it matches perfectly.
+
+2) “All validation” card design must be on brand
+- It must look like one of our profile cards.
+- Rounded rectangle card, same border radius, stroke, shadow style as our profile cards.
+- Card background uses bold colors and maximalist patterns similar to the rest of the app.
+- Card content:
+  Headline: “all validation. no obligation.”
+  Subhead: “no profile. no pressure. your matches are already waiting for you.”
+- Card stays fully visible for 2.0 seconds.
+
+3) 21+ chyron
+- Bottom-right floating mini card (its own little rounded rectangle).
+- Slightly larger than before and fun, branded, using on-brand colors and the same shadow/border component style.
+- Text: “21+”
+- Visible throughout the splash. It can sit above emojis or be embedded, but must remain readable.
+
+EMOJI SET
+Use only these emojis. No substitutions.
+["💉","💊","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💖","💘","💝","💕","💞","💓","💗","💟","💄","💋","🫦","💅","👠","💀","🥂","🍾","🪞","⛓️","🍫","🧿","🩸","💍","🧬","🌶️","⚡","💦","🫀","🧠","⭐","👁️","🌟","🍄","🧨","🍒","🔥","😬","😍","🎭","🧪"]
+
+CORE ANIMATION SEQUENCE AND TIMING (TOTAL ~7 SECONDS)
+We want a staged, legible sequence. No fast fade outs.
+
+Phase 1: Flood in (1.0s)
+- A dense mass of emojis rushes in from the left and right edges at the same time, like a wall of water.
+- Within 1 second, emojis must fully cover the screen (critical mass).
+- Emojis are BIG. Approximately 2x to 4x typical confetti size. Enough to feel like a pool.
+
+Phase 2: Logo drop and bob (1.0s)
+- The logo card drops from above the top boundary into the emoji ocean.
+- It “splashes” into the mass (a quick bounce) then floats, centered, bobbing gently like a boat.
+- It must be layered within the emoji mass so some emojis can pass in front and some behind. Not pure text. Not behind everything.
+
+Phase 3: Drain out to reveal the profile-style card (1.0s)
+- The emoji ocean drains out the bottom like a bathtub.
+- The logo is pulled down with the draining emojis and exits off the bottom.
+- As the emoji mass drains, reveal the branded profile-style tagline card behind it.
+
+Phase 4: Hold card (2.0s)
+- The tagline card stays stable and readable.
+
+Phase 5: Second flood wipe (2.0s total)
+- A second wave of emojis floods in (1.0s) and completely covers the card.
+- Then drains away (1.0s) to reveal the fully functional app behind.
+- End splash immediately after the drain completes.
+
+ACCESSIBILITY
+- Respect prefers-reduced-motion. If true, show a static branded splash:
+  - Background pattern
+  - Logo card
+  - Tagline profile-style card
+  - 21+ chyron
+  Display 2 seconds then onComplete().
+
+TECH IMPLEMENTATION REQUIREMENTS (Matter.js)
+Use Matter.js. Keep it light and efficient.
+
+1) Render approach
+- Use Matter.Engine and Matter.Render to draw to a single full-screen canvas.
+- Position the canvas as fixed, top:0 left:0, width:100vw height:100vh, pointer-events:none, high z-index.
+- The DOM elements for logo card, tagline card, and chyron should be real HTML layered above or below the canvas depending on the phase, but the logo must visually appear “in the ocean”.
+  Preferred: keep logo as HTML but sync its transform to a Matter body so it truly floats with physics.
+
+2) Emoji bodies
+- Each emoji is a circle body (Matter.Bodies.circle).
+- Use restitution low to medium (slight bounce), friction moderate, frictionAir moderate for damping.
+- Gravity ON.
+- Create enough bodies to fill the screen. Aim 140 to 240 emoji bodies depending on device width.
+- Use 2 to 3 depth layers by varying emoji size and alpha. Keep it simple. Do NOT blur heavily.
+
+3) Cohesion / soft clustering
+- Add loose constraints between nearby emoji bodies to mimic “water molecule cohesion”.
+- Use Matter.Constraint with low stiffness and some damping.
+- You do not need constraints for every pair. Do a sparse set:
+  - For each emoji, connect it to 1 to 3 nearest neighbors at spawn time.
+- This produces the bonded-but-fluid mass.
+
+4) Flood-in spawn behavior
+- Spawn most emoji bodies offscreen left and offscreen right in two clusters.
+- Give them an initial inward velocity so they surge toward center.
+- Let physics handle collision and packing.
+
+5) Drain behavior
+- Implement drain by opening the bottom boundary:
+  - Either remove the floor body entirely
+  - Or create a gap in the floor center and apply a downward attractor force in that region
+- When drain starts, ensure emojis exit bottom within the allotted time (1 second). You can increase gravity slightly during drain for speed.
+
+6) Logo physics integration
+- Create a Matter rectangle body that represents the logo card.
+- Sync the HTML logo element position and rotation to this body every tick.
+- Give it density lower than emojis so it floats and bobs.
+- When drain starts, allow it to get pulled down with the emojis and exit.
+
+7) Performance
+- Must run smoothly on mobile.
+- Cap engine updates at requestAnimationFrame.
+- Use devicePixelRatio scaling but clamp DPR to 2 for performance.
+- Clean up the engine, render, runner, and event listeners on unmount.
+- Use a single animation sequence. It can be reused across app loads, but it is fine to generate each time if simpler.
+
+BACKGROUND PATTERN BEFORE FLOOD
+- Before Phase 1 begins, the splash shows a bold patterned background (maximalist colors and shapes).
+- This background remains behind the emoji ocean and behind the tagline card.
+- Use our existing pattern layers if they exist, but make them more vibrant.
+
+DELIVERABLE
+Provide the full updated SplashScreen.tsx (or equivalent) plus any required CSS additions. If new dependencies are needed, add Matter.js and keep bundle impact minimal.
+
+ACCEPTANCE CRITERIA
+- Emojis fully cover the screen like a pool, not sparse floaters.
+- Motion reads like an ocean with gravity and mass.
+- Logo matches header exactly and floats within the emoji mass for a readable beat.
+- Drain reveals a branded profile-style card that holds for 2 seconds.
+- Second wave wipes the card, drains, and reveals the live app.
+- 21+ chyron is a fun branded mini card and remains readable.
+- Total duration about 7 seconds.

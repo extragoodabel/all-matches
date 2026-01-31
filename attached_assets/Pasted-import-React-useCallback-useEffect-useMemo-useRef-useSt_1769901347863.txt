@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Matter from "matter-js";
 
 type Phase = "flood1" | "logoBob" | "drain1" | "cardHold" | "flood2" | "drain2" | "done";
@@ -7,6 +7,18 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
+/**
+ * Matter.js based splash that simulates a cohesive emoji "ocean"
+ * and syncs an HTML logo card to a physics body so it floats and drains.
+ *
+ * Requirements met:
+ * - Dense emoji mass floods in from sides with gravity and cohesion
+ * - Logo matches header style, floats among emojis, then drains out
+ * - Branded profile-style tagline card holds for 2 seconds
+ * - Second flood wipes card, drains, reveals app
+ * - 21+ chyron as branded mini card
+ * - Reduced motion fallback
+ */
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -38,11 +50,56 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   const EMOJIS = useMemo(
     () => [
-      "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖",
-      "💘", "💝", "💕", "💞", "💓", "💗", "💟", "💄", "💋", "🫦", "💅", "👠",
-      "💀", "🥂", "🍾", "🪞", "⛓️", "🍫", "🧿", "🩸", "💍", "🧬", "🌶️", "⚡",
-      "💦", "🫀", "🧠", "⭐", "👁️", "🌟", "🍄", "🧨", "🍒", "🔥", "😬", "😍",
-      "🎭", "🧪",
+      "💉",
+      "💊",
+      "❤️",
+      "🧡",
+      "💛",
+      "💚",
+      "💙",
+      "💜",
+      "🖤",
+      "🤍",
+      "🤎",
+      "💖",
+      "💘",
+      "💝",
+      "💕",
+      "💞",
+      "💓",
+      "💗",
+      "💟",
+      "💄",
+      "💋",
+      "🫦",
+      "💅",
+      "👠",
+      "💀",
+      "🥂",
+      "🍾",
+      "🪞",
+      "⛓️",
+      "🍫",
+      "🧿",
+      "🩸",
+      "💍",
+      "🧬",
+      "🌶️",
+      "⚡",
+      "💦",
+      "🫀",
+      "🧠",
+      "⭐",
+      "👁️",
+      "🌟",
+      "🍄",
+      "🧨",
+      "🍒",
+      "🔥",
+      "😬",
+      "😍",
+      "🎭",
+      "🧪",
     ],
     []
   );
@@ -53,8 +110,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const area = w * h;
+
+    // Dense pool. Tuned for mobile performance.
+    // Rough target: 140 to 240.
     const base = Math.round(area / 6500);
     const count = clamp(base, 140, 240);
+
     return { count };
   }, []);
 
@@ -90,6 +151,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       isStatic: true,
     });
 
+    // Two floor segments with a center gap. For drain we remove these floors.
     const gapWidth = Math.round(w * 0.24);
     const floorHeight = 90;
     const floorY = h + floorHeight / 2;
@@ -133,6 +195,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const engine = engineRef.current;
     if (!engine) return;
 
+    // Remove existing emoji bodies and their cohesion constraints.
     removeConstraints(worldBodiesRef.current.constraints);
     removeBodies(worldBodiesRef.current.emojis);
 
@@ -149,6 +212,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         density: 0.0018,
       });
 
+      // Store draw metadata on plugin
       (body as any).plugin = {
         emoji,
         radius,
@@ -161,6 +225,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   );
 
   const connectCohesion = useCallback((bodies: Matter.Body[]) => {
+    // Sparse nearest neighbor constraints. 1 to 3 per body.
+    // Keeps a loosely bonded mass.
     const constraints: Matter.Constraint[] = [];
     const stiffness = 0.0028;
     const damping = 0.12;
@@ -170,6 +236,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const ax = a.position.x;
       const ay = a.position.y;
 
+      // Find 3 nearest among a limited window for performance
       const candidates: { j: number; d: number }[] = [];
       const start = Math.max(0, i - 18);
       const end = Math.min(bodies.length - 1, i + 18);
@@ -184,11 +251,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       }
 
       candidates.sort((p, q) => p.d - q.d);
-      const links = 1 + Math.floor(Math.random() * 3);
+      const links = 1 + Math.floor(Math.random() * 3); // 1 to 3
       for (let k = 0; k < Math.min(links, candidates.length); k++) {
         const b = bodies[candidates[k].j];
         const len = Math.sqrt(candidates[k].d);
 
+        // Keep links local, do not connect far bodies
         if (len > 190) continue;
 
         constraints.push(
@@ -218,6 +286,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
       const { count } = getCounts();
 
+      // Larger emoji sizes. Range tuned to read well.
       const minR = Math.round(Math.min(w, h) * 0.022);
       const maxR = Math.round(Math.min(w, h) * 0.034);
 
@@ -230,8 +299,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const spreadY = h * 0.9;
 
       const randEmoji = () => EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+
+      // A little depth via alpha variation
       const randAlpha = () => (Math.random() < 0.35 ? 0.62 : 0.92);
 
+      // Spawn offscreen left and right in dense vertical bands
       for (let i = 0; i < leftCount; i++) {
         const r = minR + Math.random() * (maxR - minR);
         const x = -Math.random() * (w * 0.35) - r * 2;
@@ -246,12 +318,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         bodies.push(makeEmojiBody(x, y, randEmoji(), r, randAlpha()));
       }
 
+      // Add bodies
       worldBodiesRef.current.emojis = bodies;
       Matter.Composite.add(engine.world, bodies);
 
+      // Add cohesion constraints
       const constraints = connectCohesion(bodies);
       Matter.Composite.add(engine.world, constraints);
 
+      // Push them inward like a wall of water
       const baseSpeed = variant === "first" ? 8.5 : 9.5;
 
       bodies.forEach((b) => {
@@ -270,14 +345,17 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     if (!engine || !canvas) return null;
 
     const w = canvas.width;
+    const h = canvas.height;
 
+    // HTML will be synced to this body.
     const body = Matter.Bodies.rectangle(w / 2, -120, 320, 84, {
       restitution: 0.25,
       friction: 0.25,
       frictionAir: 0.04,
-      density: 0.0011,
+      density: 0.0011, // lighter than emojis so it floats
     });
 
+    // Slight buoyancy feel via a small upward force in logoBob phase.
     (body as any).plugin = { isLogo: true };
 
     logoBodyRef.current = body;
@@ -300,6 +378,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const existing = worldBodiesRef.current.floors;
     if (!existing.length) return;
 
+    // Ensure not already in world
     existing.forEach((f) => {
       if (!Matter.Composite.allBodies(engine.world).includes(f)) {
         Matter.Composite.add(engine.world, f);
@@ -311,9 +390,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     removeBodies(worldBodiesRef.current.floors);
   }, [removeBodies]);
 
-  const phaseRef = useRef<Phase>("flood1");
-  phaseRef.current = phase;
-
   const initMatter = useCallback(() => {
     const canvas = canvasRef.current;
     const overlay = overlayRef.current;
@@ -321,6 +397,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
 
+    // Use CSS pixels for layout, scale canvas for DPR.
     const cssW = overlay.clientWidth;
     const cssH = overlay.clientHeight;
 
@@ -338,13 +415,16 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     engineRef.current = engine;
 
+    // Boundaries
     const { walls, floors } = setupWorldBoundaries(canvas.width, canvas.height);
     Matter.Composite.add(engine.world, [...walls, ...floors]);
 
+    // Runner
     const runner = Matter.Runner.create();
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
+    // Draw loop (custom canvas rendering, since we draw emoji text)
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -352,6 +432,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const w = canvas.width;
       const h = canvas.height;
 
+      // Bold gradient base
       const g = ctx.createLinearGradient(0, 0, w, h);
       g.addColorStop(0, "#ff3bd4");
       g.addColorStop(0.5, "#7c3aed");
@@ -359,7 +440,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
 
+      // Maximalist pattern overlays
       ctx.globalAlpha = 0.18;
+
+      // Diagonal stripes
       ctx.save();
       ctx.translate(w * 0.1, h * 0.05);
       ctx.rotate(-0.28);
@@ -369,6 +453,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       }
       ctx.restore();
 
+      // Dots
       ctx.globalAlpha = 0.12;
       ctx.fillStyle = "#ffffff";
       const step = 48;
@@ -398,6 +483,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         const b = bodies[i];
         const p = b.position;
 
+        // Skip offscreen
         if (p.x < -200 || p.x > w + 200 || p.y < -200 || p.y > h + 200) continue;
 
         const meta = (b as any).plugin || {};
@@ -407,6 +493,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
         ctx.globalAlpha = alpha;
 
+        // Gentle depth with shadow
         ctx.shadowColor = "rgba(0,0,0,0.18)";
         ctx.shadowBlur = r * 0.3;
         ctx.shadowOffsetX = 0;
@@ -426,11 +513,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const body = logoBodyRef.current;
       if (!el || !body) return;
 
+      // Convert physics pixels to CSS pixels (divide by dpr)
       const px = body.position.x / dpr;
       const py = body.position.y / dpr;
 
       const angle = body.angle;
 
+      // Center anchor
       el.style.transform = `translate(-50%, -50%) translate(${px}px, ${py}px) rotate(${angle}rad)`;
     };
 
@@ -438,9 +527,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       drawBackground();
       drawEmojis();
 
-      if (phaseRef.current === "logoBob") {
+      // Buoyancy bob during logoBob
+      if (phase === "logoBob") {
         const body = logoBodyRef.current;
         if (body) {
+          // Small upward force near center to make it feel afloat.
           const lift = -0.0009 * body.mass;
           Matter.Body.applyForce(body, body.position, { x: 0, y: lift });
         }
@@ -451,7 +542,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [setupWorldBoundaries]);
+  }, [phase, removeBodies, setupWorldBoundaries]);
 
   const teardownMatter = useCallback(() => {
     clearTimers();
@@ -471,6 +562,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     if (engine) {
       Matter.Engine.clear(engine);
+      // @ts-expect-error Matter typings
       Matter.Composite.clear(engine.world, false);
       engineRef.current = null;
     }
@@ -482,6 +574,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const schedulePhases = useCallback(() => {
     clearTimers();
 
+    // Total 7s:
+    // 0-1 flood1
+    // 1-2 logoBob
+    // 2-3 drain1
+    // 3-5 cardHold (2s)
+    // 5-6 flood2
+    // 6-7 drain2 then done
     const setT = (ms: number, fn: () => void) => {
       timersRef.current.push(window.setTimeout(fn, ms));
     };
@@ -495,6 +594,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     setT(6000, () => setPhase("drain2"));
     setT(7000, () => setPhase("done"));
 
+    // Safety
     setT(8200, safeDismiss);
   }, [clearTimers, safeDismiss]);
 
@@ -502,6 +602,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     if (dismissed) return;
 
     if (prefersReducedMotion) {
+      // Static splash, 2 seconds then complete
       const t = window.setTimeout(safeDismiss, 2000);
       return () => window.clearTimeout(t);
     }
@@ -510,6 +611,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     schedulePhases();
 
     const onResize = () => {
+      // Simple: teardown and re-init for consistent physics sizing
       teardownMatter();
       initMatter();
       schedulePhases();
@@ -523,6 +625,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, [clearTimers, dismissed, initMatter, prefersReducedMotion, schedulePhases, safeDismiss, teardownMatter]);
 
+  // Phase logic that manipulates physics world
   useEffect(() => {
     if (dismissed || prefersReducedMotion) return;
 
@@ -534,6 +637,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const h = canvas.height;
 
     const ensureFloors = () => {
+      // Recreate floors if we removed them
+      // If floors are empty, re-setup boundaries
       if (worldBodiesRef.current.floors.length === 0) {
         const { walls, floors } = setupWorldBoundaries(w, h);
         worldBodiesRef.current.walls = walls;
@@ -545,6 +650,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
 
     if (phase === "flood1") {
+      // Reset and spawn first ocean
       ensureFloors();
       resetEmojiOcean();
       removeLogoBody();
@@ -554,22 +660,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     }
 
     if (phase === "logoBob") {
+      // Drop logo into the ocean and let it bob
       if (!logoBodyRef.current) {
         const body = createLogoBody();
         if (body) {
+          // Nudge it downward like a splash
           Matter.Body.setVelocity(body, { x: 0, y: 8.5 });
           Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.06);
         }
       }
 
+      // Keep floors in place
       addFloors();
       engine.gravity.y = 0.95;
     }
 
     if (phase === "drain1") {
+      // Drain by removing floors and increasing gravity briefly
       engine.gravity.y = 1.9;
       removeFloors();
 
+      // Pull toward the center gap so it drains cleanly
       const gapX = w / 2;
       const gapY = h + 60;
 
@@ -589,12 +700,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     }
 
     if (phase === "cardHold") {
+      // Clear physics remnants so the card reads clean
       engine.gravity.y = 0.95;
+
+      // Remove logo if it still exists
       removeLogoBody();
+
+      // Remove emoji bodies still lingering after drain
       resetEmojiOcean();
+
+      // Recreate floors offscreen for the next flood
+      // We want card to be visible, physics can exist behind it.
+      // No need to add floors yet.
     }
 
     if (phase === "flood2") {
+      // Second wipe flood over the card
+      // Floors must exist so the flood packs, then we drain again.
       ensureFloors();
       resetEmojiOcean();
 
@@ -636,6 +758,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   if (dismissed) return null;
 
+  // Reduced motion static version
   if (prefersReducedMotion) {
     return (
       <div ref={overlayRef} className="am-splash-overlay">
@@ -666,16 +789,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       <canvas ref={canvasRef} className="am-splash-canvas" aria-hidden="true" />
 
       <div className="am-splash-content" aria-hidden="true">
+        {/* HTML logo that is synced to a Matter body and floats among emojis */}
         <div
           ref={logoElRef}
           className={`am-logo-card ${showLogo ? "am-visible" : "am-hidden"}`}
           style={{
+            // Start transform offscreen, then physics sync takes over
             transform: "translate(-50%, -50%) translate(50vw, -140px)",
           }}
         >
           <span className="am-logo-text">All Matches!</span>
         </div>
 
+        {/* Tagline card reveal */}
         <div className={`am-tagline-wrap ${showCard ? "am-visible" : "am-hidden"}`}>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
@@ -685,6 +811,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           </div>
         </div>
 
+        {/* 21+ chyron */}
         <div className="am-chyron">21+</div>
       </div>
     </div>
