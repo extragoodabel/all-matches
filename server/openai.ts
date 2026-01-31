@@ -197,10 +197,10 @@ export async function generateAIResponse(
 
     const flirtRules = `FLIRT RULES:
 - You are on a dating app. Be flirt-forward and fun.
-- Keep it PG-13 and NON-EXPLICIT. No sexting, no graphic sexual content, no explicit requests.
+- R-rated flirting is allowed. Light sexting is okay. No graphic/explicit sexual content.
 - Match intensity to flirtPercent: ${flirtPercent}/100.
 - flirtStyle: ${flirtStyle}.
-- If flirtStyle is "horny" or "feral": be bolder, but still non-explicit.`;
+- If flirtStyle is "horny" or "feral": be bold, suggestive, and playful. Light innuendo is encouraged.`;
 
     let systemPrompt: string;
 
@@ -229,14 +229,105 @@ CHARACTER SPEC:
       const emojiStyle = spec.textingStyle.emojis || "occasional";
       const lengthStyle = spec.textingStyle.messageLength || spec.textingStyle.length || "short";
 
+      // Parse style values for matching
+      const slangLower = slangStyle.toLowerCase();
+      const capsLower = capsStyle.toLowerCase();
+      const typoLower = typoStyle.toLowerCase();
+      const emojiLower = emojiStyle.toLowerCase();
+      const lengthLower = lengthStyle.toLowerCase();
+
+      let slangInstruction = "";
+      if (slangLower.includes("no slang") || slangLower.includes("formal")) {
+        slangInstruction = "→ NO SLANG. Proper vocabulary only. Write formally.";
+      } else if (slangLower.includes("light")) {
+        slangInstruction = "→ Light casual: 'yeah', 'kinda', 'gonna', 'wanna'.";
+      } else if (slangLower.includes("heavy") || slangLower.includes("internet")) {
+        slangInstruction = "→ HEAVY INTERNET SLANG: 'lol', 'tbh', 'ngl', 'idk', 'rn', 'fr', 'lowkey'. Use these often.";
+      } else if (slangLower.includes("gen-z") || slangLower.includes("zoomer")) {
+        slangInstruction = "→ GEN-Z SPEAK: 'no cap', 'slay', 'ate that', 'bestie', 'its giving', 'main character'. Use liberally.";
+      } else if (slangLower.includes("regional") || slangLower.includes("midwest") || slangLower.includes("southern") || slangLower.includes("east coast")) {
+        slangInstruction = "→ REGIONAL SLANG: Use location-specific phrases naturally.";
+      } else {
+        slangInstruction = "→ Moderate casual slang is fine.";
+      }
+
+      let capsInstruction = "";
+      if (capsLower.includes("proper") || capsLower === "normal") {
+        capsInstruction = "→ Standard capitalization.";
+      } else if (capsLower.includes("lowercase") || capsLower.includes("no caps")) {
+        capsInstruction = "→ ALL LOWERCASE. never capitalize anything. not 'i', not sentence starts. ever.";
+      } else if (capsLower.includes("all caps") || capsLower.includes("caps for emphasis")) {
+        capsInstruction = "→ USE CAPS for EMPHASIS. Be EXCITED sometimes.";
+      } else if (capsLower.includes("chaotic") || capsLower.includes("random")) {
+        capsInstruction = "→ rAnDoM caps for fLaVoR and emphasis.";
+      } else if (capsLower.includes("minimal")) {
+        capsInstruction = "→ Minimal punctuation, casual capitalization.";
+      } else {
+        capsInstruction = "→ Normal caps.";
+      }
+
+      let typoInstruction = "";
+      if (typoLower === "none" || typoLower.includes("clean")) {
+        typoInstruction = "→ Clean typing. No typos.";
+      } else if (typoLower.includes("rare")) {
+        typoInstruction = "→ Occasional typos: 'teh', 'adn'. Maybe 1 per 10 messages.";
+      } else if (typoLower.includes("occasional") || typoLower.includes("1 in 5")) {
+        typoInstruction = "→ Regular typos: 'definately', 'teh', 'adn', 'hte'. Don't correct them.";
+      } else if (typoLower.includes("frequent") || typoLower.includes("common")) {
+        typoInstruction = "→ FREQUENT TYPOS: 'prolly', 'togehter', 'definately', 'ur'. Type fast and messy.";
+      } else {
+        typoInstruction = "→ Natural typing, occasional mistakes.";
+      }
+
+      let emojiInstruction = "";
+      if (emojiLower.includes("no emoji") || emojiLower === "none") {
+        emojiInstruction = "→ ZERO EMOJIS. Never use them.";
+      } else if (emojiLower.includes("rare") || emojiLower.includes("1-2 per convo")) {
+        emojiInstruction = "→ Rare emojis. Maybe 1 every few messages.";
+      } else if (emojiLower.includes("occasional") || emojiLower.includes("moderate")) {
+        emojiInstruction = "→ 1-2 emojis per message when fitting.";
+      } else if (emojiLower.includes("heavy") || emojiLower.includes("frequent") || emojiLower.includes("liberal")) {
+        emojiInstruction = "→ HEAVY EMOJIS 😭🔥💀😂 multiple per message. Be expressive!";
+      } else {
+        emojiInstruction = "→ Use emojis naturally.";
+      }
+
+      let lengthInstruction = "";
+      if (lengthLower.includes("very short") || lengthLower.includes("terse") || lengthLower.includes("clipped")) {
+        lengthInstruction = "→ VERY SHORT. 3-8 words max. Fragments. 'lol nice' or 'wait what' vibes.";
+      } else if (lengthLower.includes("short") || lengthLower.includes("punchy")) {
+        lengthInstruction = "→ Short. 1-2 quick sentences.";
+      } else if (lengthLower.includes("medium") || lengthLower.includes("conversational")) {
+        lengthInstruction = "→ Medium. 2-3 sentences, normal texting.";
+      } else if (lengthLower.includes("long") || lengthLower.includes("expressive")) {
+        lengthInstruction = "→ Longer messages. 3-4 sentences. You like to write.";
+      } else if (lengthLower.includes("rambly") || lengthLower.includes("tangent")) {
+        lengthInstruction = "→ RAMBLY. Go off on tangents. Multiple sentences that run together.";
+      } else {
+        lengthInstruction = "→ Normal message length.";
+      }
+
       systemPrompt += `
 
-TEXTING STYLE (follow these consistently):
-- Slang: ${slangStyle}
-- Capitalization: ${capsStyle}
-- Typos/imperfections: ${typoStyle}
-- Emojis: ${emojiStyle}
-- Message length: ${lengthStyle}`;
+TEXTING STYLE - THIS IS MANDATORY LAW. FOLLOW IT OR FAIL:
+Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:
+
+- SLANG: ${slangStyle}
+  ${slangInstruction}
+
+- CAPITALIZATION: ${capsStyle}
+  ${capsInstruction}
+
+- TYPOS: ${typoStyle}
+  ${typoInstruction}
+
+- EMOJIS: ${emojiStyle}
+  ${emojiInstruction}
+
+- MESSAGE LENGTH: ${lengthStyle}
+  ${lengthInstruction}
+
+THIS IS YOUR VOICE. If you use proper punctuation when you're "all lowercase", you FAILED. If you write 3 sentences when you're "terse", you FAILED. BE DISTINCTIVE.`;
 
       // Add origin/language background if non-native
       if (spec.origin && spec.originType && spec.originType !== "native") {
