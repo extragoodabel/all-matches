@@ -84,6 +84,7 @@ const TOPIC_LIMITS: Record<string, TopicLimit> = {
   spreadsheets: { pattern: /spreadsheet|excel|google\s*sheet/i, maxRatio: 100, count: 0 },
   flip_phone: { pattern: /flip\s*phone/i, maxRatio: 100, count: 0 },
   movie_quotes: { pattern: /you can't handle|i'll be back|here's looking at you|frankly.*don't give|may the force|life is like a box|you talking to me|i see dead people|show me the money|houston.*problem|bond.*james bond|i'm gonna make.*offer|there's no place like|we're gonna need a bigger|say hello to my|you had me at|nobody puts baby|i feel the need|to infinity and beyond|why so serious|i am your father/i, maxRatio: 20, count: 0 },
+  movie_quote_phrase: { pattern: /movie\s*quote/i, maxRatio: 30, count: 0 },
 };
 
 let totalProfilesGenerated = 0;
@@ -108,7 +109,7 @@ function checkBioForBannedTopics(bio: string): string | null {
     'fan_sleeping', 'princess_bride',
     'fur_baby', 'dog', 'cat',
     'date_ideas_notes', 'snacks', 'politics', 'flashlight', 'google',
-    'deadlines', 'spreadsheets', 'flip_phone', 'movie_quotes'
+    'deadlines', 'spreadsheets', 'flip_phone', 'movie_quotes', 'movie_quote_phrase'
   ];
   
   for (const key of ordered) {
@@ -161,6 +162,7 @@ function registerTopicsInBio(bio: string): void {
   if (TOPIC_LIMITS.spreadsheets.pattern.test(bio)) TOPIC_LIMITS.spreadsheets.count++;
   if (TOPIC_LIMITS.flip_phone.pattern.test(bio)) TOPIC_LIMITS.flip_phone.count++;
   if (TOPIC_LIMITS.movie_quotes.pattern.test(bio)) TOPIC_LIMITS.movie_quotes.count++;
+  if (TOPIC_LIMITS.movie_quote_phrase.pattern.test(bio)) TOPIC_LIMITS.movie_quote_phrase.count++;
   
   totalProfilesGenerated++;
 }
@@ -193,6 +195,7 @@ function getBannedTopicsForPrompt(): string[] {
   if (!isTopicAllowed('spreadsheets')) banned.push('spreadsheets', 'Excel');
   if (!isTopicAllowed('flip_phone')) banned.push('flip phone');
   if (!isTopicAllowed('movie_quotes')) banned.push('movie quotes', 'famous movie lines');
+  if (!isTopicAllowed('movie_quote_phrase')) banned.push('saying "movie quote"');
   return banned;
 }
 
