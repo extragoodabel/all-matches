@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Matter from "matter-js";
 
 type Phase = "flood1" | "logoBob" | "drain1" | "cardHold" | "flood2" | "drain2" | "done";
@@ -7,61 +7,31 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
+const EMOJIS = [
+  "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖",
+  "💘", "💝", "💕", "💞", "💓", "💗", "💟", "💄", "💋", "🫦", "💅", "👠",
+  "💀", "🥂", "🍾", "🪞", "⛓️", "🍫", "🧿", "🩸", "💍", "🧬", "🌶️", "⚡",
+  "💦", "🫀", "🧠", "⭐", "👁️", "🌟", "🍄", "🧨", "🍒", "🔥", "😬", "😍",
+  "🎭", "🧪",
+];
+
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
 export function SplashScreen({ onComplete }: SplashScreenProps) {
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logoElRef = useRef<HTMLDivElement>(null);
 
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   const rafRef = useRef<number | null>(null);
+  const logoBodyRef = useRef<Matter.Body | null>(null);
+  const emojiBodiesRef = useRef<Matter.Body[]>([]);
+  const dprRef = useRef(1);
 
   const [phase, setPhase] = useState<Phase>("flood1");
   const [dismissed, setDismissed] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  const logoElRef = useRef<HTMLDivElement | null>(null);
-  const logoBodyRef = useRef<Matter.Body | null>(null);
-
-  const worldBodiesRef = useRef<{
-    walls: Matter.Body[];
-    floors: Matter.Body[];
-    emojis: Matter.Body[];
-    constraints: Matter.Constraint[];
-  }>({
-    walls: [],
-    floors: [],
-    emojis: [],
-    constraints: [],
-  });
-
-  const timersRef = useRef<number[]>([]);
-
-  const EMOJIS = useMemo(
-    () => [
-      "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖",
-      "💘", "💝", "💕", "💞", "💓", "💗", "💟", "💄", "💋", "🫦", "💅", "👠",
-      "💀", "🥂", "🍾", "🪞", "⛓️", "🍫", "🧿", "🩸", "💍", "🧬", "🌶️", "⚡",
-      "💦", "🫀", "🧠", "⭐", "👁️", "🌟", "🍄", "🧨", "🍒", "🔥", "😬", "😍",
-      "🎭", "🧪",
-    ],
-    []
-  );
-
-  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
-
-  const getCounts = useCallback(() => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const area = w * h;
-    const base = Math.round(area / 6500);
-    const count = clamp(base, 140, 240);
-    return { count };
-  }, []);
-
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach((t) => window.clearTimeout(t));
-    timersRef.current = [];
-  }, []);
 
   const safeDismiss = useCallback(() => {
     if (dismissed) return;
@@ -77,562 +47,245 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  const setupWorldBoundaries = useCallback((w: number, h: number) => {
-    const thickness = 80;
+  useEffect(() => {
+    if (dismissed || prefersReducedMotion) return;
 
-    const left = Matter.Bodies.rectangle(-thickness / 2, h / 2, thickness, h + 2 * thickness, {
-      isStatic: true,
-    });
-    const right = Matter.Bodies.rectangle(w + thickness / 2, h / 2, thickness, h + 2 * thickness, {
-      isStatic: true,
-    });
-    const top = Matter.Bodies.rectangle(w / 2, -thickness / 2, w + 2 * thickness, thickness, {
-      isStatic: true,
-    });
-
-    const gapWidth = Math.round(w * 0.24);
-    const floorHeight = 90;
-    const floorY = h + floorHeight / 2;
-
-    const leftFloorWidth = (w - gapWidth) / 2;
-    const rightFloorWidth = (w - gapWidth) / 2;
-
-    const leftFloor = Matter.Bodies.rectangle(leftFloorWidth / 2, floorY, leftFloorWidth, floorHeight, {
-      isStatic: true,
-    });
-    const rightFloor = Matter.Bodies.rectangle(
-      w - rightFloorWidth / 2,
-      floorY,
-      rightFloorWidth,
-      floorHeight,
-      { isStatic: true }
-    );
-
-    const walls = [left, right, top];
-    const floors = [leftFloor, rightFloor];
-
-    worldBodiesRef.current.walls = walls;
-    worldBodiesRef.current.floors = floors;
-
-    return { walls, floors };
-  }, []);
-
-  const removeBodies = useCallback((bodies: Matter.Body[]) => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    bodies.forEach((b) => Matter.Composite.remove(engine.world, b));
-  }, []);
-
-  const removeConstraints = useCallback((constraints: Matter.Constraint[]) => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    constraints.forEach((c) => Matter.Composite.remove(engine.world, c));
-  }, []);
-
-  const resetEmojiOcean = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-
-    removeConstraints(worldBodiesRef.current.constraints);
-    removeBodies(worldBodiesRef.current.emojis);
-
-    worldBodiesRef.current.emojis = [];
-    worldBodiesRef.current.constraints = [];
-  }, [removeBodies, removeConstraints]);
-
-  const makeEmojiBody = useCallback(
-    (x: number, y: number, emoji: string, radius: number, alpha: number) => {
-      const body = Matter.Bodies.circle(x, y, radius, {
-        restitution: 0.15,
-        friction: 0.35,
-        frictionAir: 0.06,
-        density: 0.0018,
-      });
-
-      (body as any).plugin = {
-        emoji,
-        radius,
-        alpha,
-      };
-
-      return body;
-    },
-    []
-  );
-
-  const connectCohesion = useCallback((bodies: Matter.Body[]) => {
-    const constraints: Matter.Constraint[] = [];
-    const stiffness = 0.0028;
-    const damping = 0.12;
-
-    for (let i = 0; i < bodies.length; i++) {
-      const a = bodies[i];
-      const ax = a.position.x;
-      const ay = a.position.y;
-
-      const candidates: { j: number; d: number }[] = [];
-      const start = Math.max(0, i - 18);
-      const end = Math.min(bodies.length - 1, i + 18);
-
-      for (let j = start; j <= end; j++) {
-        if (j === i) continue;
-        const b = bodies[j];
-        const dx = b.position.x - ax;
-        const dy = b.position.y - ay;
-        const d = dx * dx + dy * dy;
-        candidates.push({ j, d });
-      }
-
-      candidates.sort((p, q) => p.d - q.d);
-      const links = 1 + Math.floor(Math.random() * 3);
-      for (let k = 0; k < Math.min(links, candidates.length); k++) {
-        const b = bodies[candidates[k].j];
-        const len = Math.sqrt(candidates[k].d);
-
-        if (len > 190) continue;
-
-        constraints.push(
-          Matter.Constraint.create({
-            bodyA: a,
-            bodyB: b,
-            length: clamp(len, 40, 120),
-            stiffness,
-            damping,
-          })
-        );
-      }
-    }
-
-    worldBodiesRef.current.constraints = constraints;
-    return constraints;
-  }, []);
-
-  const spawnFlood = useCallback(
-    (variant: "first" | "second") => {
-      const engine = engineRef.current;
-      const canvas = canvasRef.current;
-      if (!engine || !canvas) return;
-
-      const w = canvas.width;
-      const h = canvas.height;
-
-      const { count } = getCounts();
-
-      const minR = Math.round(Math.min(w, h) * 0.022);
-      const maxR = Math.round(Math.min(w, h) * 0.034);
-
-      const leftCount = Math.floor(count / 2);
-      const rightCount = count - leftCount;
-
-      const bodies: Matter.Body[] = [];
-
-      const spawnBandY = h * 0.75;
-      const spreadY = h * 0.9;
-
-      const randEmoji = () => EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-      const randAlpha = () => (Math.random() < 0.35 ? 0.62 : 0.92);
-
-      for (let i = 0; i < leftCount; i++) {
-        const r = minR + Math.random() * (maxR - minR);
-        const x = -Math.random() * (w * 0.35) - r * 2;
-        const y = (spawnBandY - spreadY / 2) + Math.random() * spreadY;
-        bodies.push(makeEmojiBody(x, y, randEmoji(), r, randAlpha()));
-      }
-
-      for (let i = 0; i < rightCount; i++) {
-        const r = minR + Math.random() * (maxR - minR);
-        const x = w + Math.random() * (w * 0.35) + r * 2;
-        const y = (spawnBandY - spreadY / 2) + Math.random() * spreadY;
-        bodies.push(makeEmojiBody(x, y, randEmoji(), r, randAlpha()));
-      }
-
-      worldBodiesRef.current.emojis = bodies;
-      Matter.Composite.add(engine.world, bodies);
-
-      const constraints = connectCohesion(bodies);
-      Matter.Composite.add(engine.world, constraints);
-
-      const baseSpeed = variant === "first" ? 8.5 : 9.5;
-
-      bodies.forEach((b) => {
-        const isLeft = b.position.x < w / 2;
-        const vx = isLeft ? baseSpeed + Math.random() * 3 : -(baseSpeed + Math.random() * 3);
-        const vy = (Math.random() - 0.5) * 1.6;
-        Matter.Body.setVelocity(b, { x: vx, y: vy });
-      });
-    },
-    [EMOJIS, connectCohesion, getCounts, makeEmojiBody]
-  );
-
-  const createLogoBody = useCallback(() => {
-    const engine = engineRef.current;
-    const canvas = canvasRef.current;
-    if (!engine || !canvas) return null;
-
-    const w = canvas.width;
-
-    const body = Matter.Bodies.rectangle(w / 2, -120, 320, 84, {
-      restitution: 0.25,
-      friction: 0.25,
-      frictionAir: 0.04,
-      density: 0.0011,
-    });
-
-    (body as any).plugin = { isLogo: true };
-
-    logoBodyRef.current = body;
-    Matter.Composite.add(engine.world, body);
-    return body;
-  }, []);
-
-  const removeLogoBody = useCallback(() => {
-    const engine = engineRef.current;
-    const body = logoBodyRef.current;
-    if (!engine || !body) return;
-    Matter.Composite.remove(engine.world, body);
-    logoBodyRef.current = null;
-  }, []);
-
-  const addFloors = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-
-    const existing = worldBodiesRef.current.floors;
-    if (!existing.length) return;
-
-    existing.forEach((f) => {
-      if (!Matter.Composite.allBodies(engine.world).includes(f)) {
-        Matter.Composite.add(engine.world, f);
-      }
-    });
-  }, []);
-
-  const removeFloors = useCallback(() => {
-    removeBodies(worldBodiesRef.current.floors);
-  }, [removeBodies]);
-
-  const phaseRef = useRef<Phase>("flood1");
-  phaseRef.current = phase;
-
-  const initMatter = useCallback(() => {
     const canvas = canvasRef.current;
     const overlay = overlayRef.current;
     if (!canvas || !overlay) return;
 
     const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+    dprRef.current = dpr;
 
     const cssW = overlay.clientWidth;
     const cssH = overlay.clientHeight;
-
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
 
-    const engine = Matter.Engine.create({
-      enableSleeping: true,
-    });
+    const w = canvas.width;
+    const h = canvas.height;
 
-    engine.gravity.x = 0;
+    // Create physics engine
+    const engine = Matter.Engine.create({ enableSleeping: false });
     engine.gravity.y = 0.95;
-
     engineRef.current = engine;
 
-    const { walls, floors } = setupWorldBoundaries(canvas.width, canvas.height);
-    Matter.Composite.add(engine.world, [...walls, ...floors]);
+    // Create boundaries
+    const thickness = 80;
+    const walls = [
+      Matter.Bodies.rectangle(-thickness / 2, h / 2, thickness, h * 2, { isStatic: true }),
+      Matter.Bodies.rectangle(w + thickness / 2, h / 2, thickness, h * 2, { isStatic: true }),
+      Matter.Bodies.rectangle(w / 2, -thickness / 2, w * 2, thickness, { isStatic: true }),
+      Matter.Bodies.rectangle(w / 2, h + thickness / 2, w * 2, thickness, { isStatic: true, label: "floor" }),
+    ];
+    Matter.Composite.add(engine.world, walls);
 
+    // Start runner
     const runner = Matter.Runner.create();
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
+    // Spawn emojis function
+    const spawnEmojis = () => {
+      const count = clamp(Math.round((w * h) / 6500), 100, 200);
+      const minR = Math.round(Math.min(w, h) * 0.025);
+      const maxR = Math.round(Math.min(w, h) * 0.04);
+
+      const bodies: Matter.Body[] = [];
+      const halfCount = Math.floor(count / 2);
+
+      // Spawn from left side
+      for (let i = 0; i < halfCount; i++) {
+        const r = minR + Math.random() * (maxR - minR);
+        const x = -r * 2 - Math.random() * w * 0.3;
+        const y = h * 0.2 + Math.random() * h * 0.6;
+        const body = Matter.Bodies.circle(x, y, r, {
+          restitution: 0.2,
+          friction: 0.3,
+          frictionAir: 0.02,
+          density: 0.002,
+        });
+        (body as any).emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+        (body as any).radius = r;
+        bodies.push(body);
+      }
+
+      // Spawn from right side
+      for (let i = 0; i < count - halfCount; i++) {
+        const r = minR + Math.random() * (maxR - minR);
+        const x = w + r * 2 + Math.random() * w * 0.3;
+        const y = h * 0.2 + Math.random() * h * 0.6;
+        const body = Matter.Bodies.circle(x, y, r, {
+          restitution: 0.2,
+          friction: 0.3,
+          frictionAir: 0.02,
+          density: 0.002,
+        });
+        (body as any).emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+        (body as any).radius = r;
+        bodies.push(body);
+      }
+
+      Matter.Composite.add(engine.world, bodies);
+      emojiBodiesRef.current = bodies;
+
+      // Apply inward velocity
+      bodies.forEach((b) => {
+        const isLeft = b.position.x < w / 2;
+        const speed = 12 + Math.random() * 4;
+        Matter.Body.setVelocity(b, {
+          x: isLeft ? speed : -speed,
+          y: (Math.random() - 0.5) * 2,
+        });
+      });
+    };
+
+    // Canvas rendering
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const drawBackground = () => {
-      const w = canvas.width;
-      const h = canvas.height;
-
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, "#ff3bd4");
-      g.addColorStop(0.5, "#7c3aed");
-      g.addColorStop(1, "#00e5ff");
-      ctx.fillStyle = g;
+    const drawFrame = () => {
+      // Draw background
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, "#ff3bd4");
+      grad.addColorStop(0.5, "#7c3aed");
+      grad.addColorStop(1, "#00e5ff");
+      ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      ctx.globalAlpha = 0.18;
+      // Draw pattern
+      ctx.globalAlpha = 0.15;
       ctx.save();
-      ctx.translate(w * 0.1, h * 0.05);
-      ctx.rotate(-0.28);
-      for (let i = -h; i < w + h; i += 58) {
-        ctx.fillStyle = i % 116 === 0 ? "#ffffff" : "#000000";
-        ctx.fillRect(i, 0, 22, h * 2);
+      ctx.translate(w * 0.1, 0);
+      ctx.rotate(-0.3);
+      for (let i = -h; i < w + h; i += 60) {
+        ctx.fillStyle = i % 120 === 0 ? "#fff" : "#000";
+        ctx.fillRect(i, 0, 25, h * 2);
       }
       ctx.restore();
 
-      ctx.globalAlpha = 0.12;
-      ctx.fillStyle = "#ffffff";
-      const step = 48;
-      for (let y = 20; y < h; y += step) {
-        for (let x = 20; x < w; x += step) {
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = "#fff";
+      for (let y = 0; y < h; y += 50) {
+        for (let x = 0; x < w; x += 50) {
           ctx.beginPath();
-          ctx.arc(x + ((y / step) % 2) * 10, y, 6, 0, Math.PI * 2);
+          ctx.arc(x + (y % 100 === 0 ? 25 : 0), y, 8, 0, Math.PI * 2);
           ctx.fill();
         }
       }
-
       ctx.globalAlpha = 1;
-    };
 
-    const drawEmojis = () => {
-      const bodies = worldBodiesRef.current.emojis;
-      if (!bodies.length) return;
-
-      const w = canvas.width;
-      const h = canvas.height;
-
-      ctx.save();
+      // Draw emojis
+      const bodies = emojiBodiesRef.current;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      for (let i = 0; i < bodies.length; i++) {
-        const b = bodies[i];
-        const p = b.position;
+      for (const body of bodies) {
+        const { x, y } = body.position;
+        if (x < -100 || x > w + 100 || y < -100 || y > h + 100) continue;
 
-        if (p.x < -200 || p.x > w + 200 || p.y < -200 || p.y > h + 200) continue;
+        const emoji = (body as any).emoji || "💖";
+        const r = (body as any).radius || 20;
 
-        const meta = (b as any).plugin || {};
-        const emoji = meta.emoji || "💖";
-        const r = meta.radius || 26;
-        const alpha = meta.alpha ?? 0.9;
-
-        ctx.globalAlpha = alpha;
-
-        ctx.shadowColor = "rgba(0,0,0,0.18)";
-        ctx.shadowBlur = r * 0.3;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = r * 0.2;
-
-        ctx.font = `${Math.round(r * 1.85)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
-        ctx.fillText(emoji, p.x, p.y);
+        ctx.font = `${Math.round(r * 2)}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.fillText(emoji, x, y);
       }
 
-      ctx.restore();
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-    };
-
-    const syncLogo = () => {
-      const el = logoElRef.current;
-      const body = logoBodyRef.current;
-      if (!el || !body) return;
-
-      const px = body.position.x / dpr;
-      const py = body.position.y / dpr;
-
-      const angle = body.angle;
-
-      el.style.transform = `translate(-50%, -50%) translate(${px}px, ${py}px) rotate(${angle}rad)`;
-    };
-
-    const tick = () => {
-      drawBackground();
-      drawEmojis();
-
-      if (phaseRef.current === "logoBob") {
-        const body = logoBodyRef.current;
-        if (body) {
-          const lift = -0.0009 * body.mass;
-          Matter.Body.applyForce(body, body.position, { x: 0, y: lift });
-        }
+      // Sync logo position
+      const logoBody = logoBodyRef.current;
+      const logoEl = logoElRef.current;
+      if (logoBody && logoEl) {
+        const px = logoBody.position.x / dpr;
+        const py = logoBody.position.y / dpr;
+        const angle = logoBody.angle;
+        logoEl.style.transform = `translate(-50%, -50%) translate(${px}px, ${py}px) rotate(${angle}rad)`;
       }
 
-      syncLogo();
-      rafRef.current = requestAnimationFrame(tick);
+      rafRef.current = requestAnimationFrame(drawFrame);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
-  }, [setupWorldBoundaries]);
+    // Start animation
+    rafRef.current = requestAnimationFrame(drawFrame);
 
-  const teardownMatter = useCallback(() => {
-    clearTimers();
+    // Spawn initial flood
+    setTimeout(spawnEmojis, 50);
 
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-
-    const runner = runnerRef.current;
-    const engine = engineRef.current;
-
-    if (runner) {
-      Matter.Runner.stop(runner);
-      runnerRef.current = null;
-    }
-
-    if (engine) {
-      Matter.Engine.clear(engine);
-      Matter.Composite.clear(engine.world, false);
-      engineRef.current = null;
-    }
-
-    logoBodyRef.current = null;
-    worldBodiesRef.current = { walls: [], floors: [], emojis: [], constraints: [] };
-  }, [clearTimers]);
-
-  const schedulePhases = useCallback(() => {
-    clearTimers();
-
+    // Phase timers
+    const timers: number[] = [];
     const setT = (ms: number, fn: () => void) => {
-      timersRef.current.push(window.setTimeout(fn, ms));
+      timers.push(window.setTimeout(fn, ms));
     };
 
-    setPhase("flood1");
+    setT(1000, () => {
+      setPhase("logoBob");
+      // Create logo physics body
+      const logoBody = Matter.Bodies.rectangle(w / 2, -100, 300 * dpr, 70 * dpr, {
+        restitution: 0.3,
+        friction: 0.2,
+        frictionAir: 0.03,
+        density: 0.0008,
+      });
+      logoBodyRef.current = logoBody;
+      Matter.Composite.add(engine.world, logoBody);
+      Matter.Body.setVelocity(logoBody, { x: 0, y: 10 });
+    });
 
-    setT(1000, () => setPhase("logoBob"));
-    setT(2000, () => setPhase("drain1"));
-    setT(3000, () => setPhase("cardHold"));
-    setT(5000, () => setPhase("flood2"));
-    setT(6000, () => setPhase("drain2"));
-    setT(7000, () => setPhase("done"));
+    setT(2000, () => {
+      setPhase("drain1");
+      // Remove floor and increase gravity
+      const floor = Matter.Composite.allBodies(engine.world).find(b => b.label === "floor");
+      if (floor) Matter.Composite.remove(engine.world, floor);
+      engine.gravity.y = 2.5;
+    });
 
-    setT(8200, safeDismiss);
-  }, [clearTimers, safeDismiss]);
-
-  useEffect(() => {
-    if (dismissed) return;
-
-    if (prefersReducedMotion) {
-      const t = window.setTimeout(safeDismiss, 2000);
-      return () => window.clearTimeout(t);
-    }
-
-    initMatter();
-    schedulePhases();
-
-    const onResize = () => {
-      teardownMatter();
-      initMatter();
-      schedulePhases();
-    };
-
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      teardownMatter();
-      clearTimers();
-    };
-  }, [clearTimers, dismissed, initMatter, prefersReducedMotion, schedulePhases, safeDismiss, teardownMatter]);
-
-  useEffect(() => {
-    if (dismissed || prefersReducedMotion) return;
-
-    const engine = engineRef.current;
-    const canvas = canvasRef.current;
-    if (!engine || !canvas) return;
-
-    const w = canvas.width;
-    const h = canvas.height;
-
-    const ensureFloors = () => {
-      if (worldBodiesRef.current.floors.length === 0) {
-        const { walls, floors } = setupWorldBoundaries(w, h);
-        worldBodiesRef.current.walls = walls;
-        worldBodiesRef.current.floors = floors;
-        Matter.Composite.add(engine.world, [...walls, ...floors]);
-      } else {
-        addFloors();
+    setT(3000, () => {
+      setPhase("cardHold");
+      // Remove logo body if still there
+      if (logoBodyRef.current) {
+        Matter.Composite.remove(engine.world, logoBodyRef.current);
+        logoBodyRef.current = null;
       }
-    };
-
-    if (phase === "flood1") {
-      ensureFloors();
-      resetEmojiOcean();
-      removeLogoBody();
-
-      engine.gravity.y = 0.95;
-      spawnFlood("first");
-    }
-
-    if (phase === "logoBob") {
-      if (!logoBodyRef.current) {
-        const body = createLogoBody();
-        if (body) {
-          Matter.Body.setVelocity(body, { x: 0, y: 8.5 });
-          Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.06);
+      // Clear remaining emojis
+      emojiBodiesRef.current.forEach(b => {
+        if (Matter.Composite.allBodies(engine.world).includes(b)) {
+          Matter.Composite.remove(engine.world, b);
         }
-      }
-
-      addFloors();
-      engine.gravity.y = 0.95;
-    }
-
-    if (phase === "drain1") {
-      engine.gravity.y = 1.9;
-      removeFloors();
-
-      const gapX = w / 2;
-      const gapY = h + 60;
-
-      const bodies = worldBodiesRef.current.emojis;
-      bodies.forEach((b) => {
-        const dx = gapX - b.position.x;
-        const dy = gapY - b.position.y;
-        Matter.Body.applyForce(b, b.position, { x: dx * 0.0000004, y: dy * 0.0000008 });
       });
+      emojiBodiesRef.current = [];
+    });
 
-      const logo = logoBodyRef.current;
-      if (logo) {
-        const dx = gapX - logo.position.x;
-        const dy = gapY - logo.position.y;
-        Matter.Body.applyForce(logo, logo.position, { x: dx * 0.0000012, y: dy * 0.0000019 });
+    setT(5000, () => {
+      setPhase("flood2");
+      // Restore floor and gravity
+      engine.gravity.y = 1.2;
+      const floor = Matter.Bodies.rectangle(w / 2, h + 40, w * 2, 80, { isStatic: true, label: "floor" });
+      Matter.Composite.add(engine.world, floor);
+      // Spawn new emojis
+      spawnEmojis();
+    });
+
+    setT(6000, () => {
+      setPhase("drain2");
+      const floor = Matter.Composite.allBodies(engine.world).find(b => b.label === "floor");
+      if (floor) Matter.Composite.remove(engine.world, floor);
+      engine.gravity.y = 3;
+    });
+
+    setT(7000, () => setPhase("done"));
+    setT(7500, safeDismiss);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+      if (engineRef.current) {
+        Matter.Engine.clear(engineRef.current);
+        Matter.Composite.clear(engineRef.current.world, false);
       }
-    }
-
-    if (phase === "cardHold") {
-      engine.gravity.y = 0.95;
-      removeLogoBody();
-      resetEmojiOcean();
-    }
-
-    if (phase === "flood2") {
-      ensureFloors();
-      resetEmojiOcean();
-
-      engine.gravity.y = 1.05;
-      spawnFlood("second");
-    }
-
-    if (phase === "drain2") {
-      engine.gravity.y = 2.1;
-      removeFloors();
-
-      const gapX = w / 2;
-      const gapY = h + 60;
-
-      const bodies = worldBodiesRef.current.emojis;
-      bodies.forEach((b) => {
-        const dx = gapX - b.position.x;
-        const dy = gapY - b.position.y;
-        Matter.Body.applyForce(b, b.position, { x: dx * 0.0000005, y: dy * 0.000001 });
-      });
-    }
-
-    if (phase === "done") {
-      safeDismiss();
-    }
-  }, [
-    addFloors,
-    createLogoBody,
-    dismissed,
-    phase,
-    prefersReducedMotion,
-    removeFloors,
-    removeLogoBody,
-    resetEmojiOcean,
-    safeDismiss,
-    setupWorldBoundaries,
-    spawnFlood,
-  ]);
+    };
+  }, [dismissed, prefersReducedMotion, safeDismiss]);
 
   if (dismissed) return null;
 
@@ -644,34 +297,30 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           <div className="am-logo-card am-logo-card-static">
             <span className="am-logo-text">All Matches!</span>
           </div>
-
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
               <h1 className="am-tagline-h">all validation. no obligation.</h1>
               <p className="am-tagline-p">no profile. no pressure. your matches are already waiting for you.</p>
             </div>
           </div>
-
           <div className="am-chyron">21+</div>
         </div>
       </div>
     );
   }
 
-  const showLogo = phase === "flood1" || phase === "logoBob" || phase === "drain1";
+  const showLogo = phase === "logoBob" || phase === "drain1";
   const showCard = phase === "cardHold" || phase === "flood2" || phase === "drain2";
 
   return (
     <div ref={overlayRef} className="am-splash-overlay">
       <canvas ref={canvasRef} className="am-splash-canvas" aria-hidden="true" />
 
-      <div className="am-splash-content" aria-hidden="true">
+      <div className="am-splash-content">
         <div
           ref={logoElRef}
           className={`am-logo-card ${showLogo ? "am-visible" : "am-hidden"}`}
-          style={{
-            transform: "translate(-50%, -50%) translate(50vw, -140px)",
-          }}
+          style={{ transform: "translate(-50%, -50%) translate(50vw, -100px)" }}
         >
           <span className="am-logo-text">All Matches!</span>
         </div>
