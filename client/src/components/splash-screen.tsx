@@ -84,7 +84,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const newEmojis: EmojiData[] = [];
       
       for (let i = 0; i < count; i++) {
-        const size = 80 + Math.random() * 80; // 2x larger emojis
+        const size = 50 + Math.random() * 40; // Larger emojis
         const x = (Math.random() * w * 0.96) + w * 0.02;
         let spawnDelay: number;
         if (waterfall) {
