@@ -262,27 +262,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       gravity = 0.8; // Very fast drain
     });
 
-    // Card revealed - 2 second pause
+    // Card revealed - brief pause
     setT(5800, () => {
       setPhase("cardHold");
       logoVisible = false;
     });
 
-    // PHASE 3: Second wave floods in FAST and wipes card
-    setT(7800, () => {
+    // PHASE 3: Second wave floods in FAST and wipes card (2 sec after card reveal)
+    setT(6300, () => {
       setPhase("flood2");
       hasFloor = false;
       gravity = 0.6;
       cardDraining = true;
-      spawnEmojis(1000, false, false); // Fast flood, not waterfall
+      spawnEmojis(1000, false, false); // Fast flood
     });
 
-    // PHASE 4: Flashy outro
-    setT(9200, () => {
+    // PHASE 4: Flashy outro - after second wave has washed over
+    setT(8000, () => {
       setPhase("done");
       setFadingOut(true);
     });
-    setT(9600, safeDismiss);
+    setT(8400, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
