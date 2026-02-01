@@ -245,23 +245,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             if (!logoLanded) {
               logoLanded = true;
               logoLandTime = now;
-              logoScaleX = 1.15;
-              logoScaleY = 0.82;
+              logoScaleX = 1.20;
+              logoScaleY = 0.75;
             }
             
-            logoVy *= -0.35; // Gentle bounce
+            logoVy *= -0.55; // More pronounced upward bounce
           }
           
           // Animate logo landing squash/stretch
           if (logoLanded && logoLandTime !== null) {
             const elapsed = now - logoLandTime;
-            const duration = 220; // Longer, more pronounced for logo
+            const duration = 300; // Longer for more visible effect
             if (elapsed < duration) {
               const progress = elapsed / duration;
               // Ease out with slight overshoot for bouncy feel
               const easeOut = 1 - Math.pow(1 - progress, 3);
-              logoScaleX = 1.15 - 0.15 * easeOut;
-              logoScaleY = 0.82 + 0.18 * easeOut;
+              logoScaleX = 1.20 - 0.20 * easeOut;
+              logoScaleY = 0.75 + 0.25 * easeOut;
             } else {
               logoScaleX = 1;
               logoScaleY = 1;
