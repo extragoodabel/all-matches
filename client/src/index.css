@@ -706,11 +706,8 @@
 
 .am-tagline-line {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
   color: white;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
@@ -718,11 +715,17 @@
   margin-bottom: 0;
 }
 
-.am-tagline-final {
-  font-size: 18px;
+.am-tagline-primary {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.am-tagline-secondary {
+  font-size: 17px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .am-chyron {

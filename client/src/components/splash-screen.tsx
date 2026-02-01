@@ -264,8 +264,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       logoVisible = false;
     });
     
-    // Card opacity with 2 second delay
-    setT(7800, () => {
+    // Card opacity - appears shortly after drain starts
+    setT(5000, () => {
       cardOpacity = 1;
     });
 
@@ -283,23 +283,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       spawnEmojis(60, false, true); // More rain
     });
 
-    // Stage 3: Full wave that pulls card off (after card is visible)
-    setT(9200, () => {
+    // Stage 3: Full wave that pulls card off (give time to read - 4 seconds of card visibility)
+    setT(9000, () => {
       cardDraining = true;
       spawnEmojis(200, false, false); // Full wave
     });
 
     // Stage 4: Extra flood
-    setT(9600, () => {
+    setT(9400, () => {
       spawnEmojis(150, false, false);
     });
 
     // PHASE 4: Flashy outro
-    setT(12500, () => {
+    setT(12000, () => {
       setPhase("done");
       setFadingOut(true);
     });
-    setT(12900, safeDismiss);
+    setT(12400, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -319,10 +319,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           </div>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
-              <p className="am-tagline-line">All validation.</p>
-              <p className="am-tagline-line">No obligation.</p>
-              <p className="am-tagline-line">No profile. No pressure.</p>
-              <p className="am-tagline-line am-tagline-final">Your matches are already waiting.</p>
+              <p className="am-tagline-line am-tagline-primary">ALL VALIDATION.</p>
+              <p className="am-tagline-line am-tagline-primary">NO OBLIGATION.</p>
+              <p className="am-tagline-line am-tagline-secondary">No profile. No pressure.</p>
+              <p className="am-tagline-line am-tagline-secondary">Your matches are already waiting.</p>
             </div>
           </div>
           <div className="am-chyron">21+</div>
@@ -381,10 +381,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       >
         <div className="am-tagline-card">
           <div className="am-tagline-inner">
-            <p className="am-tagline-line">All validation.</p>
-            <p className="am-tagline-line">No obligation.</p>
-            <p className="am-tagline-line">No profile. No pressure.</p>
-            <p className="am-tagline-line am-tagline-final">Your matches are already waiting.</p>
+            <p className="am-tagline-line am-tagline-primary">ALL VALIDATION.</p>
+            <p className="am-tagline-line am-tagline-primary">NO OBLIGATION.</p>
+            <p className="am-tagline-line am-tagline-secondary">No profile. No pressure.</p>
+            <p className="am-tagline-line am-tagline-secondary">Your matches are already waiting.</p>
           </div>
         </div>
       </div>
