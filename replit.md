@@ -37,6 +37,16 @@ Preferred communication style: Simple, everyday language.
 - **API Client**: Centralized `apiRequest` function in `queryClient.ts` for all HTTP requests
 - **Component Structure**: Feature components in `client/src/components/`, UI primitives in `client/src/components/ui/`
 
+### Ad Card System (Feb 2026)
+- **Location**: `client/src/lib/ad-cards.ts` - utility for ad card creation and injection
+- **Brand**: Extra Good Studio branding with green background (#9AE033)
+- **Positioning**: Ads appear at swipe positions 10, 25, 40, 55+ (every 15 cards after position 10)
+- **Logos**: Rotating through eg_social.png, eg_preview.png, eg_mark.png in `client/src/assets/images/`
+- **ID Convention**: Ad profiles use negative IDs (position * -1000) to distinguish from real profiles
+- **Match Behavior**: Ad matches use matchId: -1, no server-side match creation
+- **UI Treatment**: "Ad" label on cards, "Connect" button in match notification linking to extragood.studio
+- **Theme Handling**: Uses Math.abs(profile.id) for theme lookup to handle negative IDs safely
+
 ### Design System (Jan 2026)
 - **Location**: `client/src/styles/theme.ts` and `client/src/styles/patterns.ts`
 - **Color Palettes**: 6 named palettes (hotshot, citrus, ocean, berry, tropical, sunset)

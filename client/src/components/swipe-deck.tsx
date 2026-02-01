@@ -383,11 +383,11 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               { primary: '#39CCCC', secondary: '#FFDC00' },
               { primary: '#01FF70', secondary: '#1A1A1A' },
             ];
-            const patternIdx = (currentProfile.id + i) % stackPatternStyles.length;
-            const colorIdx = (currentProfile.id + i) % stackColors.length;
+            const safeId = Math.abs(currentProfile.id);
+            const patternIdx = (safeId + i) % stackPatternStyles.length;
+            const colorIdx = (safeId + i) % stackColors.length;
             const pattern = stackPatternStyles[patternIdx];
-            // Height variation: shorter cards (10% decrease in height)
-            const heightVariation = 0.72 - ((currentProfile.id * i) % 8) * 0.01;
+            const heightVariation = 0.72 - ((safeId * i) % 8) * 0.01;
             return (
               <div
                 key={`stack-${i}-${currentProfile.id}`}

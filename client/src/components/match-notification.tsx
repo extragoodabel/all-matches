@@ -19,7 +19,21 @@ export function MatchNotification({
   onStartChat,
   isPending = false,
 }: MatchNotificationProps) {
-  const theme = useMemo(() => getProfileTheme(profile.id), [profile.id]);
+  const isAd = isAdProfile(profile);
+  const baseTheme = useMemo(() => getProfileTheme(Math.abs(profile.id)), [profile.id]);
+  
+  const adPalette = {
+    primary: AD_CARD_BRAND.bgColor,
+    secondary: '#FFFFFF',
+    accent: '#1A1A1A',
+    background: '#FFFFFF',
+    text: '#1A1A1A',
+  };
+  
+  const theme = isAd 
+    ? { palette: adPalette, patternName: 'checker' as const }
+    : baseTheme;
+    
   const patternStyle = useMemo(
     () => getPatternStyle(theme.patternName),
     [theme.patternName]

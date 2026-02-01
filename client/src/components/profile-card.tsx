@@ -25,19 +25,24 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
   }, [profile.id, profile.imageUrl]);
 
   const isAd = isAdProfile(profile);
-  const theme = useMemo(() => getProfileTheme(profile.id), [profile.id]);
-  const patternStyle = useMemo(
-    () => getPatternStyle(theme.patternName),
-    [theme.patternName]
-  );
+  const baseTheme = useMemo(() => getProfileTheme(Math.abs(profile.id)), [profile.id]);
   
-  const adTheme = isAd ? {
+  const adPalette = {
     primary: AD_CARD_BRAND.bgColor,
     secondary: '#FFFFFF',
     accent: '#1A1A1A',
     background: '#FFFFFF',
     text: '#1A1A1A',
-  } : null;
+  };
+  
+  const theme = isAd 
+    ? { palette: adPalette, patternName: 'checker' as const }
+    : baseTheme;
+    
+  const patternStyle = useMemo(
+    () => getPatternStyle(theme.patternName),
+    [theme.patternName]
+  );
 
   const handleImageError = () => {
     if (!hasError) {
@@ -47,16 +52,14 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
     }
   };
 
-  const activeTheme = adTheme || theme.palette;
-  
   return (
     <div
       className="relative"
       style={{
-        '--eg-primary': activeTheme.primary,
-        '--eg-secondary': activeTheme.secondary,
-        '--eg-accent': activeTheme.accent,
-        '--eg-background': activeTheme.background,
+        '--eg-primary': theme.palette.primary,
+        '--eg-secondary': theme.palette.secondary,
+        '--eg-accent': theme.palette.accent,
+        '--eg-background': theme.palette.background,
       } as React.CSSProperties}
     >
       <div
@@ -73,7 +76,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
           {!isLoaded && (
             <div 
               className="absolute inset-0 animate-pulse"
-              style={{ background: isAd ? AD_CARD_BRAND.bgColor : activeTheme.secondary }}
+              style={{ background: isAd ? AD_CARD_BRAND.bgColor : theme.palette.secondary }}
             />
           )}
           
@@ -126,11 +129,11 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         
         <div 
           className="p-3 md:p-4 flex-shrink-0"
-          style={{ background: isAd ? AD_CARD_BRAND.bgColor : activeTheme.background }}
+          style={{ background: isAd ? AD_CARD_BRAND.bgColor : theme.palette.background }}
         >
           <h2 
             className="text-2xl md:text-3xl font-black tracking-tight"
-            style={{ color: activeTheme.text }}
+            style={{ color: theme.palette.text }}
           >
             {isAd ? profile.name : `${profile.name}, ${profile.age}`}
           </h2>
@@ -139,13 +142,13 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         <div 
           className="eg-caption-block flex-shrink min-h-0 overflow-y-auto"
           style={{ 
-            background: isAd ? '#FFFFFF' : activeTheme.secondary,
-            borderColor: activeTheme.accent,
+            background: isAd ? '#FFFFFF' : theme.palette.secondary,
+            borderColor: theme.palette.accent,
           }}
         >
           <p 
             className="text-sm font-medium leading-relaxed"
-            style={{ color: activeTheme.text }}
+            style={{ color: theme.palette.text }}
           >
             {profile.bio}
           </p>
