@@ -37,14 +37,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   const [phase, setPhase] = useState<Phase>("flood1");
   const [dismissed, setDismissed] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false });
   const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
 
   const safeDismiss = useCallback(() => {
     if (dismissed) return;
-    setDismissed(true);
-    onComplete();
+    setFadingOut(true);
+    // Wait for fade animation, then complete
+    setTimeout(() => {
+      setDismissed(true);
+      onComplete();
+    }, 400);
   }, [dismissed, onComplete]);
 
   useEffect(() => {
@@ -80,17 +85,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       for (let i = 0; i < count; i++) {
         const size = 38 + Math.random() * 26;
-        // Spread across screen width
         const x = (Math.random() * w * 0.96) + w * 0.02;
-        // Stagger vertical spawning - faster overall
         let spawnDelay: number;
         if (waterfall) {
-          // Sustained waterfall - spread over time
-          spawnDelay = Math.random() * 2500;
+          spawnDelay = Math.random() * 2200;
         } else if (staggered) {
-          spawnDelay = Math.random() * 1400; // Faster initial wave
+          spawnDelay = Math.random() * 1000; // Fast initial wave
         } else {
-          spawnDelay = Math.random() * 400;
+          spawnDelay = Math.random() * 300;
         }
         const y = -size - spawnDelay;
         
@@ -99,11 +101,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: 4 + Math.random() * 4, // Faster fall
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: 6 + Math.random() * 5, // Much faster fall
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 4,
+          rotationSpeed: (Math.random() - 0.5) * 5,
           zIndex: nextZIndex++,
           settled: false,
         });
@@ -198,25 +200,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         cardOpacity = 1;
       }
 
-      // Logo physics - fast, energetic drop
+      // Logo physics - fast drop with splashy bounce
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 1.8; // Much faster fall
-          logoVy *= 0.92;
+          logoVy += gravity * 2.5; // Very fast fall
+          logoVy *= 0.88;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.18;
+            logoVy *= -0.35; // Bigger bounce for splash effect
           }
           
-          logoRotation += logoVy * 0.07;
-          logoRotation *= 0.85;
+          logoRotation += logoVy * 0.1;
+          logoRotation *= 0.8;
         } else {
           // Draining - fast exit
-          logoVy += gravity * 2.5;
+          logoVy += gravity * 3;
           logoY += logoVy;
-          logoRotation += logoVy * 0.15;
+          logoRotation += logoVy * 0.18;
         }
       }
 
@@ -245,39 +247,40 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     // Card opacity is controlled by settled emoji count (in animate loop)
 
-    // Logo appears after emojis have started piling
-    setT(1000, () => {
+    // Beat, then logo drops fast
+    setT(800, () => {
       logoVisible = true;
     });
 
-    setT(2200, () => setPhase("logoBob"));
+    setT(1800, () => setPhase("logoBob"));
 
-    setT(4000, () => {
+    setT(3200, () => {
       setPhase("drain1");
       draining = true;
       hasFloor = false;
-      gravity = 0.45; // Faster drain
+      gravity = 0.6; // Fast drain
     });
 
-    // Card is already visible behind emojis - just clear emojis to reveal
-    setT(5000, () => {
+    // Wait for ALL emojis to fall off screen, then show card
+    setT(4800, () => {
       setPhase("cardHold");
-      clearEmojis();
       draining = false;
       logoVisible = false;
+      // Don't clear - let them naturally fall off
     });
 
-    setT(6800, () => {
+    // Second wave 2 seconds sooner
+    setT(6200, () => {
       setPhase("flood2");
-      // Second wave is a waterfall - no settling, just flows over
       hasFloor = false;
-      gravity = 0.4;
+      gravity = 0.5;
       cardDraining = true;
       spawnEmojis(1200, false, true);
     });
 
-    setT(10500, () => setPhase("done"));
-    setT(11000, safeDismiss);
+    // Splashy ending - let waterfall wash everything away
+    setT(9500, () => setPhase("done"));
+    setT(10000, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -313,7 +316,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const emojisAboveCard = phase !== "cardHold"; // Emojis in front except during card hold
 
   return (
-    <div ref={overlayRef} className="am-splash-overlay">
+    <div ref={overlayRef} className={`am-splash-overlay ${fadingOut ? "am-fading-out" : ""}`}>
       <div className="am-splash-bg" />
 
       {/* Emoji layer - z-index changes based on phase */}
