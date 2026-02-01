@@ -626,11 +626,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 24px;
+  padding: 8px 16px;
   background: #FFFFFF;
   border: none;
   border-radius: 0;
-  box-shadow: 6px 6px 0 #1A1A1A;
+  box-shadow: 4px 4px 0 #1A1A1A;
   z-index: 500;
   transition: opacity 0.2s ease;
   will-change: transform;
@@ -638,21 +638,21 @@
 
 .am-logo-text {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #FF1493;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 
 @media (min-width: 768px) {
   .am-logo-card-sharp {
-    padding: 24px 48px;
-    box-shadow: 10px 10px 0 #1A1A1A;
+    padding: 20px 40px;
+    box-shadow: 12px 12px 0 #1A1A1A;
   }
   
   .am-logo-text {
-    font-size: 96px;
+    font-size: 140px;
   }
 }
 
