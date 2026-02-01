@@ -636,6 +636,18 @@
   will-change: transform;
 }
 
+@media (min-width: 768px) {
+  .am-logo-card-sharp {
+    padding: 27px 48px;
+    border-width: 6px;
+    box-shadow: 12px 12px 0 var(--eg-primary, #FF1493);
+  }
+  
+  .am-logo-text {
+    font-size: 42px;
+  }
+}
+
 .am-logo-card-static {
   position: relative;
   top: auto;
