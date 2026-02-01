@@ -350,7 +350,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             <div className="am-tagline-inner">
               <p className="am-tagline-line am-tagline-primary">ALL VALIDATION.</p>
               <p className="am-tagline-line am-tagline-primary">NO OBLIGATION.</p>
-              <p className="am-tagline-line am-tagline-secondary">No profile. No pressure.</p>
+              <p className="am-tagline-line am-tagline-secondary">No need to make a profile.</p>
               <p className="am-tagline-line am-tagline-secondary">Your matches are already waiting.</p>
             </div>
           </div>
@@ -412,7 +412,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           <div className="am-tagline-inner">
             <p className="am-tagline-line am-tagline-primary">ALL VALIDATION.</p>
             <p className="am-tagline-line am-tagline-primary">NO OBLIGATION.</p>
-            <p className="am-tagline-line am-tagline-secondary">No profile. No pressure.</p>
+            <p className="am-tagline-line am-tagline-secondary">No profile? No worries!</p>
             <p className="am-tagline-line am-tagline-secondary">Your matches are already waiting.</p>
           </div>
         </div>
