@@ -387,12 +387,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           left: logoPos.x,
           top: logoPos.y,
           transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg)`,
-          background: splashPalette.primary,
-          border: 'none',
-          boxShadow: `6px 6px 0 ${splashPalette.accent}`,
         }}
       >
-        <span className="am-logo-text" style={{ color: splashPalette.background }}>All Matches!</span>
+        <span className="am-logo-text">All Matches!</span>
       </div>
 
       <div 
