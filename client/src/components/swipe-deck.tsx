@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ProfileCard } from "./profile-card";
 import type { Profile } from "@shared/schema";
 import { Heart, X, Sparkles } from "lucide-react";
@@ -414,19 +414,17 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           })}
         </div>
         
-        <AnimatePresence>
-          <motion.div
+        <motion.div
             ref={cardRef}
             key={currentProfile.id}
-            initial={{ scale: 1, opacity: 1 }}
+            initial={false}
             animate={{
               scale: 1,
               x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
               y: direction ? 0 : dragOffset.y,
               rotate: direction === "left" ? -MAX_ROTATION : direction === "right" ? MAX_ROTATION : rotation,
-              opacity: direction ? 0 : opacity,
+              opacity: direction ? 0 : 1,
             }}
-            exit={{ scale: 0.5, opacity: 0 }}
             transition={{ 
               duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
               type: direction ? "tween" : "spring",
@@ -465,7 +463,6 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               )}
             </div>
           </motion.div>
-        </AnimatePresence>
       </div>
 
       <div 
