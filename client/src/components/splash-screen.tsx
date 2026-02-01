@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { PALETTES } from "@/styles/theme";
 
 type Phase = "flood1" | "logoBob" | "drain1" | "cardHold" | "flood2" | "drain2" | "done";
 
@@ -41,6 +42,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false });
   const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
+  
+  // Random palette for splash screen logo - changes each time splash loads
+  const splashPalette = useMemo(() => {
+    return PALETTES[Math.floor(Math.random() * PALETTES.length)];
+  }, []);
 
   const safeDismiss = useCallback(() => {
     if (dismissed) return;
@@ -381,9 +387,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           left: logoPos.x,
           top: logoPos.y,
           transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg)`,
+          background: splashPalette.background,
+          borderColor: splashPalette.accent,
+          boxShadow: `8px 8px 0 ${splashPalette.primary}`,
         }}
       >
-        <span className="am-logo-text">All Matches!</span>
+        <span className="am-logo-text" style={{ color: splashPalette.accent }}>All Matches!</span>
       </div>
 
       <div 
