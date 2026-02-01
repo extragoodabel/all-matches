@@ -121,52 +121,70 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const emojis = emojisRef.current;
 
       for (const e of emojis) {
-        if (!e.settled) {
-          e.vy += gravity;
-          e.vy = Math.min(e.vy, 8); // Terminal velocity
-        } else if (hasFloor) {
-          // Settled emojis slow down
-          e.vx *= 0.9;
-          e.rotationSpeed *= 0.9;
+        // Once settled, emoji is LOCKED in place forever (until drain)
+        if (e.settled && hasFloor) {
+          // Completely frozen - no movement at all
+          continue;
         }
         
-        e.x += e.vx;
-        e.y += e.vy;
-        e.rotation += e.rotationSpeed;
-
-        // Wall bounce
-        if (e.x < e.size * 0.4) { e.x = e.size * 0.4; e.vx *= -0.3; }
-        if (e.x > w - e.size * 0.4) { e.x = w - e.size * 0.4; e.vx *= -0.3; }
-
-        // Stacking collision - emojis pile on top of each other
-        if (hasFloor && !e.settled) {
-          // Find which column this emoji is in
-          const col = Math.floor(e.x / (w / gridCols));
-          const safeCol = Math.max(0, Math.min(gridCols - 1, col));
-          const floorLevel = stackHeights[safeCol];
+        if (!e.settled) {
+          e.vy += gravity;
+          e.vy = Math.min(e.vy, 10); // Terminal velocity
           
-          // Check if emoji hit the current stack height for its column
-          if (e.y + e.size * 0.35 > floorLevel) {
-            e.y = floorLevel - e.size * 0.35;
-            e.vy *= -0.08; // Small bounce
-            e.vx *= 0.7;
-            e.rotationSpeed *= 0.5;
+          e.x += e.vx;
+          e.y += e.vy;
+          e.rotation += e.rotationSpeed;
+
+          // Wall bounce
+          if (e.x < e.size * 0.4) { e.x = e.size * 0.4; e.vx *= -0.3; }
+          if (e.x > w - e.size * 0.4) { e.x = w - e.size * 0.4; e.vx *= -0.3; }
+
+          // Collision with other settled emojis - check all settled emojis
+          let hitSettled = false;
+          for (const other of emojis) {
+            if (other === e || !other.settled) continue;
             
-            if (Math.abs(e.vy) < 1) {
-              e.settled = true;
-              // Lower z-index when settled (behind newer emojis)
-              e.zIndex = Math.max(1, e.zIndex - 500);
-              // Raise the stack height - emoji edges overlap (~60% of size)
-              stackHeights[safeCol] = Math.min(stackHeights[safeCol], e.y + e.size * 0.15);
+            const dx = e.x - other.x;
+            const dy = e.y - other.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minDist = (e.size + other.size) * 0.35; // Overlap by ~30%
+            
+            if (dist < minDist && e.y < other.y + other.size * 0.3) {
+              // Land on top of this emoji
+              e.y = other.y - minDist * 0.8;
+              hitSettled = true;
+              break;
             }
+          }
+          
+          // Floor collision
+          if (e.y + e.size * 0.4 > h) {
+            e.y = h - e.size * 0.4;
+            hitSettled = true;
+          }
+          
+          if (hitSettled) {
+            e.settled = true;
+            e.vx = 0;
+            e.vy = 0;
+            e.rotationSpeed = 0;
+            // Lower z-index when settled (behind newer emojis)
+            e.zIndex = Math.max(1, e.zIndex - 500);
           }
         }
         
         // When draining, let settled emojis fall
         if (!hasFloor && e.settled) {
           e.settled = false;
-          e.vy = gravity * 2;
+          e.vy = 2 + Math.random() * 2;
+          e.vx = (Math.random() - 0.5) * 2;
         }
+      }
+      
+      // Check if screen is covered (enough settled emojis)
+      const settledCount = emojis.filter(e => e.settled).length;
+      if (settledCount > 280 && cardOpacity === 0) {
+        cardOpacity = 1;
       }
 
       // Logo physics
@@ -215,10 +233,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       timers.push(window.setTimeout(fn, ms));
     };
 
-    // Card fades in immediately (hidden behind emoji wall)
-    setT(100, () => {
-      cardOpacity = 1;
-    });
+    // Card opacity is controlled by settled emoji count (in animate loop)
 
     // Logo appears after emojis have started piling
     setT(1500, () => {
