@@ -194,11 +194,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       // Remove emojis that have fallen off screen (clean up for performance)
       emojisRef.current = emojis.filter(e => e.y < h + 100);
       
-      // Check if screen is covered (enough settled emojis)
-      const settledCount = emojis.filter(e => e.settled).length;
-      if (settledCount > 300 && cardOpacity === 0) {
-        cardOpacity = 1;
-      }
+      // Card opacity is controlled by timer, not settled count
 
       // Logo physics - playful plop with bounce
       if (logoVisible) {
@@ -262,10 +258,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       gravity = 0.8; // Very fast drain
     });
 
-    // Card revealed
+    // Card revealed - delayed 2 seconds from original timing
     setT(5800, () => {
       setPhase("cardHold");
       logoVisible = false;
+    });
+    
+    // Card opacity with 2 second delay
+    setT(7800, () => {
+      cardOpacity = 1;
     });
 
     // PHASE 3: Progressive second wave - starts IMMEDIATELY after drain
@@ -282,23 +283,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       spawnEmojis(60, false, true); // More rain
     });
 
-    // Stage 3: Full wave that pulls card off
-    setT(7200, () => {
+    // Stage 3: Full wave that pulls card off (after card is visible)
+    setT(9200, () => {
       cardDraining = true;
       spawnEmojis(200, false, false); // Full wave
     });
 
     // Stage 4: Extra flood
-    setT(7600, () => {
+    setT(9600, () => {
       spawnEmojis(150, false, false);
     });
 
-    // PHASE 4: Flashy outro - 1 sec later
-    setT(10500, () => {
+    // PHASE 4: Flashy outro
+    setT(12500, () => {
       setPhase("done");
       setFadingOut(true);
     });
-    setT(10900, safeDismiss);
+    setT(12900, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -318,8 +319,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           </div>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
-              <h1 className="am-tagline-h">all validation. no obligation.</h1>
-              <p className="am-tagline-p">no profile. no pressure. your matches are already waiting for you.</p>
+              <p className="am-tagline-line">All validation.</p>
+              <p className="am-tagline-line">No obligation.</p>
+              <p className="am-tagline-line">No profile. No pressure.</p>
+              <p className="am-tagline-line am-tagline-final">Your matches are already waiting.</p>
             </div>
           </div>
           <div className="am-chyron">21+</div>
@@ -378,8 +381,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       >
         <div className="am-tagline-card">
           <div className="am-tagline-inner">
-            <h1 className="am-tagline-h">all validation. no obligation.</h1>
-            <p className="am-tagline-p">no profile. no pressure. your matches are already waiting for you.</p>
+            <p className="am-tagline-line">All validation.</p>
+            <p className="am-tagline-line">No obligation.</p>
+            <p className="am-tagline-line">No profile. No pressure.</p>
+            <p className="am-tagline-line am-tagline-final">Your matches are already waiting.</p>
           </div>
         </div>
       </div>
