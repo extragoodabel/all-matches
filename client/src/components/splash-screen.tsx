@@ -210,9 +210,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             logoVy *= -0.35; // Gentle bounce
           }
           
-          // Minimal rotation - just a subtle tilt
-          logoRotation += logoVy * 0.01;
-          logoRotation *= 0.95;
+          // Almost no rotation - very subtle
+          logoRotation += logoVy * 0.002;
+          logoRotation *= 0.98;
         } else {
           // Draining - rush off screen
           logoVy += gravity * 2;
