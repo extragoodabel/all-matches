@@ -706,7 +706,7 @@
 
 .am-tagline-line {
   font-family: 'Space Grotesk', sans-serif;
-  color: white;
+  color: #FF6B00;
   margin: 0 0 6px 0;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
@@ -724,7 +724,7 @@
 .am-tagline-secondary {
   font-size: 17px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 107, 0, 0.85);
   margin-top: 10px;
 }
 
