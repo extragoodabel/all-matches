@@ -262,27 +262,43 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       gravity = 0.8; // Very fast drain
     });
 
-    // Card revealed - brief pause
+    // Card revealed
     setT(5800, () => {
       setPhase("cardHold");
       logoVisible = false;
     });
 
-    // PHASE 3: Second wave floods in FAST and wipes card (2 sec after card reveal)
-    setT(6300, () => {
+    // PHASE 3: Progressive second wave - starts IMMEDIATELY after drain
+    // Stage 1: Random sprinkle (a few emojis)
+    setT(5200, () => {
       setPhase("flood2");
       hasFloor = false;
-      gravity = 0.6;
-      cardDraining = true;
-      spawnEmojis(1000, false, false); // Fast flood
+      gravity = 0.5;
+      spawnEmojis(50, false, true); // Light sprinkle
     });
 
-    // PHASE 4: Flashy outro - after second wave has washed over
-    setT(8000, () => {
+    // Stage 2: Light rain
+    setT(5600, () => {
+      spawnEmojis(150, false, true); // More rain
+    });
+
+    // Stage 3: Full wave that pulls card off
+    setT(6000, () => {
+      cardDraining = true;
+      spawnEmojis(600, false, false); // Full wave
+    });
+
+    // Stage 4: Extra flood to ensure coverage
+    setT(6400, () => {
+      spawnEmojis(400, false, false);
+    });
+
+    // PHASE 4: Flashy outro - after wave has washed over
+    setT(8500, () => {
       setPhase("done");
       setFadingOut(true);
     });
-    setT(8400, safeDismiss);
+    setT(8900, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
