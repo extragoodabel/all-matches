@@ -129,7 +129,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         
         <div 
           className="p-3 md:p-4 flex-shrink-0"
-          style={{ background: isAd ? AD_CARD_BRAND.bgColor : theme.palette.background }}
+          style={{ background: isAd ? '#FFFFFF' : theme.palette.background }}
         >
           <h2 
             className="text-2xl md:text-3xl font-black tracking-tight"
@@ -142,7 +142,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         <div 
           className="eg-caption-block flex-shrink min-h-0 overflow-y-auto"
           style={{ 
-            background: isAd ? '#FFFFFF' : theme.palette.secondary,
+            background: isAd ? AD_CARD_BRAND.bgColor : theme.palette.secondary,
             borderColor: theme.palette.accent,
           }}
         >
