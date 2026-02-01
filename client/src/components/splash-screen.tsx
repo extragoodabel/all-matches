@@ -84,15 +84,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const newEmojis: EmojiData[] = [];
       
       for (let i = 0; i < count; i++) {
-        const size = 38 + Math.random() * 26;
+        const size = 50 + Math.random() * 40; // Larger emojis
         const x = (Math.random() * w * 0.96) + w * 0.02;
         let spawnDelay: number;
         if (waterfall) {
-          spawnDelay = Math.random() * 2000;
+          spawnDelay = Math.random() * 1800;
         } else if (staggered) {
-          spawnDelay = Math.random() * 800; // Quick thick wave
+          spawnDelay = Math.random() * 700;
         } else {
-          spawnDelay = Math.random() * 500; // Fast second wave
+          spawnDelay = Math.random() * 400;
         }
         const y = -size - spawnDelay;
         
@@ -102,7 +102,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           x,
           y,
           vx: (Math.random() - 0.5) * 0.3,
-          vy: 5 + Math.random() * 4,
+          vy: 6 + Math.random() * 5,
           size,
           rotation: Math.random() * 360,
           rotationSpeed: (Math.random() - 0.5) * 4,
@@ -196,7 +196,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       // Check if screen is covered (enough settled emojis)
       const settledCount = emojis.filter(e => e.settled).length;
-      if (settledCount > 800 && cardOpacity === 0) {
+      if (settledCount > 300 && cardOpacity === 0) {
         cardOpacity = 1;
       }
 
@@ -236,8 +236,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    // Start emojis falling immediately - quadrupled to cover screen
-    spawnEmojis(1400, true);
+    // Start emojis falling - fewer but larger for performance
+    spawnEmojis(500, true);
     rafRef.current = requestAnimationFrame(animate);
 
     const timers: number[] = [];
@@ -274,23 +274,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       setPhase("flood2");
       hasFloor = false;
       gravity = 0.5;
-      spawnEmojis(50, false, true); // Light sprinkle
+      spawnEmojis(20, false, true); // Light sprinkle
     });
 
     // Stage 2: Light rain
     setT(5600, () => {
-      spawnEmojis(150, false, true); // More rain
+      spawnEmojis(60, false, true); // More rain
     });
 
-    // Stage 3: Full wave that pulls card off (card starts falling here) - 1 sec later
+    // Stage 3: Full wave that pulls card off
     setT(7200, () => {
       cardDraining = true;
-      spawnEmojis(600, false, false); // Full wave
+      spawnEmojis(200, false, false); // Full wave
     });
 
-    // Stage 4: Extra flood to ensure coverage
+    // Stage 4: Extra flood
     setT(7600, () => {
-      spawnEmojis(400, false, false);
+      spawnEmojis(150, false, false);
     });
 
     // PHASE 4: Flashy outro - 1 sec later
