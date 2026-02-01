@@ -73,6 +73,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     let gravity = 0.2;
     let hasFloor = true;
     let draining = false;
+    let logoDraining = false; // Logo starts draining slightly after emojis
     let nextZIndex = 1000;
     let logoVisible = false;
     let cardDraining = false;
@@ -212,12 +213,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           
           // No rotation during drop
           logoRotation = 0;
-        } else {
-          // Draining - rush off screen
-          logoVy += gravity * 2;
+        } else if (logoDraining) {
+          // Draining - falls with the emojis at same speed
+          logoVy += gravity * 0.5; // Same gravity as emojis
           logoY += logoVy;
-          // Keep rotation minimal even during drain
-          logoRotation = 0;
+          // Slight rotation as it loses balance
+          logoRotation += logoVy * 0.02;
         }
       }
 
@@ -259,6 +260,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       draining = true;
       hasFloor = false;
       gravity = 0.8; // Very fast drain
+    });
+    
+    // Logo starts falling slightly after emojis (150ms delay)
+    setT(4650, () => {
+      logoDraining = true;
     });
 
     // Card revealed - delayed 2 seconds from original timing
