@@ -1,4 +1,4 @@
-import egPreview from "@/assets/images/eg_preview.png";
+import egPreview2 from "@/assets/images/eg_preview2.png";
 import egMark from "@/assets/images/eg_mark.png";
 import type { Profile } from "@shared/schema";
 
@@ -9,7 +9,7 @@ export const AD_CARD_BRAND = {
   bgColor: "#9AE033",
 };
 
-const AD_LOGOS = [egPreview, egMark];
+const AD_LOGOS = [egPreview2, egMark];
 
 export function createAdProfile(position: number): Profile & { isAd: true } {
   const logoIndex = position === 10 ? 0 : (position % 2);
