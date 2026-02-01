@@ -198,20 +198,21 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       // Card opacity is controlled by timer, not settled count
 
-      // Logo physics - playful plop with bounce
+      // Logo physics - gentle natural drop
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 1.8;
-          logoVy *= 0.96;
+          logoVy += gravity * 1.2; // Slower fall
+          logoVy *= 0.97;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.55; // Bounce
+            logoVy *= -0.35; // Gentle bounce
           }
           
-          logoRotation += logoVy * 0.04; // Reduced rotation
-          logoRotation *= 0.9;
+          // Minimal rotation - just a subtle tilt
+          logoRotation += logoVy * 0.01;
+          logoRotation *= 0.95;
         } else {
           // Draining - rush off screen
           logoVy += gravity * 2;
