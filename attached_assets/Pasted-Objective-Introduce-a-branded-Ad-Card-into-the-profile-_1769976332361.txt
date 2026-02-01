@@ -1,0 +1,88 @@
+Objective
+Introduce a branded “Ad Card” into the profile deck that behaves like a match but routes users to an external site instead of chat.
+
+Insertion Rules (Critical)
+
+Insert the first Ad Card at position 10 in the profile deck.
+
+Insert subsequent Ad Cards every 15 cards thereafter:
+Positions 10, 25, 40, 55, 70, etc.
+
+These cards should be part of the same deck flow as normal profiles, not a modal or overlay.
+
+Visual Identification
+
+Each Ad Card must include a small, canted label in the top-right corner that reads:
+“Ad”
+
+The “Ad” label:
+
+Uses Space Grotesk
+
+Appears inside a slim horizontal bar
+
+Is subtle but clearly visible
+
+Slightly angled (canted) to distinguish it from normal UI elements
+
+Brand / Content of the Ad Card
+
+Profile Name: Extra Good Studio
+
+Bio text (exact copy):
+
+A creative collective, specializing in branding, design, and marketing.
+
+Profile Image Rules
+
+Three provided logos will be used as the profile images.
+
+Card 10 (the first ad) must use the full “extra good!” logo.
+
+All subsequent ad cards rotate interchangeably between the three logos.
+
+The “eg!” logo must appear on a green background that exactly matches the green of the exclamation mark (do not invent a new green).
+
+Logos should be treated like profile photos: centered, cropped appropriately, no distortion.
+
+Swipe & Match Behavior
+
+Swiping right on the Ad Card still results in a match (consistent dopamine feedback).
+
+The match screen does NOT open a chat.
+
+Match Screen CTA Changes (Critical)
+Replace standard chat options with:
+
+“Keep Swiping” (dismisses match and returns to deck)
+
+“Connect”
+
+Connect Button Behavior
+
+Tapping “Connect” opens the following URL in a new tab or external browser:
+👉 https://extragood.studio/
+
+Do not embed the site in an iframe.
+
+Consistency Rules
+
+Ad Cards must:
+
+Match the size, motion, and interaction patterns of normal profile cards
+
+Respect existing swipe animations
+
+Not interrupt deck pacing or loading logic
+
+Aside from the “Ad” label and CTA changes, the card should feel native to the app.
+
+Non-Goals / Do Not Do
+
+Do not mark the card as “Sponsored Content” or add extra disclaimers.
+
+Do not block swiping.
+
+Do not replace existing profiles.
+
+Do not change deck order beyond inserting at the specified indices.
