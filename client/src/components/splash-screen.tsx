@@ -285,8 +285,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     // Stage 3: Full wave that pulls card off (give time to read - 4 seconds of card visibility)
     setT(9000, () => {
-      cardDraining = true;
       spawnEmojis(200, false, false); // Full wave
+    });
+    
+    // Card falls WITH the deluge - slight delay so wave hits first
+    setT(9300, () => {
+      cardDraining = true;
     });
 
     // Stage 4: Extra flood
