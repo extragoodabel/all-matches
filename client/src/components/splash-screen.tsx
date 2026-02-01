@@ -152,13 +152,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           // Animate landing squash/stretch back to normal
           if (e.landingTime !== null) {
             const elapsed = now - e.landingTime;
-            const duration = 150; // 150ms landing animation
+            const duration = 280; // Longer landing animation
             if (elapsed < duration) {
               const progress = elapsed / duration;
-              // Ease out - start squashed, return to normal
-              const easeOut = 1 - Math.pow(1 - progress, 2);
-              e.scaleX = 1.08 - 0.08 * easeOut;
-              e.scaleY = 0.88 + 0.12 * easeOut;
+              // Elastic ease out for bouncier feel
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              e.scaleX = 1.18 - 0.18 * easeOut;
+              e.scaleY = 0.75 + 0.25 * easeOut;
             } else {
               e.scaleX = 1;
               e.scaleY = 1;
@@ -211,10 +211,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             e.rotationSpeed = 0;
             // Lower z-index when settled (behind newer emojis)
             e.zIndex = Math.max(1, e.zIndex - 500);
-            // Start landing animation
+            // Start landing animation - more pronounced squash
             e.landingTime = performance.now();
-            e.scaleX = 1.08;
-            e.scaleY = 0.88;
+            e.scaleX = 1.18;
+            e.scaleY = 0.75;
           }
         }
         
