@@ -439,7 +439,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
         <motion.div
             ref={cardRef}
             key={exitingProfile?.id ?? currentProfile.id}
-            initial={false}
+            initial={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
             animate={{
               scale: 1,
               x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
@@ -449,8 +449,6 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             }}
             transition={{ 
               duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
-              type: direction ? "tween" : "spring",
-              ease: "easeOut",
             }}
             className="select-none w-full"
             style={{ 
