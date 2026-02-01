@@ -39,7 +39,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [dismissed, setDismissed] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false });
-  const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0 });
+  const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
 
   const safeDismiss = useCallback(() => {
     if (dismissed) return;
@@ -63,39 +63,39 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     const w = overlay.clientWidth;
     const h = overlay.clientHeight;
-    let currentFloorY = h + 100;
-    let targetFloorY = h * 0.15; // Floor rises to 15% from top - creating a wall
-    let gravity = 0.18;
+    let gravity = 0.2;
     let hasFloor = true;
     let draining = false;
     let nextZIndex = 1000;
     let logoVisible = false;
     let cardDraining = false;
+    let cardOpacity = 0;
+
+    // Grid to track where emojis have settled for proper stacking
+    const gridCols = Math.ceil(w / 35);
+    const stackHeights: number[] = new Array(gridCols).fill(h);
 
     const spawnEmojis = (count: number, staggered: boolean = true) => {
       const newEmojis: EmojiData[] = [];
-      // Create a dense grid of emojis to ensure full coverage
-      const cols = Math.ceil(w / 45);
-      const rows = Math.ceil(h / 40) + 8;
       
       for (let i = 0; i < count; i++) {
-        const size = 42 + Math.random() * 22;
-        // Grid-based spawn with randomization for natural look
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const baseX = (col + 0.5) * (w / cols);
-        const baseY = -size - row * 50 - Math.random() * 30;
+        const size = 40 + Math.random() * 24;
+        // Spread across screen width with slight randomization
+        const x = (Math.random() * w * 0.9) + w * 0.05;
+        // Stagger vertical spawning so they arrive in waves
+        const spawnDelay = staggered ? Math.random() * 1200 : Math.random() * 400;
+        const y = -size - spawnDelay;
         
         newEmojis.push({
           id: Date.now() + i + Math.random() * 10000,
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-          x: baseX + (Math.random() - 0.5) * 30,
-          y: staggered ? baseY : -size - Math.random() * h * 0.6,
-          vx: (Math.random() - 0.5) * 1,
-          vy: 0.8 + Math.random() * 1.2,
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: 1 + Math.random() * 2,
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 1.5,
+          rotationSpeed: (Math.random() - 0.5) * 2,
           zIndex: nextZIndex++,
           settled: false,
         });
@@ -120,46 +120,52 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const animate = () => {
       const emojis = emojisRef.current;
 
-      // Gradually raise floor to create wall effect
-      if (hasFloor && !draining) {
-        currentFloorY += (targetFloorY - currentFloorY) * 0.02;
-      }
-
       for (const e of emojis) {
-        if (e.settled && hasFloor) {
-          // Settled emojis don't move much
-          e.vx *= 0.85;
-          e.vy *= 0.85;
-          e.rotationSpeed *= 0.9;
-          
-          // Push up with floor
-          if (e.y > currentFloorY - e.size * 0.3) {
-            e.y = currentFloorY - e.size * 0.3;
-          }
-        } else {
+        if (!e.settled) {
           e.vy += gravity;
-          e.vy = Math.min(e.vy, 7); // Terminal velocity
+          e.vy = Math.min(e.vy, 8); // Terminal velocity
+        } else if (hasFloor) {
+          // Settled emojis slow down
+          e.vx *= 0.9;
+          e.rotationSpeed *= 0.9;
         }
         
         e.x += e.vx;
         e.y += e.vy;
         e.rotation += e.rotationSpeed;
 
-        // Wall bounce - keep emojis on screen
-        if (e.x < e.size * 0.3) { e.x = e.size * 0.3; e.vx *= -0.2; }
-        if (e.x > w - e.size * 0.3) { e.x = w - e.size * 0.3; e.vx *= -0.2; }
+        // Wall bounce
+        if (e.x < e.size * 0.4) { e.x = e.size * 0.4; e.vx *= -0.3; }
+        if (e.x > w - e.size * 0.4) { e.x = w - e.size * 0.4; e.vx *= -0.3; }
 
-        // Floor collision - stack up
-        if (hasFloor && e.y + e.size * 0.3 > currentFloorY) {
-          e.y = currentFloorY - e.size * 0.3;
-          e.vy *= -0.1;
-          e.vx *= 0.8;
-          e.rotationSpeed *= 0.6;
-          if (Math.abs(e.vy) < 0.8) {
-            e.settled = true;
-            // Lower z-index when settled (creates depth - earlier emojis behind)
-            e.zIndex = Math.max(1, e.zIndex - 600);
+        // Stacking collision - emojis pile on top of each other
+        if (hasFloor && !e.settled) {
+          // Find which column this emoji is in
+          const col = Math.floor(e.x / (w / gridCols));
+          const safeCol = Math.max(0, Math.min(gridCols - 1, col));
+          const floorLevel = stackHeights[safeCol];
+          
+          // Check if emoji hit the current stack height for its column
+          if (e.y + e.size * 0.35 > floorLevel) {
+            e.y = floorLevel - e.size * 0.35;
+            e.vy *= -0.08; // Small bounce
+            e.vx *= 0.7;
+            e.rotationSpeed *= 0.5;
+            
+            if (Math.abs(e.vy) < 1) {
+              e.settled = true;
+              // Lower z-index when settled (behind newer emojis)
+              e.zIndex = Math.max(1, e.zIndex - 500);
+              // Raise the stack height - emoji edges overlap (~60% of size)
+              stackHeights[safeCol] = Math.min(stackHeights[safeCol], e.y + e.size * 0.15);
+            }
           }
+        }
+        
+        // When draining, let settled emojis fall
+        if (!hasFloor && e.settled) {
+          e.settled = false;
+          e.vy = gravity * 2;
         }
       }
 
@@ -167,36 +173,34 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       if (logoVisible) {
         if (!draining) {
           // Gentle fall and bob
-          logoVy += gravity * 0.7;
-          logoVy *= 0.96; // Damping
+          logoVy += gravity * 0.6;
+          logoVy *= 0.96;
           logoY += logoVy;
           
-          // Stop at target with gentle bounce
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.15;
+            logoVy *= -0.12;
           }
           
-          // Very minimal rotation - mostly straight
-          logoRotation += logoVy * 0.05;
+          logoRotation += logoVy * 0.04;
           logoRotation *= 0.9;
         } else {
-          // Draining - fall with emojis
+          // Draining
           logoVy += gravity * 1.5;
           logoY += logoVy;
-          logoRotation += logoVy * 0.12;
+          logoRotation += logoVy * 0.1;
         }
       }
 
       // Card physics during drain2
       if (cardDraining) {
-        cardVy += gravity * 1.0;
+        cardVy += gravity * 1.2;
         cardY += cardVy;
-        cardRotation += cardVy * 0.08;
+        cardRotation += cardVy * 0.06;
       }
 
       setLogoPos({ x: w / 2, y: logoY, vy: logoVy, rotation: logoRotation, visible: logoVisible });
-      setCardPos({ y: cardY, vy: cardVy, rotation: cardRotation });
+      setCardPos({ y: cardY, vy: cardVy, rotation: cardRotation, opacity: cardOpacity });
       setEmojiRender([...emojis]);
 
       rafRef.current = requestAnimationFrame(animate);
@@ -210,6 +214,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const setT = (ms: number, fn: () => void) => {
       timers.push(window.setTimeout(fn, ms));
     };
+
+    // Card fades in immediately (hidden behind emoji wall)
+    setT(100, () => {
+      cardOpacity = 1;
+    });
 
     // Logo appears after emojis have started piling
     setT(1500, () => {
@@ -236,9 +245,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     setT(8000, () => {
       setPhase("flood2");
       hasFloor = true;
-      currentFloorY = h + 100;
-      targetFloorY = h * 0.15;
-      gravity = 0.2;
+      // Reset stack heights for second wave
+      stackHeights.fill(h);
+      gravity = 0.22;
       spawnEmojis(350, false);
     });
 
@@ -322,9 +331,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       </div>
 
       <div 
-        className={`am-tagline-wrap ${showCard ? "am-visible" : "am-hidden"}`}
+        className="am-tagline-wrap"
         style={{
           transform: `translateY(${cardPos.y}px) rotate(${cardPos.rotation}deg)`,
+          opacity: cardPos.opacity,
+          transition: 'opacity 0.3s ease',
         }}
       >
         <div className="am-tagline-card">
