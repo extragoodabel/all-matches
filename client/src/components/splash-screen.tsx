@@ -213,12 +213,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           
           // No rotation during drop
           logoRotation = 0;
-        } else if (logoDraining) {
-          // Draining - falls with the emojis at same speed
-          logoVy += gravity * 0.5; // Same gravity as emojis
-          logoY += logoVy;
-          // Slight rotation as it loses balance
-          logoRotation += logoVy * 0.02;
+        } else if (draining) {
+          // Draining - falls off screen
+          if (isMobile) {
+            // Mobile: original faster drain behavior
+            logoVy += gravity * 2;
+            logoY += logoVy;
+            logoRotation += logoVy * 0.15;
+          } else if (logoDraining) {
+            // Desktop: falls with emojis at same speed with slight delay
+            logoVy += gravity * 0.5;
+            logoY += logoVy;
+            logoRotation += logoVy * 0.02;
+          }
         }
       }
 
