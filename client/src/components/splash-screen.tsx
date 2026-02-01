@@ -196,20 +196,20 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       // Card opacity is controlled by timer, not settled count
 
-      // Logo physics - playful plop with bounce
+      // Logo physics - playful plop with more pronounced bounce
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 1.5;
-          logoVy *= 0.94;
+          logoVy += gravity * 1.8;
+          logoVy *= 0.96;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.4; // Playful bounce
+            logoVy *= -0.55; // More bounce!
           }
           
-          logoRotation += logoVy * 0.08;
-          logoRotation *= 0.88;
+          logoRotation += logoVy * 0.1;
+          logoRotation *= 0.85;
         } else {
           // Draining - rush off screen
           logoVy += gravity * 2;
@@ -278,18 +278,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       spawnEmojis(20, false, true); // Light sprinkle
     });
 
-    // Stage 2: Light rain
+    // Stage 2: Light rain - continues through the deluge
     setT(5600, () => {
-      spawnEmojis(60, false, true); // More rain
+      spawnEmojis(40, false, true); // Initial rain
+    });
+    setT(6500, () => {
+      spawnEmojis(30, false, true); // Continuing rain
+    });
+    setT(7500, () => {
+      spawnEmojis(30, false, true); // More continuing rain
+    });
+    setT(8500, () => {
+      spawnEmojis(40, false, true); // Rain intensifies before deluge
     });
 
     // Stage 3: Full wave that pulls card off (give time to read - 4 seconds of card visibility)
     setT(9000, () => {
-      spawnEmojis(200, false, false); // Full wave
+      spawnEmojis(200, false, false); // Full wave deluge
     });
     
-    // Card falls WITH the deluge - slight delay so wave hits first
-    setT(9300, () => {
+    // Card falls WITH the deluge - delayed so wave hits first
+    setT(9800, () => {
       cardDraining = true;
     });
 
