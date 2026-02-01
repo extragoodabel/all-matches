@@ -423,7 +423,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
         {/* Next card waiting underneath (only show when there's an exiting card) */}
         {exitingProfile && currentProfile && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
-            <div className="w-full">
+            <div className="w-full max-w-sm px-2">
               <div className="relative pb-12">
                 <ProfileCard 
                   key={currentProfile.id}
@@ -439,9 +439,8 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
         <motion.div
             ref={cardRef}
             key={exitingProfile?.id ?? currentProfile.id}
-            initial={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
+            initial={false}
             animate={{
-              scale: 1,
               x: direction === "left" ? -EXIT_DISTANCE : direction === "right" ? EXIT_DISTANCE : dragOffset.x,
               y: direction ? 0 : dragOffset.y,
               rotate: direction === "left" ? -MAX_ROTATION : direction === "right" ? MAX_ROTATION : rotation,
@@ -450,7 +449,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             transition={{ 
               duration: direction ? SWIPE_ANIMATION_MS / 1000 : 0,
             }}
-            className="select-none w-full"
+            className="absolute inset-0 flex items-center justify-center select-none"
             style={{ 
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
@@ -460,28 +459,30 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
             } as React.CSSProperties}
             {...(exitingProfile ? {} : handlers)}
           >
-            <div className="relative pointer-events-none pb-12">
-              <ProfileCard 
-                key={exitingProfile?.id ?? currentProfile.id}
-                profile={exitingProfile ?? currentProfile} 
-                onImageError={() => handleImageError((exitingProfile ?? currentProfile).id)}
-              />
-              
-              {swipeIndicator === "like" && !exitingProfile && (
-                <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
-                  <div className="bg-[#00D9A5] text-[#1A1A1A] px-8 py-3 rounded-full text-3xl font-black rotate-[-15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
-                    Like!
+            <div className="w-full max-w-sm px-2">
+              <div className="relative pointer-events-none pb-12">
+                <ProfileCard 
+                  key={exitingProfile?.id ?? currentProfile.id}
+                  profile={exitingProfile ?? currentProfile} 
+                  onImageError={() => handleImageError((exitingProfile ?? currentProfile).id)}
+                />
+                
+                {swipeIndicator === "like" && !exitingProfile && (
+                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
+                    <div className="bg-[#00D9A5] text-[#1A1A1A] px-8 py-3 rounded-full text-3xl font-black rotate-[-15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
+                      Like!
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {swipeIndicator === "nope" && !exitingProfile && (
-                <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
-                  <div className="bg-[#FF4136] text-white px-8 py-3 rounded-full text-3xl font-black rotate-[15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
-                    Nope
+                )}
+                
+                {swipeIndicator === "nope" && !exitingProfile && (
+                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
+                    <div className="bg-[#FF4136] text-white px-8 py-3 rounded-full text-3xl font-black rotate-[15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
+                      Nope
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </motion.div>
       </div>
