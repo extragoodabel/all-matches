@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { type Profile } from "@shared/schema";
 import { getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
@@ -13,16 +13,32 @@ interface ProfileCardProps {
 const FALLBACK_IMAGE = "/images/fallback.png";
 
 export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
-  const [imageSrc, setImageSrc] = useState(profile.imageUrl);
+  const [displayedImage, setDisplayedImage] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const onImageErrorRef = useRef(onImageError);
+  onImageErrorRef.current = onImageError;
 
-  // Reset loading state when profile changes
+  // Preload image before displaying - keeps previous image visible until new one loads
   useEffect(() => {
-    setImageSrc(profile.imageUrl);
-    setIsLoaded(false);
-    setHasError(false);
+    const img = new Image();
+    img.onload = () => {
+      setDisplayedImage(profile.imageUrl);
+      setHasError(false);
+    };
+    img.onerror = () => {
+      setDisplayedImage(FALLBACK_IMAGE);
+      setHasError(true);
+      onImageErrorRef.current?.();
+    };
+    img.src = profile.imageUrl;
+    
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [profile.id, profile.imageUrl]);
+  
+  const isLoaded = displayedImage !== null;
 
   const isAd = isAdProfile(profile);
   const baseTheme = useMemo(() => getProfileTheme(Math.abs(profile.id)), [profile.id]);
@@ -44,14 +60,7 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
     [theme.patternName]
   );
 
-  const handleImageError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setImageSrc(FALLBACK_IMAGE);
-      onImageError?.();
-    }
-  };
-
+  
   return (
     <div
       className="relative"
@@ -87,21 +96,20 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
               style={{ background: AD_CARD_BRAND.bgColor }}
             />
           )}
-          <img
-            src={imageSrc}
-            alt={profile.name}
-            draggable={false}
-            className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-200"
-            style={{
-              WebkitUserDrag: "none",
-              userSelect: "none",
-              pointerEvents: "none",
-              opacity: isLoaded ? 1 : 0,
-            } as React.CSSProperties}
-            onDragStart={(e) => e.preventDefault()}
-            onLoad={() => setIsLoaded(true)}
-            onError={handleImageError}
-          />
+          {displayedImage && (
+            <img
+              src={displayedImage}
+              alt={profile.name}
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-cover select-none"
+              style={{
+                WebkitUserDrag: "none",
+                userSelect: "none",
+                pointerEvents: "none",
+              } as React.CSSProperties}
+              onDragStart={(e) => e.preventDefault()}
+            />
+          )}
           
           {profile.isChaos && (
             <div 
