@@ -245,17 +245,17 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
 
   const handleSwipe = useCallback((swipeDirection: "left" | "right") => {
     if (!currentProfile || direction) return;
+    
+    const profileToSwipe = currentProfile;
     setDirection(swipeDirection);
-    
-    setSeenProfileIds(prev => {
-      const newSet = new Set(Array.from(prev));
-      newSet.add(currentProfile.id);
-      return newSet;
-    });
-    
-    onSwipe(currentProfile, swipeDirection);
+    onSwipe(profileToSwipe, swipeDirection);
 
     setTimeout(() => {
+      setSeenProfileIds(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.add(profileToSwipe.id);
+        return newSet;
+      });
       setCurrentIndex((prev) => prev + 1);
       setDirection(null);
     }, SWIPE_ANIMATION_MS);
