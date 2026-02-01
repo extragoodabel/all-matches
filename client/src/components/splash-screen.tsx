@@ -68,6 +68,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     const w = overlay.clientWidth;
     const h = overlay.clientHeight;
+    const isMobile = w < 768;
+    const emojiMultiplier = isMobile ? 0.35 : 1; // 35% emojis on mobile
     let gravity = 0.2;
     let hasFloor = true;
     let draining = false;
@@ -233,7 +235,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
 
     // Start emojis falling - fewer but larger for performance
-    spawnEmojis(500, true);
+    spawnEmojis(Math.floor(500 * emojiMultiplier), true);
     rafRef.current = requestAnimationFrame(animate);
 
     const timers: number[] = [];
@@ -275,26 +277,26 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       setPhase("flood2");
       hasFloor = false;
       gravity = 0.5;
-      spawnEmojis(20, false, true); // Light sprinkle
+      spawnEmojis(Math.floor(20 * emojiMultiplier), false, true); // Light sprinkle
     });
 
     // Stage 2: Light rain - continues through the deluge
     setT(5600, () => {
-      spawnEmojis(40, false, true); // Initial rain
+      spawnEmojis(Math.floor(40 * emojiMultiplier), false, true); // Initial rain
     });
     setT(6500, () => {
-      spawnEmojis(30, false, true); // Continuing rain
+      spawnEmojis(Math.floor(30 * emojiMultiplier), false, true); // Continuing rain
     });
     setT(7500, () => {
-      spawnEmojis(30, false, true); // More continuing rain
+      spawnEmojis(Math.floor(30 * emojiMultiplier), false, true); // More continuing rain
     });
     setT(8500, () => {
-      spawnEmojis(40, false, true); // Rain intensifies before deluge
+      spawnEmojis(Math.floor(40 * emojiMultiplier), false, true); // Rain intensifies before deluge
     });
 
     // Stage 3: Full wave that pulls card off (give time to read - 4 seconds of card visibility)
     setT(9000, () => {
-      spawnEmojis(200, false, false); // Full wave deluge
+      spawnEmojis(Math.floor(200 * emojiMultiplier), false, false); // Full wave deluge
     });
     
     // Card falls WITH the deluge - delayed so wave hits first
@@ -304,7 +306,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     // Stage 4: Extra flood
     setT(9400, () => {
-      spawnEmojis(150, false, false);
+      spawnEmojis(Math.floor(150 * emojiMultiplier), false, false);
     });
 
     // PHASE 4: Flashy outro
