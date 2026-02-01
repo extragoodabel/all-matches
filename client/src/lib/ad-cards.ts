@@ -28,10 +28,11 @@ export function createAdProfile(position: number): Profile & { isAd: true } {
   };
 }
 
-export function getAdCardPositions(totalCards: number): number[] {
+export function getAdCardPositions(swipedCount: number, deckSize: number): number[] {
   const positions: number[] = [];
   let pos = 10;
-  while (pos <= totalCards + 15) {
+  const maxPosition = swipedCount + deckSize + 50;
+  while (pos <= maxPosition) {
     positions.push(pos);
     pos += 15;
   }
@@ -45,7 +46,7 @@ export function isAdProfile(profile: Profile): profile is Profile & { isAd: true
 export function injectAdCards(profiles: Profile[], swipedCount: number): Profile[] {
   const result: Profile[] = [];
   let profileIndex = 0;
-  let adPositions = getAdCardPositions(profiles.length + 20);
+  let adPositions = getAdCardPositions(swipedCount, profiles.length);
   
   for (let deckPosition = 1; profileIndex < profiles.length || adPositions.length > 0; deckPosition++) {
     const adjustedPosition = deckPosition + swipedCount;
