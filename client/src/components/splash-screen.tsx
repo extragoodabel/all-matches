@@ -7,8 +7,8 @@ interface SplashScreenProps {
 }
 
 const EMOJIS = [
-  "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖",
-  "💘", "💝", "💕", "💞", "💓", "💗", "💟", "💄", "💋", "🫦", "💅", "👠",
+  "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "💖",
+  "💘", "💝", "💕", "💞", "💓", "💗", "💄", "💋", "🫦", "💅", "👠",
   "💀", "🥂", "🍾", "🪞", "⛓️", "🍫", "🧿", "🩸", "💍", "🧬", "🌶️", "⚡",
   "💦", "🫀", "🧠", "⭐", "👁️", "🌟", "🍄", "🧨", "🍒", "🔥", "😬", "😍",
   "🎭", "🧪",
@@ -201,7 +201,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       // Logo physics - gentle natural drop
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 1.2; // Slower fall
+          logoVy += gravity * 0.9; // Even slower fall
           logoVy *= 0.97;
           logoY += logoVy;
           
