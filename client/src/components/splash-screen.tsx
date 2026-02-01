@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { PALETTES } from "@/styles/theme";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Phase = "flood1" | "logoBob" | "drain1" | "cardHold" | "flood2" | "drain2" | "done";
 
@@ -8,8 +7,8 @@ interface SplashScreenProps {
 }
 
 const EMOJIS = [
-  "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "💖",
-  "💘", "💝", "💕", "💞", "💓", "💗", "💄", "💋", "🫦", "💅", "👠",
+  "💉", "💊", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖",
+  "💘", "💝", "💕", "💞", "💓", "💗", "💟", "💄", "💋", "🫦", "💅", "👠",
   "💀", "🥂", "🍾", "🪞", "⛓️", "🍫", "🧿", "🩸", "💍", "🧬", "🌶️", "⚡",
   "💦", "🫀", "🧠", "⭐", "👁️", "🌟", "🍄", "🧨", "🍒", "🔥", "😬", "😍",
   "🎭", "🧪",
@@ -42,11 +41,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false });
   const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
-  
-  // Random palette for splash screen logo - changes each time splash loads
-  const splashPalette = useMemo(() => {
-    return PALETTES[Math.floor(Math.random() * PALETTES.length)];
-  }, []);
 
   const safeDismiss = useCallback(() => {
     if (dismissed) return;

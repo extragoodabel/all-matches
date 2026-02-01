@@ -626,34 +626,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 20px;
-  background: #FFFFFF;
-  border: none;
+  padding: 18px 32px;
+  background: var(--eg-background, #FFF8E7);
+  border: 4px solid var(--eg-accent, #1A1A1A);
   border-radius: 0;
-  box-shadow: 4px 4px 0 #1A1A1A;
+  box-shadow: 8px 8px 0 var(--eg-primary, #FF1493);
   z-index: 500;
   transition: opacity 0.2s ease;
   will-change: transform;
-}
-
-.am-logo-text {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 36px;
-  font-weight: 700;
-  color: #FF1493;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-}
-
-@media (min-width: 768px) {
-  .am-logo-card-sharp {
-    padding: 12px 32px;
-    box-shadow: 16px 16px 0 #1A1A1A;
-  }
-  
-  .am-logo-text {
-    font-size: 10vw;
-  }
 }
 
 .am-logo-card-static {
