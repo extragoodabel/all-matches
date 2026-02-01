@@ -676,7 +676,7 @@
 .am-tagline-card {
   position: relative;
   width: min(360px, 90vw);
-  background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%);
+  background: linear-gradient(135deg, #FF1493 0%, #7c3aed 100%);
   border: 4px solid #FFD700;
   border-radius: 24px;
   box-shadow: 8px 8px 0 #FF6B35;
@@ -706,13 +706,9 @@
 
 .am-tagline-line {
   font-family: 'Space Grotesk', sans-serif;
-  color: #FFAA00;
+  color: white;
   margin: 0 0 6px 0;
-  text-shadow: 0 0 25px rgba(255, 180, 0, 0.8), 0 0 50px rgba(255, 140, 0, 0.5);
-  background: linear-gradient(180deg, #FFE566 0%, #FFCC00 40%, #FFAA00 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
 .am-tagline-line:last-child {
@@ -728,10 +724,8 @@
 .am-tagline-secondary {
   font-size: 17px;
   font-weight: 500;
-  color: #FFE566;
+  color: rgba(255, 255, 255, 0.9);
   margin-top: 10px;
-  text-shadow: 0 0 20px rgba(255, 220, 100, 0.6);
-  -webkit-text-fill-color: #FFE566;
 }
 
 .am-chyron {
