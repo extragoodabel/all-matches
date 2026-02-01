@@ -216,7 +216,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           // Draining - rush off screen
           logoVy += gravity * 2;
           logoY += logoVy;
-          logoRotation += logoVy * 0.15;
+          // Keep rotation minimal even during drain
+          logoRotation = 0;
         }
       }
 
