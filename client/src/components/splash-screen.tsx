@@ -88,11 +88,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         const x = (Math.random() * w * 0.96) + w * 0.02;
         let spawnDelay: number;
         if (waterfall) {
-          spawnDelay = Math.random() * 2200;
+          spawnDelay = Math.random() * 2000;
         } else if (staggered) {
-          spawnDelay = Math.random() * 1000; // Fast initial wave
+          spawnDelay = Math.random() * 800; // Quick thick wave
         } else {
-          spawnDelay = Math.random() * 300;
+          spawnDelay = Math.random() * 500; // Fast second wave
         }
         const y = -size - spawnDelay;
         
@@ -101,11 +101,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: 6 + Math.random() * 5, // Much faster fall
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: 5 + Math.random() * 4,
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 5,
+          rotationSpeed: (Math.random() - 0.5) * 4,
           zIndex: nextZIndex++,
           settled: false,
         });
@@ -200,25 +200,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         cardOpacity = 1;
       }
 
-      // Logo physics - fast drop with splashy bounce
+      // Logo physics - playful plop with bounce
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 2.5; // Very fast fall
-          logoVy *= 0.88;
+          logoVy += gravity * 1.5;
+          logoVy *= 0.94;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.35; // Bigger bounce for splash effect
+            logoVy *= -0.4; // Playful bounce
           }
           
-          logoRotation += logoVy * 0.1;
-          logoRotation *= 0.8;
+          logoRotation += logoVy * 0.08;
+          logoRotation *= 0.88;
         } else {
-          // Draining - fast exit
-          logoVy += gravity * 3;
+          // Draining - rush off screen
+          logoVy += gravity * 2;
           logoY += logoVy;
-          logoRotation += logoVy * 0.18;
+          logoRotation += logoVy * 0.15;
         }
       }
 
@@ -245,42 +245,44 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       timers.push(window.setTimeout(fn, ms));
     };
 
-    // Card opacity is controlled by settled emoji count (in animate loop)
-
-    // Beat, then logo drops fast
-    setT(800, () => {
+    // PHASE 1: Emojis flood in first (wall builds before logo)
+    // Logo waits until wall is mostly built
+    setT(1200, () => {
       logoVisible = true;
     });
 
-    setT(1800, () => setPhase("logoBob"));
+    // Logo bobs in place - give time to read
+    setT(2800, () => setPhase("logoBob"));
 
-    setT(3200, () => {
+    // PHASE 2: Everything rushes off screen FAST
+    setT(4500, () => {
       setPhase("drain1");
       draining = true;
       hasFloor = false;
-      gravity = 0.6; // Fast drain
+      gravity = 0.8; // Very fast drain
     });
 
-    // Wait for ALL emojis to fall off screen, then show card
-    setT(4800, () => {
+    // Card revealed - 2 second pause
+    setT(5800, () => {
       setPhase("cardHold");
-      draining = false;
       logoVisible = false;
-      // Don't clear - let them naturally fall off
     });
 
-    // Second wave 2 seconds sooner
-    setT(6200, () => {
+    // PHASE 3: Second wave floods in FAST and wipes card
+    setT(7800, () => {
       setPhase("flood2");
       hasFloor = false;
-      gravity = 0.5;
+      gravity = 0.6;
       cardDraining = true;
-      spawnEmojis(1200, false, true);
+      spawnEmojis(1000, false, false); // Fast flood, not waterfall
     });
 
-    // Splashy ending - let waterfall wash everything away
-    setT(9500, () => setPhase("done"));
-    setT(10000, safeDismiss);
+    // PHASE 4: Flashy outro
+    setT(9200, () => {
+      setPhase("done");
+      setFadingOut(true);
+    });
+    setT(9600, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
