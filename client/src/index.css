@@ -638,12 +638,11 @@
 
 @media (min-width: 768px) {
   .am-logo-card-sharp {
-    padding: 36px 64px;
-    border-width: 8px;
+    padding: 16px 32px;
   }
   
   .am-logo-text {
-    font-size: 56px;
+    font-size: 72px;
   }
 }
 
