@@ -282,23 +282,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       spawnEmojis(150, false, true); // More rain
     });
 
-    // Stage 3: Full wave that pulls card off
-    setT(6000, () => {
+    // Stage 3: Full wave that pulls card off (card starts falling here)
+    setT(6200, () => {
       cardDraining = true;
       spawnEmojis(600, false, false); // Full wave
     });
 
     // Stage 4: Extra flood to ensure coverage
-    setT(6400, () => {
+    setT(6600, () => {
       spawnEmojis(400, false, false);
     });
 
-    // PHASE 4: Flashy outro - after wave has washed over
-    setT(8500, () => {
+    // PHASE 4: Flashy outro - wait longer for wave to wash over
+    setT(9500, () => {
       setPhase("done");
       setFadingOut(true);
     });
-    setT(8900, safeDismiss);
+    setT(9900, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
