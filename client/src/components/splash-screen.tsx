@@ -79,18 +79,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       const newEmojis: EmojiData[] = [];
       
       for (let i = 0; i < count; i++) {
-        const size = 36 + Math.random() * 28;
+        const size = 38 + Math.random() * 26;
         // Spread across screen width
-        const x = (Math.random() * w * 0.95) + w * 0.025;
-        // Stagger vertical spawning
+        const x = (Math.random() * w * 0.96) + w * 0.02;
+        // Stagger vertical spawning - faster overall
         let spawnDelay: number;
         if (waterfall) {
-          // Sustained waterfall - spread over longer time
-          spawnDelay = Math.random() * 3000;
+          // Sustained waterfall - spread over time
+          spawnDelay = Math.random() * 2500;
         } else if (staggered) {
-          spawnDelay = Math.random() * 2000;
+          spawnDelay = Math.random() * 1400; // Faster initial wave
         } else {
-          spawnDelay = Math.random() * 600;
+          spawnDelay = Math.random() * 400;
         }
         const y = -size - spawnDelay;
         
@@ -99,11 +99,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: 2 + Math.random() * 3,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: 4 + Math.random() * 4, // Faster fall
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 3,
+          rotationSpeed: (Math.random() - 0.5) * 4,
           zIndex: nextZIndex++,
           settled: false,
         });
@@ -155,11 +155,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             const dx = e.x - other.x;
             const dy = e.y - other.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const minDist = (e.size + other.size) * 0.22; // More overlap - tighter packing
+            const minDist = (e.size + other.size) * 0.28; // Slightly less overlap
             
-            if (dist < minDist && e.y < other.y + other.size * 0.2) {
+            if (dist < minDist && e.y < other.y + other.size * 0.25) {
               // Land on top of this emoji
-              e.y = other.y - minDist * 0.7;
+              e.y = other.y - minDist * 0.75;
               hitSettled = true;
               break;
             }
@@ -181,11 +181,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           }
         }
         
-        // When draining, let settled emojis fall OFF screen
+        // When draining, let settled emojis fall OFF screen quickly
         if (!hasFloor && e.settled) {
           e.settled = false;
-          e.vy = 4 + Math.random() * 4;
-          e.vx = (Math.random() - 0.5) * 1;
+          e.vy = 6 + Math.random() * 6; // Faster drain
+          e.vx = (Math.random() - 0.5) * 0.8;
         }
       }
       
@@ -198,25 +198,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         cardOpacity = 1;
       }
 
-      // Logo physics - faster, more energetic drop
+      // Logo physics - fast, energetic drop
       if (logoVisible) {
         if (!draining) {
-          logoVy += gravity * 1.2; // Faster fall
-          logoVy *= 0.94;
+          logoVy += gravity * 1.8; // Much faster fall
+          logoVy *= 0.92;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.15;
+            logoVy *= -0.18;
           }
           
-          logoRotation += logoVy * 0.06;
-          logoRotation *= 0.88;
+          logoRotation += logoVy * 0.07;
+          logoRotation *= 0.85;
         } else {
-          // Draining
-          logoVy += gravity * 2;
+          // Draining - fast exit
+          logoVy += gravity * 2.5;
           logoY += logoVy;
-          logoRotation += logoVy * 0.12;
+          logoRotation += logoVy * 0.15;
         }
       }
 
@@ -246,38 +246,38 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     // Card opacity is controlled by settled emoji count (in animate loop)
 
     // Logo appears after emojis have started piling
-    setT(1500, () => {
+    setT(1000, () => {
       logoVisible = true;
     });
 
-    setT(3000, () => setPhase("logoBob"));
+    setT(2200, () => setPhase("logoBob"));
 
-    setT(5000, () => {
+    setT(4000, () => {
       setPhase("drain1");
       draining = true;
       hasFloor = false;
-      gravity = 0.35;
+      gravity = 0.45; // Faster drain
     });
 
     // Card is already visible behind emojis - just clear emojis to reveal
-    setT(6200, () => {
+    setT(5000, () => {
       setPhase("cardHold");
       clearEmojis();
       draining = false;
       logoVisible = false;
     });
 
-    setT(8000, () => {
+    setT(6800, () => {
       setPhase("flood2");
       // Second wave is a waterfall - no settling, just flows over
-      hasFloor = false; // No floor - emojis just fall through
-      gravity = 0.35;
-      cardDraining = true; // Card starts falling with waterfall
-      spawnEmojis(1200, false, true); // Waterfall mode - spread over time
+      hasFloor = false;
+      gravity = 0.4;
+      cardDraining = true;
+      spawnEmojis(1200, false, true);
     });
 
-    setT(12000, () => setPhase("done"));
-    setT(12500, safeDismiss);
+    setT(10500, () => setPhase("done"));
+    setT(11000, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
