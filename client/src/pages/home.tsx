@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
 import { getSessionPalette } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
+import { injectAdCards, isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -75,10 +76,9 @@ export default function Home() {
     refetchOnReconnect: false,
   });
 
-  // Filter out swiped profiles and apply preferences
+  // Filter out swiped profiles and apply preferences, then inject ad cards
   const filteredProfiles = useMemo(() => {
-    return profiles.filter((p) => {
-      // Never show swiped profiles again
+    const baseProfiles = profiles.filter((p) => {
       if (swipedIds.has(p.id)) return false;
       
       const ageMatch = p.age >= preferences.minAge && p.age <= preferences.maxAge;
@@ -86,6 +86,8 @@ export default function Home() {
         preferences.genderPreference === "all" || p.gender === preferences.genderPreference;
       return ageMatch && genderMatch;
     });
+    
+    return injectAdCards(baseProfiles, swipedIds.size);
   }, [profiles, preferences, swipedIds]);
 
   const handleSwipe = async (profile: Profile, direction: "left" | "right") => {
@@ -95,6 +97,14 @@ export default function Home() {
       newSet.add(profile.id);
       return newSet;
     });
+    
+    // Handle ad cards differently - no server-side match creation
+    if (isAdProfile(profile)) {
+      if (direction === "right") {
+        setCurrentMatch({ profile, matchId: -1 }); // -1 indicates ad match
+      }
+      return;
+    }
     
     if (direction === "right") {
       setCurrentMatch({ profile, matchId: null });

@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { type Profile } from "@shared/schema";
-import { Heart, Loader2, Sparkles, X } from "lucide-react";
+import { Heart, Loader2, Sparkles, X, ExternalLink } from "lucide-react";
 import { getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { DopamineConfetti } from "./dopamine-confetti";
+import { isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
 
 interface MatchNotificationProps {
   profile: Profile;
@@ -102,21 +103,34 @@ export function MatchNotification({
             >
               Keep Swiping
             </button>
-            <button
-              onClick={onStartChat}
-              disabled={isPending}
-              className="eg-button flex-1 rounded-full disabled:opacity-50"
-              style={{ background: theme.palette.primary }}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Start Chat"
-              )}
-            </button>
+            {isAdProfile(profile) ? (
+              <a
+                href={AD_CARD_BRAND.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="eg-button flex-1 rounded-full flex items-center justify-center gap-2"
+                style={{ background: AD_CARD_BRAND.bgColor }}
+              >
+                Connect
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            ) : (
+              <button
+                onClick={onStartChat}
+                disabled={isPending}
+                className="eg-button flex-1 rounded-full disabled:opacity-50"
+                style={{ background: theme.palette.primary }}
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Start Chat"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
