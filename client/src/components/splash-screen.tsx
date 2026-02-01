@@ -26,6 +26,10 @@ interface EmojiData {
   rotationSpeed: number;
   zIndex: number;
   settled: boolean;
+  // Landing animation
+  scaleX: number;
+  scaleY: number;
+  landingTime: number | null; // timestamp when landing started
 }
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
@@ -39,7 +43,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [dismissed, setDismissed] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false });
+  const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false, scaleX: 1, scaleY: 1 });
   const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
 
   const safeDismiss = useCallback(() => {
@@ -111,6 +115,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           rotationSpeed: (Math.random() - 0.5) * 4,
           zIndex: nextZIndex++,
           settled: false,
+          scaleX: 1,
+          scaleY: 1,
+          landingTime: null,
         });
       }
       emojisRef.current = [...emojisRef.current, ...newEmojis];
@@ -125,6 +132,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     let logoVy = 0;
     let logoRotation = 0;
     let logoTargetY = h * 0.38;
+    let logoScaleX = 1;
+    let logoScaleY = 1;
+    let logoLanded = false;
+    let logoLandTime: number | null = null;
 
     let cardY = 0;
     let cardVy = 0;
@@ -133,10 +144,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const animate = () => {
       const emojis = emojisRef.current;
 
+      const now = performance.now();
+      
       for (const e of emojis) {
         // Once settled, emoji is LOCKED in place forever (until drain)
         if (e.settled && hasFloor) {
-          // Completely frozen - no movement at all
+          // Animate landing squash/stretch back to normal
+          if (e.landingTime !== null) {
+            const elapsed = now - e.landingTime;
+            const duration = 150; // 150ms landing animation
+            if (elapsed < duration) {
+              const progress = elapsed / duration;
+              // Ease out - start squashed, return to normal
+              const easeOut = 1 - Math.pow(1 - progress, 2);
+              e.scaleX = 1.08 - 0.08 * easeOut;
+              e.scaleY = 0.88 + 0.12 * easeOut;
+            } else {
+              e.scaleX = 1;
+              e.scaleY = 1;
+              e.landingTime = null; // Animation complete
+            }
+          }
           continue;
         }
         
@@ -183,6 +211,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             e.rotationSpeed = 0;
             // Lower z-index when settled (behind newer emojis)
             e.zIndex = Math.max(1, e.zIndex - 500);
+            // Start landing animation
+            e.landingTime = performance.now();
+            e.scaleX = 1.08;
+            e.scaleY = 0.88;
           }
         }
         
@@ -199,7 +231,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       // Card opacity is controlled by timer, not settled count
 
-      // Logo physics - gentle natural drop
+      // Logo physics - gentle natural drop with landing bounce
       if (logoVisible) {
         if (!draining) {
           logoVy += gravity * 0.9; // Even slower fall
@@ -208,7 +240,33 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
+            
+            // First landing - trigger bounce animation
+            if (!logoLanded) {
+              logoLanded = true;
+              logoLandTime = now;
+              logoScaleX = 1.15;
+              logoScaleY = 0.82;
+            }
+            
             logoVy *= -0.35; // Gentle bounce
+          }
+          
+          // Animate logo landing squash/stretch
+          if (logoLanded && logoLandTime !== null) {
+            const elapsed = now - logoLandTime;
+            const duration = 220; // Longer, more pronounced for logo
+            if (elapsed < duration) {
+              const progress = elapsed / duration;
+              // Ease out with slight overshoot for bouncy feel
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              logoScaleX = 1.15 - 0.15 * easeOut;
+              logoScaleY = 0.82 + 0.18 * easeOut;
+            } else {
+              logoScaleX = 1;
+              logoScaleY = 1;
+              logoLandTime = null;
+            }
           }
           
           // No rotation during drop
@@ -236,7 +294,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         cardRotation += cardVy * 0.06;
       }
 
-      setLogoPos({ x: w / 2, y: logoY, vy: logoVy, rotation: logoRotation, visible: logoVisible });
+      setLogoPos({ x: w / 2, y: logoY, vy: logoVy, rotation: logoRotation, visible: logoVisible, scaleX: logoScaleX, scaleY: logoScaleY });
       setCardPos({ y: cardY, vy: cardVy, rotation: cardRotation, opacity: cardOpacity });
       setEmojiRender([...emojis]);
 
@@ -379,7 +437,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               left: e.x,
               top: e.y,
               fontSize: e.size,
-              transform: `translate(-50%, -50%) rotate(${e.rotation}deg)`,
+              transform: `translate(-50%, -50%) rotate(${e.rotation}deg) scale(${e.scaleX}, ${e.scaleY})`,
               zIndex: e.zIndex,
             }}
           >
@@ -394,7 +452,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         style={{
           left: logoPos.x,
           top: logoPos.y,
-          transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg)`,
+          transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg) scale(${logoPos.scaleX}, ${logoPos.scaleY})`,
         }}
       >
         <span className="am-logo-text">All Matches!</span>
