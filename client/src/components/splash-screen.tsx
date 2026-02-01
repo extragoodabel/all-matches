@@ -45,11 +45,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const safeDismiss = useCallback(() => {
     if (dismissed) return;
     setFadingOut(true);
-    // Wait for fade animation, then complete
+    // Wait for fade animation to complete
     setTimeout(() => {
       setDismissed(true);
       onComplete();
-    }, 400);
+    }, 600);
   }, [dismissed, onComplete]);
 
   useEffect(() => {
@@ -191,8 +191,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         }
       }
       
-      // Remove emojis that have fallen off screen
-      emojisRef.current = emojis.filter(e => e.y < h + 150);
+      // Remove emojis that have fallen off screen (clean up for performance)
+      emojisRef.current = emojis.filter(e => e.y < h + 100);
       
       // Check if screen is covered (enough settled emojis)
       const settledCount = emojis.filter(e => e.settled).length;
