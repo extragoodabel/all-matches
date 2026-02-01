@@ -198,7 +198,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       
       // Card opacity is controlled by timer, not settled count
 
-      // Logo physics - playful plop with more pronounced bounce
+      // Logo physics - playful plop with bounce
       if (logoVisible) {
         if (!draining) {
           logoVy += gravity * 1.8;
@@ -207,11 +207,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.55; // More bounce!
+            logoVy *= -0.55; // Bounce
           }
           
-          logoRotation += logoVy * 0.1;
-          logoRotation *= 0.85;
+          logoRotation += logoVy * 0.04; // Reduced rotation
+          logoRotation *= 0.9;
         } else {
           // Draining - rush off screen
           logoVy += gravity * 2;

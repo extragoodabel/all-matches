@@ -746,12 +746,12 @@
 
 @media (min-width: 768px) {
   .am-logo-card-sharp {
-    padding: 45px 80px;
-    border-width: 10px;
-    box-shadow: 20px 20px 0 var(--eg-primary, #FF1493);
+    padding: 32px 56px;
+    border-width: 7px;
+    box-shadow: 14px 14px 0 var(--eg-primary, #FF1493);
   }
   
   .am-logo-text {
-    font-size: 70px;
+    font-size: 49px;
   }
 }
