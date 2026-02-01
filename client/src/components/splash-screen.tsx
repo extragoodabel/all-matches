@@ -149,16 +149,34 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       for (const e of emojis) {
         // Once settled, emoji is LOCKED in place forever (until drain)
         if (e.settled && hasFloor) {
-          // Animate landing squash/stretch back to normal
+          // Animate landing squash/stretch with bounce back to normal
           if (e.landingTime !== null) {
             const elapsed = now - e.landingTime;
-            const duration = 500; // Much longer for visibility
+            const duration = 450;
             if (elapsed < duration) {
               const progress = elapsed / duration;
-              // Elastic bounce - overshoot then settle
-              const elastic = 1 - Math.pow(1 - progress, 2) * Math.cos(progress * Math.PI * 1.5);
-              e.scaleX = 1.35 - 0.35 * elastic;
-              e.scaleY = 0.55 + 0.45 * elastic;
+              
+              // Phase 1: Squash (0-15%)
+              // Phase 2: Bounce up and stretch tall (15-50%)
+              // Phase 3: Return to normal (50-100%)
+              if (progress < 0.15) {
+                // Initial squash
+                const squashProgress = progress / 0.15;
+                e.scaleX = 1 + 0.35 * squashProgress;
+                e.scaleY = 1 - 0.45 * squashProgress;
+              } else if (progress < 0.5) {
+                // Bounce up - stretch vertically
+                const bounceProgress = (progress - 0.15) / 0.35;
+                const bounce = Math.sin(bounceProgress * Math.PI);
+                e.scaleX = 1.35 - 0.45 * bounceProgress;
+                e.scaleY = 0.55 + 0.55 * bounceProgress + 0.15 * bounce;
+              } else {
+                // Settle back to normal
+                const settleProgress = (progress - 0.5) / 0.5;
+                const ease = 1 - Math.pow(1 - settleProgress, 2);
+                e.scaleX = 0.9 + 0.1 * ease;
+                e.scaleY = 1.1 - 0.1 * ease;
+              }
             } else {
               e.scaleX = 1;
               e.scaleY = 1;
@@ -211,10 +229,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             e.rotationSpeed = 0;
             // Lower z-index when settled (behind newer emojis)
             e.zIndex = Math.max(1, e.zIndex - 500);
-            // Start landing animation - very pronounced squash
+            // Start landing animation
             e.landingTime = performance.now();
-            e.scaleX = 1.35;
-            e.scaleY = 0.55;
+            e.scaleX = 1;
+            e.scaleY = 1;
           }
         }
         
