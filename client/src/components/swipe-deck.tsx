@@ -198,6 +198,7 @@ function LoadingCard({ message, submessage }: { message: string; submessage?: st
 export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
+  const [exitingProfile, setExitingProfile] = useState<Profile | null>(null);
   const [seenProfileIds, setSeenProfileIds] = useState<Set<number>>(new Set());
   const [badImageIds, setBadImageIds] = useState<Set<number>>(new Set());
   const [lastProfileIds, setLastProfileIds] = useState<string>("");
@@ -244,22 +245,27 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
   }, []);
 
   const handleSwipe = useCallback((swipeDirection: "left" | "right") => {
-    if (!currentProfile || direction) return;
+    if (!currentProfile || exitingProfile) return;
     
     const profileToSwipe = currentProfile;
+    setExitingProfile(profileToSwipe);
     setDirection(swipeDirection);
+    
+    // Mark as seen immediately so next profile is ready
+    setSeenProfileIds(prev => {
+      const newSet = new Set(Array.from(prev));
+      newSet.add(profileToSwipe.id);
+      return newSet;
+    });
+    
     onSwipe(profileToSwipe, swipeDirection);
 
     setTimeout(() => {
-      setSeenProfileIds(prev => {
-        const newSet = new Set(Array.from(prev));
-        newSet.add(profileToSwipe.id);
-        return newSet;
-      });
-      setCurrentIndex((prev) => prev + 1);
+      setExitingProfile(null);
       setDirection(null);
+      setCurrentIndex((prev) => prev + 1);
     }, SWIPE_ANIMATION_MS);
-  }, [currentProfile, direction, onSwipe]);
+  }, [currentProfile, exitingProfile, onSwipe]);
 
   const { cardRef, dragOffset, isDragging, rotation, opacity, handlers } = useSwipeGesture(handleSwipe);
 
@@ -414,9 +420,25 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
           })}
         </div>
         
+        {/* Next card waiting underneath (only show when there's an exiting card) */}
+        {exitingProfile && currentProfile && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
+            <div className="w-full">
+              <div className="relative pb-12">
+                <ProfileCard 
+                  key={currentProfile.id}
+                  profile={currentProfile} 
+                  onImageError={() => handleImageError(currentProfile.id)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Active card (either the exiting one animating out, or the current one for interaction) */}
         <motion.div
             ref={cardRef}
-            key={currentProfile.id}
+            key={exitingProfile?.id ?? currentProfile.id}
             initial={false}
             animate={{
               scale: 1,
@@ -436,17 +458,18 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
               touchAction: "none",
               WebkitUserDrag: "none",
               userSelect: "none",
+              zIndex: 2,
             } as React.CSSProperties}
-            {...handlers}
+            {...(exitingProfile ? {} : handlers)}
           >
             <div className="relative pointer-events-none pb-12">
               <ProfileCard 
-                key={currentProfile.id}
-                profile={currentProfile} 
-                onImageError={() => handleImageError(currentProfile.id)}
+                key={exitingProfile?.id ?? currentProfile.id}
+                profile={exitingProfile ?? currentProfile} 
+                onImageError={() => handleImageError((exitingProfile ?? currentProfile).id)}
               />
               
-              {swipeIndicator === "like" && (
+              {swipeIndicator === "like" && !exitingProfile && (
                 <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
                   <div className="bg-[#00D9A5] text-[#1A1A1A] px-8 py-3 rounded-full text-3xl font-black rotate-[-15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
                     Like!
@@ -454,7 +477,7 @@ export function SwipeDeck({ profiles, onSwipe, onNeedsMore }: SwipeDeckProps) {
                 </div>
               )}
               
-              {swipeIndicator === "nope" && (
+              {swipeIndicator === "nope" && !exitingProfile && (
                 <div className="absolute inset-0 rounded-2xl flex items-center justify-center" style={{ bottom: '48px' }}>
                   <div className="bg-[#FF4136] text-white px-8 py-3 rounded-full text-3xl font-black rotate-[15deg] border-4 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] uppercase tracking-wide">
                     Nope
