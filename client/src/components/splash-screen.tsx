@@ -75,15 +75,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const gridCols = Math.ceil(w / 35);
     const stackHeights: number[] = new Array(gridCols).fill(h);
 
-    const spawnEmojis = (count: number, staggered: boolean = true) => {
+    const spawnEmojis = (count: number, staggered: boolean = true, waterfall: boolean = false) => {
       const newEmojis: EmojiData[] = [];
       
       for (let i = 0; i < count; i++) {
-        const size = 40 + Math.random() * 24;
-        // Spread across screen width with slight randomization
-        const x = (Math.random() * w * 0.9) + w * 0.05;
-        // Stagger vertical spawning so they arrive in waves
-        const spawnDelay = staggered ? Math.random() * 1200 : Math.random() * 400;
+        const size = 36 + Math.random() * 28;
+        // Spread across screen width
+        const x = (Math.random() * w * 0.95) + w * 0.025;
+        // Stagger vertical spawning
+        let spawnDelay: number;
+        if (waterfall) {
+          // Sustained waterfall - spread over longer time
+          spawnDelay = Math.random() * 3000;
+        } else if (staggered) {
+          spawnDelay = Math.random() * 2000;
+        } else {
+          spawnDelay = Math.random() * 600;
+        }
         const y = -size - spawnDelay;
         
         newEmojis.push({
@@ -91,11 +99,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: 1 + Math.random() * 2,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: 2 + Math.random() * 3,
           size,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 2,
+          rotationSpeed: (Math.random() - 0.5) * 3,
           zIndex: nextZIndex++,
           settled: false,
         });
@@ -147,19 +155,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             const dx = e.x - other.x;
             const dy = e.y - other.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const minDist = (e.size + other.size) * 0.35; // Overlap by ~30%
+            const minDist = (e.size + other.size) * 0.22; // More overlap - tighter packing
             
-            if (dist < minDist && e.y < other.y + other.size * 0.3) {
+            if (dist < minDist && e.y < other.y + other.size * 0.2) {
               // Land on top of this emoji
-              e.y = other.y - minDist * 0.8;
+              e.y = other.y - minDist * 0.7;
               hitSettled = true;
               break;
             }
           }
           
           // Floor collision
-          if (e.y + e.size * 0.4 > h) {
-            e.y = h - e.size * 0.4;
+          if (e.y + e.size * 0.3 > h) {
+            e.y = h - e.size * 0.3;
             hitSettled = true;
           }
           
@@ -173,40 +181,42 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           }
         }
         
-        // When draining, let settled emojis fall
+        // When draining, let settled emojis fall OFF screen
         if (!hasFloor && e.settled) {
           e.settled = false;
-          e.vy = 2 + Math.random() * 2;
-          e.vx = (Math.random() - 0.5) * 2;
+          e.vy = 4 + Math.random() * 4;
+          e.vx = (Math.random() - 0.5) * 1;
         }
       }
       
+      // Remove emojis that have fallen off screen
+      emojisRef.current = emojis.filter(e => e.y < h + 150);
+      
       // Check if screen is covered (enough settled emojis)
       const settledCount = emojis.filter(e => e.settled).length;
-      if (settledCount > 280 && cardOpacity === 0) {
+      if (settledCount > 800 && cardOpacity === 0) {
         cardOpacity = 1;
       }
 
-      // Logo physics
+      // Logo physics - faster, more energetic drop
       if (logoVisible) {
         if (!draining) {
-          // Gentle fall and bob
-          logoVy += gravity * 0.6;
-          logoVy *= 0.96;
+          logoVy += gravity * 1.2; // Faster fall
+          logoVy *= 0.94;
           logoY += logoVy;
           
           if (logoY > logoTargetY) {
             logoY = logoTargetY;
-            logoVy *= -0.12;
+            logoVy *= -0.15;
           }
           
-          logoRotation += logoVy * 0.04;
-          logoRotation *= 0.9;
+          logoRotation += logoVy * 0.06;
+          logoRotation *= 0.88;
         } else {
           // Draining
-          logoVy += gravity * 1.5;
+          logoVy += gravity * 2;
           logoY += logoVy;
-          logoRotation += logoVy * 0.1;
+          logoRotation += logoVy * 0.12;
         }
       }
 
@@ -224,8 +234,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    // Start emojis falling immediately - enough to cover screen
-    spawnEmojis(350, true);
+    // Start emojis falling immediately - quadrupled to cover screen
+    spawnEmojis(1400, true);
     rafRef.current = requestAnimationFrame(animate);
 
     const timers: number[] = [];
@@ -259,23 +269,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     setT(8000, () => {
       setPhase("flood2");
-      hasFloor = true;
-      // Reset stack heights for second wave
-      stackHeights.fill(h);
-      gravity = 0.22;
-      spawnEmojis(350, false);
+      // Second wave is a waterfall - no settling, just flows over
+      hasFloor = false; // No floor - emojis just fall through
+      gravity = 0.35;
+      cardDraining = true; // Card starts falling with waterfall
+      spawnEmojis(1200, false, true); // Waterfall mode - spread over time
     });
 
-    setT(10500, () => {
-      setPhase("drain2");
-      draining = true;
-      cardDraining = true;
-      hasFloor = false;
-      gravity = 0.4;
-    });
-
-    setT(12500, () => setPhase("done"));
-    setT(13000, safeDismiss);
+    setT(12000, () => setPhase("done"));
+    setT(12500, safeDismiss);
 
     return () => {
       timers.forEach(clearTimeout);
