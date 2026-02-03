@@ -3,6 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateAIResponse } from "./openai";
+import { evaluatePolicy } from "./policy";
 import { insertMatchSchema, insertMessageSchema, type Match } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
@@ -1937,36 +1938,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!profile) return res.status(404).json({ error: "Profile not found" });
 
         const currentMessages = await storage.getMessages(resolved.matchId);
-
-        generateAIResponse(
-          {
-            profileName: profile.name,
-            profileBio: profile.bio,
-            characterSpec: profile.characterSpec,
-            messageHistory: currentMessages.map((m) => ({
-              content: m.content,
-              isAI: m.isAI,
-            })),
-          },
-          message.content
-        )
-          .then(async (aiResponse) => {
+        
+        // Extract texting style from character spec for policy responses
+        let specTextingStyle: {
+          slang?: string;
+          caps?: string;
+          typos?: string;
+          emojis?: string;
+          messageLength?: string;
+          punctuation?: string;
+        } | undefined = undefined;
+        
+        if (profile.characterSpec) {
+          try {
+            const spec = JSON.parse(profile.characterSpec);
+            if (spec?.textingStyle) {
+              specTextingStyle = {
+                slang: spec.textingStyle.slang,
+                caps: spec.textingStyle.caps,
+                typos: spec.textingStyle.typos,
+                emojis: spec.textingStyle.emojis,
+                messageLength: spec.textingStyle.messageLength || spec.textingStyle.length || "short",
+                punctuation: spec.textingStyle.punctuation || "proper punctuation",
+              };
+            }
+          } catch {
+            specTextingStyle = undefined;
+          }
+        }
+        
+        // Evaluate policy for hard-coded responses (e.g., ICE mentions)
+        const policy = evaluatePolicy({
+          userMessage: message.content,
+          history: currentMessages.map((m) => ({ content: m.content, isAI: m.isAI })),
+          specTextingStyle,
+          isChaos: Boolean(profile.isChaos),
+        });
+        
+        if (policy.kind === "ICE") {
+          // Handle policy-dictated response without calling AI
+          (async () => {
             try {
               await new Promise((r) => setTimeout(r, 250 + Math.random() * 450));
-              await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
-
+              await new Promise((r) => setTimeout(r, Math.max(350, Math.min(4000, 900))));
+              
               await storage.createMessage({
                 matchId: resolved.matchId,
-                content: aiResponse.content,
+                content: policy.message,
                 isAI: true,
               });
             } catch (error) {
-              console.error("Error creating AI response:", error);
+              console.error("Error creating policy response:", error);
             }
-          })
-          .catch((error) => {
-            console.error("Error generating AI response:", error);
-          });
+          })();
+        } else {
+          // Normal AI response flow
+          generateAIResponse(
+            {
+              profileName: profile.name,
+              profileBio: profile.bio,
+              characterSpec: profile.characterSpec,
+              isChaos: Boolean(profile.isChaos),
+              messageHistory: currentMessages.map((m) => ({
+                content: m.content,
+                isAI: m.isAI,
+              })),
+            },
+            message.content
+          )
+            .then(async (aiResponse) => {
+              try {
+                await new Promise((r) => setTimeout(r, 250 + Math.random() * 450));
+                await new Promise((r) => setTimeout(r, aiResponse.typingDelay));
+
+                await storage.createMessage({
+                  matchId: resolved.matchId,
+                  content: aiResponse.content,
+                  isAI: true,
+                });
+              } catch (error) {
+                console.error("Error creating AI response:", error);
+              }
+            })
+            .catch((error) => {
+              console.error("Error generating AI response:", error);
+            });
+        }
       }
 
       res.json(createdMessage);

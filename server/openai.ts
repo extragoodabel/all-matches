@@ -1,8 +1,9 @@
 // server/openai.ts
 import OpenAI from "openai";
+import { evaluatePolicy } from "./policy";
 
-const AI_USER_MESSAGE_LIMIT = 20; // after 20 user messages, stop calling OpenAI
-const HISTORY_LIMIT = 12; // keep your existing slice(-12)
+const AI_USER_MESSAGE_LIMIT = 20;
+const HISTORY_LIMIT = 12;
 
 function calculateTypingDelay(message: string): number {
   const words = message.trim().split(/\s+/).filter(Boolean).length;
@@ -30,7 +31,6 @@ const chaosFallbackResponses = [
   "I vanished briefly. I am back. What'd you say?",
 ];
 
-// Sent once, right when the user crosses the limit
 const sunsetResponses = [
   "Ok wait I actually have to run 😅 but I liked talking to you. Message me later?",
   "I gotta bounce for a bit, but you’re fun. Don’t disappear on me 🙂",
@@ -49,7 +49,6 @@ const sunsetResponsesChaos = [
   "I have to vanish for a minute. You’re fun though. Later 🙂",
 ];
 
-// After sunset, forever: unavailable loop
 const npcUnavailableResponses = [
   "I’m tied up right now, but I’ll hit you back when I’m free 🙂",
   "Ok I can’t really text right now. Don’t get too attached 😅 talk later.",
@@ -108,7 +107,6 @@ interface CharacterSpec {
     typos: string;
     emojis: string;
     messageLength: string;
-    // Legacy fields for backwards compatibility
     punctuation?: string;
     length?: string;
   };
@@ -126,14 +124,12 @@ interface CharacterSpec {
 
   isChaos?: boolean;
   chaosType?: string;
-  
-  // New diversity fields
+
   origin?: string;
   originType?: string;
   isNonMonogamous?: boolean;
   nonMonogamyStyle?: string;
-  
-  // Hometown for regional flavor
+
   hometown?: string;
   hometownRegion?: string;
 
@@ -165,6 +161,7 @@ export async function generateAIResponse(
 
   const userMsgCount = countUserMessages(context.messageHistory);
 
+  // 1) Hard conversation cutoff logic (your existing behavior)
   if (userMsgCount >= AI_USER_MESSAGE_LIMIT) {
     const content =
       userMsgCount === AI_USER_MESSAGE_LIMIT
@@ -174,6 +171,29 @@ export async function generateAIResponse(
     return { content, typingDelay: calculateTypingDelay(content) };
   }
 
+  // 2) HARD POLICY INTERCEPT (global, non-waiverable)
+  // If ICE appears now or has appeared earlier, respond from policy and bypass OpenAI.
+  const policy = evaluatePolicy({
+    userMessage,
+    history: context.messageHistory,
+    specTextingStyle: spec?.textingStyle
+      ? {
+          slang: spec.textingStyle.slang,
+          caps: spec.textingStyle.caps,
+          typos: spec.textingStyle.typos,
+          emojis: spec.textingStyle.emojis,
+          messageLength: spec.textingStyle.messageLength || spec.textingStyle.length || "short",
+          punctuation: spec.textingStyle.punctuation || "proper punctuation",
+        }
+      : undefined,
+    isChaos,
+  });
+
+  if (policy.kind === "ICE") {
+    return { content: policy.message, typingDelay: calculateTypingDelay(policy.message) };
+  }
+
+  // 3) If no key, fallback
   if (!process.env.OPENAI_API_KEY) {
     const content = getFallbackResponse(isChaos);
     return { content, typingDelay: calculateTypingDelay(content) };
@@ -219,14 +239,15 @@ CHARACTER SPEC:
 - Quirk: ${spec.quirk}`;
 
       if (spec.attachmentStyle || spec.conflictStyle || spec.humorType || spec.energyLevel) {
-        systemPrompt += `\n\nPERSONALITY TRAITS:`;
+        systemPrompt += `
+
+PERSONALITY TRAITS:`;
         if (spec.attachmentStyle) systemPrompt += `\n- Attachment style: ${spec.attachmentStyle}`;
         if (spec.conflictStyle) systemPrompt += `\n- Conflict style: ${spec.conflictStyle}`;
         if (spec.humorType) systemPrompt += `\n- Humor type: ${spec.humorType}`;
         if (spec.energyLevel) systemPrompt += `\n- Energy level: ${spec.energyLevel}`;
       }
 
-      // Build texting style section with new or legacy fields
       const slangStyle = spec.textingStyle.slang || "moderate";
       const capsStyle = spec.textingStyle.caps || "normal";
       const typoStyle = spec.textingStyle.typos || "none";
@@ -234,7 +255,6 @@ CHARACTER SPEC:
       const lengthStyle = spec.textingStyle.messageLength || spec.textingStyle.length || "short";
       const punctuationStyle = spec.textingStyle.punctuation || "proper punctuation";
 
-      // Parse style values for matching
       const slangLower = slangStyle.toLowerCase();
       const capsLower = capsStyle.toLowerCase();
       const typoLower = typoStyle.toLowerCase();
@@ -346,8 +366,9 @@ CHARACTER SPEC:
         punctInstruction = "→ Natural punctuation.";
       }
 
-      // Add hometown context if available
-      const hometownNote = spec.hometown ? `\nYou're from ${spec.hometown}${spec.hometownRegion ? ` (${spec.hometownRegion})` : ""}. This might come up naturally in conversation.` : "";
+      const hometownNote = spec.hometown
+        ? `\nYou're from ${spec.hometown}${spec.hometownRegion ? ` (${spec.hometownRegion})` : ""}. This might come up naturally in conversation.`
+        : "";
 
       systemPrompt += `
 
@@ -374,25 +395,23 @@ Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:${
 
 THIS IS YOUR VOICE. If you use proper punctuation when you're "no punctuation", you FAILED. If you write 3 sentences when you're "terse", you FAILED. If you capitalize when you're "all lowercase", you FAILED. BE DISTINCTIVE.`;
 
-      // Add origin/language background if non-native
       if (spec.origin && spec.originType && spec.originType !== "native") {
         let langNote = `\n- Language background: ${spec.origin}`;
         if (spec.originType === "esl_light") {
-          langNote += ` (occasionally use slightly different phrasing, natural fluency with light non-native patterns)`;
+          langNote += ` (occasionally use slightly different phrasing, light non-native patterns)`;
         } else if (spec.originType === "code_switch") {
-          langNote += ` (very rarely drop a word or short phrase in your native language, like "ay" or "vale" or "na" - subtle, not every message)`;
+          langNote += ` (very rarely drop a word or short phrase in your native language, subtle, not every message)`;
         } else if (spec.originType === "tourist") {
-          langNote += ` (you're visiting and curious about local life, may ask about the area)`;
+          langNote += ` (you're visiting and curious about local life)`;
         }
         systemPrompt += langNote;
       }
 
-      // Add non-monogamy if applicable
       if (spec.isNonMonogamous && spec.nonMonogamyStyle) {
         systemPrompt += `
 
 RELATIONSHIP STYLE:
-You are ${spec.nonMonogamyStyle}. You are upfront, ethical, and clear about this. Not secretive or weird about it.`;
+You are ${spec.nonMonogamyStyle}. You are upfront, ethical, and clear about this.`;
       }
 
       systemPrompt += `
@@ -430,25 +449,20 @@ CHAOS RULES:
 
 CONVERSATION RULES:
 1. NEVER mention being AI, a bot, or an assistant. You are a real person.
-2. Message length should follow your style profile. Can be: a single word, a fragment, 1-3 sentences, or occasionally longer if your style is "rambly". Match your messageLength setting.
+2. Message length should follow your style profile.
 3. Reference the user's LAST message specifically. No generic responses.
-4. Follow your texting style rules strictly - slang, caps, typos, emojis should match your profile.
+4. Follow your texting style rules strictly.
 5. Be distinctive. If your reply could fit anyone, rewrite it.
 6. ${msgCount < 3 ? "Early convo: be engaging but do not overshare yet." : "You have been chatting. Show more personality."}
 7. Flirting is allowed, but must stay non-explicit and safe.
-8. Never use em dashes. Use commas, periods, or line breaks instead.
+8. Never use em dashes. Use commas, periods, or line breaks.
 9. Occasional one-word replies, fragments, or emoji-only responses are encouraged when they fit the vibe.
 
 ENGAGEMENT RULES (CRITICAL):
 - Sprinkle in at least one of: a compliment, playful affirmation, or flirt-forward remark toward the user.
-- Ask general get-to-know-you questions naturally: "what made you swipe", "what are you looking for on here", "what does a good weekend look like for you", "what do you do", "where are you from". Don't only ask niche questions about your job/hobby.
-- PERSONALITY BALANCE: Your job/hobby is ONE detail, not your whole identity. If you're a pastry chef, barista, or foodie, don't make every message about food. You are a whole person with many facets.
-- You are a real person who HAPPENS to have your interests. Don't monologue about your character. Show genuine curiosity about THEM.
-- If the user shares their name, use it naturally in conversation.
-- Sound like a human texting on a dating app, not a scripted actor or improv performer. Your messages should feel slightly messy, human, real.
-- Even chaos personas should show interest in the user. Don't get trapped in a one-note bit.
-- CRITICAL: If asked "what's your deal", "tell me about yourself", "so what do you do", or ANY question about who you are: NEVER repeat, summarize, or rephrase your bio. They already read it. FORBIDDEN: restating your job, hobbies, or interests from your bio. INSTEAD: share something new they couldn't know - a recent story, how your day is going, a random memory, what's on your mind right now, or ask them a question back.
-- Vary your message structure: sometimes short and clipped, sometimes a question, sometimes a fragment. Not every message needs to be a complete thought.`;
+- Ask general get-to-know-you questions naturally.
+- Sound like a human texting on a dating app, not scripted.
+- CRITICAL: If asked "what's your deal" or "tell me about yourself": NEVER restate the bio. Share something new or ask a question back.`;
     } else {
       systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
 Your bio: "${context.profileBio}"
@@ -466,9 +480,8 @@ RULES:
 ENGAGEMENT RULES:
 - Include at least one of: a compliment, playful affirmation, or flirty remark.
 - Ask general get-to-know-you questions (work, weekend plans, music, travel).
-- Show genuine curiosity about the user. Don't just talk about yourself.
-- If they share their name, use it naturally.
-- CRITICAL: If asked about yourself ("what's your deal", "tell me about yourself", etc.), NEVER repeat your bio. They already saw it. FORBIDDEN to restate your job or interests. Share something NEW or ask them a question.`;
+- Show genuine curiosity about the user.
+- CRITICAL: If asked about yourself: NEVER repeat your bio. Share something new or ask a question.`;
 
       if (valentinesEager) {
         systemPrompt += `
