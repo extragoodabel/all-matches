@@ -342,7 +342,7 @@ type PersonaTemplate = {
 };
 
 const PRIMARY_TRAITS: PersonaTemplate[] = [
-  { label: "Caveman", interests: ["meat sticks", "going for walks"], flirtBias: 6, chaosBias: 0.03, quirkHint: "I communicate primarily in vibes and gestures." },
+  { label: "Caveman", interests: ["meat sticks", "going for walks"], flirtBias: 6, chaosBias: 0.03, quirkHint: "I communicate primarily in grunts and gestures." },
   { label: "Fish Holding Boat Guy", interests: ["boats", "holding fish"], flirtBias: 10, chaosBias: 0.02, quirkHint: "If I am not holding a fish, assume I am about to be holding a fish." },
   { label: "Hypochondriac", interests: ["vitamins", "air purifiers"], flirtBias: -5, chaosBias: 0.02, quirkHint: "I have WebMD open, but I am trying to grow." },
 
@@ -459,13 +459,13 @@ const PRIMARY_TRAITS: PersonaTemplate[] = [
   { label: "Personal Trainer", interests: ["workouts", "motivation"], flirtBias: 9 },
   { label: "Nutritionist", interests: ["food", "wellness"], flirtBias: 5 },
   { label: "Life Coach", interests: ["goals", "journaling"], flirtBias: 7, chaosBias: 0.02 },
-  { label: "Astrologer", interests: ["charts", "vibes"], flirtBias: 8, chaosBias: 0.05 },
+  { label: "Astrologer", interests: ["charts", "birth times"], flirtBias: 8, chaosBias: 0.05 },
   { label: "Tarot Reader", interests: ["cards", "intuition"], flirtBias: 7, chaosBias: 0.05 },
   { label: "Meditation Teacher", interests: ["stillness", "retreats"], flirtBias: 5 },
   { label: "Sailor", interests: ["boats", "the ocean"], flirtBias: 8 },
   { label: "Rock Climber", interests: ["climbing", "outdoor trips"], flirtBias: 8 },
   { label: "Surfer", interests: ["waves", "beach life"], flirtBias: 9 },
-  { label: "Skier", interests: ["mountains", "lodge vibes"], flirtBias: 7 },
+  { label: "Skier", interests: ["mountains", "apres-ski"], flirtBias: 7 },
   { label: "Snowboarder", interests: ["powder", "apres ski"], flirtBias: 8 },
   { label: "Cyclist", interests: ["rides", "gear"], flirtBias: 6 },
   { label: "Triathlete", interests: ["training", "race days"], flirtBias: 7 },
@@ -627,7 +627,7 @@ const PRIMARY_TRAITS: PersonaTemplate[] = [
   { label: "Overthinker", interests: ["planning", "what-ifs"], flirtBias: 4 },
   { label: "Spontaneous Type", interests: ["last minute plans", "surprises"], flirtBias: 8 },
   { label: "Planner", interests: ["calendars", "itineraries"], flirtBias: 4 },
-  { label: "Go-With-The-Flow", interests: ["vibes", "no agenda"], flirtBias: 7 },
+  { label: "Go-With-The-Flow", interests: ["spontaneity", "no agenda"], flirtBias: 7 },
   { label: "Workaholic", interests: ["hustle", "goals"], flirtBias: 5 },
   { label: "Work-Life Balance Person", interests: ["boundaries", "weekends"], flirtBias: 6 },
   { label: "Career Changer", interests: ["new beginnings", "figuring it out"], flirtBias: 6 },
@@ -652,7 +652,7 @@ const PRIMARY_TRAITS: PersonaTemplate[] = [
   { label: "Taking It Slow", interests: ["no rush", "seeing what happens"], flirtBias: 5 },
   { label: "Just Looking", interests: ["curiosity", "no pressure"], flirtBias: 6 },
   { label: "Hopeful Cynic", interests: ["skepticism", "hoping to be wrong"], flirtBias: 5 },
-  { label: "Eternal Optimist", interests: ["good vibes", "silver linings"], flirtBias: 8 },
+  { label: "Eternal Optimist", interests: ["silver linings", "glass half full"], flirtBias: 8 },
   { label: "Realist", interests: ["practicality", "no games"], flirtBias: 5 },
   { label: "Romantic Realist", interests: ["love", "but also pragmatism"], flirtBias: 7 },
   { label: "Skeptic", interests: ["questions", "proof"], flirtBias: 3 },
@@ -707,7 +707,7 @@ const LOOKING_FOR_LINES = [
 const BIO_DETAILS = [
   "two coffees before I’m human",
   "walks that turn into 90 minutes",
-  "I will order dessert first if the vibe is right",
+  "I will order dessert first if the mood is right",
   "I keep a running list of date spots",
   "I’m picky about lighting in restaurants",
   "I will actually plan the itinerary",
@@ -751,7 +751,7 @@ function isBadBio(text: string): boolean {
 // Bio lead priorities - what each persona leads with (not all traits)
 const BIO_LEAD_TYPES = [
   "humor",           // a joke or witty observation
-  "vibe",            // energy or aesthetic
+  "energy",          // energy or aesthetic (avoid "vibe")
   "interest",        // one specific passion
   "quirk",           // something quirky
   "question",        // ask or challenge the reader
@@ -819,7 +819,7 @@ async function generateBioWithOpenAI(context: {
   const getLeadInstruction = (lead: string): string => {
     switch (lead) {
       case "humor": return "a joke, dry observation, or something genuinely funny";
-      case "vibe": return "your energy or aesthetic (show, don't label)";
+      case "energy": return "your energy or aesthetic (show, don't label)";
       case "interest": return `a genuine passion for ${featuredInterest}`;
       case "quirk": return context.quirk ? `this quirk: ${context.quirk}` : "something unusual you do";
       case "question": return "a question or playful challenge to the reader";
@@ -880,7 +880,7 @@ async function generateBioWithOpenAI(context: {
     "Dry deadpan delivery.",
     "Enthusiastic and exclamatory.",
     "Mysterious and vague.",
-    "Open with a cringy famous quote, then your actual vibe.",
+    "Open with a cringy famous quote, then your actual personality.",
     "Reluctant first-timer energy: skeptical about apps but here anyway.",
     "Recently single, ready to mingle tone.",
     "Here for a good time, not a long time energy.",
@@ -918,7 +918,7 @@ CHAOS MODE ACTIVE - This person is ${context.chaosType}:
 - Their bio should feel slightly off, intense, or theatrical
 - Lean into the chaos: be dramatic, absurdist, deadpan unhinged, or weirdly specific
 - Don't explain the chaos - let it speak for itself
-- The vibe should make readers pause and think "...what?"
+- The energy should make readers pause and think "...what?"
 `;
   }
 
@@ -1141,8 +1141,8 @@ function generateCharacterSpec(context: {
   const seed = crypto.createHash("md5").update(context.name + context.archetypeLabel + context.quirk).digest("hex");
   const n = (i: number) => parseInt(seed.substring(i, i + 2), 16);
 
-  const goals = ["flirt", "relationship", "validation", "debate", "sincere", "making a friend", "vibes only"];
-  const intelligenceVibes = ["academic", "street smart", "chill", "witty", "creative", "philosophical"];
+  const goals = ["flirt", "relationship", "validation", "debate", "sincere", "making a friend", "just here to chat"];
+  const intelligenceTypes = ["academic", "street smart", "chill", "witty", "creative", "philosophical"];
   const moralityFlavors = ["kind", "neutral", "blunt", "messy", "overly honest", "wholesome", "chaotic good"];
   const attachmentStyles = ["secure", "anxious", "avoidant", "unknown"];
   const conflictStyles = ["direct", "avoidant", "joking", "diplomatic"];
@@ -1243,7 +1243,7 @@ function generateCharacterSpec(context: {
     "proper punctuation",
     "proper punctuation",
     "minimal punctuation - few periods or commas",
-    "no punctuation just vibes",
+    "no punctuation at all",
     "excessive punctuation!!! and ???",
     "ellipsis person... trails off...",
     "period after every sentence. very deliberate."
@@ -1285,7 +1285,7 @@ function generateCharacterSpec(context: {
   ];
 
   const goal = goals[n(0) % goals.length];
-  const intelligence = intelligenceVibes[n(2) % intelligenceVibes.length];
+  const intelligence = intelligenceTypes[n(2) % intelligenceTypes.length];
   const morality = moralityFlavors[n(4) % moralityFlavors.length];
   const signatureBits = [bits[n(8) % bits.length], bits[n(10) % bits.length]];
   const origin = originProfiles[n(24) % originProfiles.length];
@@ -1551,7 +1551,7 @@ async function generateProfilesInBackground(
             "proper punctuation",
             "proper punctuation",
             "minimal punctuation - few periods or commas",
-            "no punctuation just vibes",
+            "no punctuation at all",
             "excessive punctuation!!! and ???",
             "ellipsis person... trails off...",
             "period after every sentence. very deliberate."
@@ -1638,7 +1638,7 @@ async function generateProfilesInBackground(
             gender,
             archetypeLabel: persona.label,
             interests,
-            quirk: quirk || "No weird quirks. Just vibes.",
+            quirk: quirk || "No weird quirks, just being myself.",
             flirtPercent,
             flirtStyle,
             valentinesEager: false,
