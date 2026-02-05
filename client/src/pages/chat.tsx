@@ -153,7 +153,16 @@ export default function Chat({ params }: ChatProps) {
 
         {/* Chat area - scrolls independently */}
         <div className="flex-1 container mx-auto px-4 py-4 max-w-2xl flex flex-col min-h-0">
-          <ChatInterface matchId={matchId} messages={messages} onNewMessage={handleNewMessage} />
+          <ChatInterface 
+            matchId={matchId} 
+            messages={messages} 
+            onNewMessage={handleNewMessage}
+            theme={{
+              primary: theme.palette.primary,
+              secondary: theme.palette.secondary,
+              accent: theme.palette.accent,
+            }}
+          />
         </div>
       </div>
     </PatternBackground>

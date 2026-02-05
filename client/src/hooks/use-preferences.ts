@@ -66,6 +66,7 @@ export function usePreferences() {
   }, []);
 
   const setPreferences = useCallback((newPrefs: MatchPreferences) => {
+    console.log("[Accessibility] Mode toggled:", newPrefs.accessibilityMode ? "ON" : "OFF");
     setPreferencesState(newPrefs);
     savePreferences(newPrefs);
     notifyListeners(newPrefs);

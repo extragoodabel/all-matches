@@ -3,16 +3,31 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Send } from "lucide-react";
+import { getContrastTextColor, COLORS } from "@/styles/theme";
+
+interface ChatTheme {
+  primary: string;
+  secondary: string;
+  accent: string;
+}
 
 export function ChatInterface({
   matchId,
   messages,
   onNewMessage,
+  theme,
 }: {
   matchId: number;
   messages: Message[];
   onNewMessage: () => void;
+  theme?: ChatTheme;
 }) {
+  const primaryBg = theme?.primary || '#FF1493';
+  const secondaryBg = theme?.secondary || '#FFDC00';
+  const accentColor = theme?.accent || COLORS.ink;
+  
+  const userTextColor = getContrastTextColor(primaryBg);
+  const aiTextColor = getContrastTextColor(secondaryBg);
   const [text, setText] = useState("");
   const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -83,7 +98,14 @@ export function ChatInterface({
             key={m.id}
             className={`flex ${m.isAI ? "justify-start" : "justify-end"}`}
           >
-            <div className={m.isAI ? "eg-chat-bubble-ai" : "eg-chat-bubble-user"}>
+            <div 
+              className={`rounded-2xl px-4 py-3 max-w-[80%] ${m.isAI ? "rounded-bl-sm" : "rounded-br-sm"}`}
+              style={{
+                background: m.isAI ? secondaryBg : primaryBg,
+                color: m.isAI ? aiTextColor : userTextColor,
+                border: `2px solid ${accentColor}`,
+              }}
+            >
               {m.content}
             </div>
           </div>
@@ -91,10 +113,16 @@ export function ChatInterface({
 
         {showTyping && (
           <div className="flex justify-start">
-            <div className="eg-chat-bubble-ai flex items-center gap-1.5 py-4">
-              <div className="eg-typing-dot" />
-              <div className="eg-typing-dot" />
-              <div className="eg-typing-dot" />
+            <div 
+              className="rounded-2xl rounded-bl-sm px-4 py-4 flex items-center gap-1.5"
+              style={{
+                background: secondaryBg,
+                border: `2px solid ${accentColor}`,
+              }}
+            >
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor, animationDelay: '-0.32s' }} />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor, animationDelay: '-0.16s' }} />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor }} />
             </div>
           </div>
         )}
@@ -121,7 +149,12 @@ export function ChatInterface({
         <button 
           type="submit" 
           disabled={sendMutation.isPending || !text.trim()}
-          className="eg-button rounded-full px-4 disabled:opacity-50"
+          className="rounded-full px-4 py-3 disabled:opacity-50 transition-all font-bold"
+          style={{
+            background: primaryBg,
+            color: userTextColor,
+            border: `2px solid ${accentColor}`,
+          }}
         >
           <Send className="w-5 h-5" />
         </button>
