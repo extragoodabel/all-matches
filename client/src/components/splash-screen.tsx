@@ -421,7 +421,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         <div className="am-splash-bg" />
         <div className="am-splash-content">
           <div className="am-logo-card am-logo-card-static">
-            <AllMatchesLogo variant="static" className="am-logo-svg" />
+            <AllMatchesLogo variant="static" className="am-logo-svg" withOutline />
           </div>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
@@ -474,7 +474,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg) scale(${logoPos.scaleX}, ${logoPos.scaleY})`,
         }}
       >
-        <AllMatchesLogo variant="static" className="am-logo-svg" />
+        <AllMatchesLogo variant="static" className="am-logo-svg" withOutline />
       </div>
 
       <div 

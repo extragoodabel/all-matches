@@ -619,6 +619,7 @@
   z-index: 5;
   transition: opacity 0.2s ease;
   will-change: transform;
+  overflow: visible;
 }
 
 .am-logo-card-sharp {
@@ -634,6 +635,7 @@
   z-index: 500;
   transition: opacity 0.2s ease;
   will-change: transform;
+  overflow: visible;
 }
 
 .am-logo-card-static {
@@ -657,8 +659,9 @@
 }
 
 .am-logo-svg {
-  height: 28px;
+  height: 56px;
   width: auto;
+  overflow: visible;
 }
 
 .am-visible {
@@ -762,6 +765,6 @@
   }
   
   .am-logo-svg {
-    height: 49px;
+    height: 147px;
   }
 }

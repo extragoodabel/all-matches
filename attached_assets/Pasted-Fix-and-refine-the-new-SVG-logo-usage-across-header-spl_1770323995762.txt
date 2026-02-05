@@ -1,0 +1,47 @@
+Fix and refine the new SVG logo usage across header + splash screen. The box is removed already. Keep all existing routing/navigation logic and the reactive palette system. Implement the following:
+
+A) SIZING
+1) Header logo size: increase by 2x on ALL breakpoints (mobile + tablet + desktop), preserving aspect ratio. Do this via CSS sizing (width/height) on the logo element itself or its immediate wrapper, not by scaling the entire header.
+2) Splash screen logo size (desktop only): increase by 3x relative to the current splash logo size on desktop. Mobile/tablet splash can remain as-is unless it looks too small.
+
+B) LOGO RENDERING BUG (partial “Matches” background)
+3) The SVG is currently not rendering fully (the background color behind “matches” is partially clipped or not appearing).
+   - Diagnose whether this is caused by an incorrect SVG viewBox, missing preserveAspectRatio, CSS overflow hidden on a parent container, or the SVG being constrained by width/height without respecting its intrinsic viewBox.
+   - Fix so the ENTIRE logo renders in all contexts (header + splash, all breakpoints).
+   - Ensure no clipping: set overflow: visible on the SVG if needed and remove overflow hidden on any wrapping containers that clip it.
+
+C) HIGH CONTRAST RULES FOR REACTIVE COLORS (critical)
+4) Enforce high contrast specifically between:
+   - Heart fill color
+   - “ALL” text/mark inside the heart
+These two must always be high-contrast (e.g., light vs dark). Do not allow low-contrast combos.
+
+5) “Matches” may also be reactively colored, but only if it follows the same high-contrast logic:
+   - If “Matches” has a background shape, the text on top must be high contrast against it.
+   - If “Matches” uses a shadow/drop shadow, ensure high contrast between the shadow and the adjacent shapes so the word stays legible.
+   - Maintain high contrast between “Matches” drop shadow and the heart + “ALL” area if they overlap visually.
+
+Implementation guidance:
+- Add a centralized function/util that chooses paired colors with guaranteed contrast (light/dark pairing). Use that function for logo colors.
+- Do not pick random colors independently for heart and “ALL”; they must be chosen as a pair for contrast.
+- Use black/white switching as a fallback when needed to guarantee contrast.
+
+D) HEADER CLICK ANIMATION (restore press feedback)
+6) Clicking/tapping the header logo area should still trigger the press/click-down animation as before (scale down slightly + return, or whatever the existing pattern is).
+   - Currently it is frozen. Restore the interactive pressed state.
+   - Ensure this works with mouse and touch.
+   - Preserve accessibility: focus states should still be visible for keyboard users.
+
+E) SPLASH SCREEN OUTLINE FOR LEGIBILITY
+7) Add a WHITE border/outline around the splash screen logo to help it pop against the busy emoji background.
+   - The outline should follow the logo shape (not a box).
+   - Prefer an SVG stroke/outline filter OR a CSS drop-shadow style that simulates an outline (multiple drop-shadows) so it reads cleanly.
+   - This outline is for the splash logo only (unless it improves the header too without clutter).
+
+Verification checklist (must test):
+- Header logo appears 2x larger on mobile and desktop, not distorted.
+- Desktop splash logo appears 3x larger, not distorted.
+- The logo renders fully (no clipping of “Matches” background).
+- Color combinations are always high contrast between heart and “ALL”, and “Matches” remains legible (including shadow).
+- Header press animation works again.
+- Splash logo outline is visible and improves contrast.

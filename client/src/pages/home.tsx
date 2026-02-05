@@ -220,8 +220,16 @@ export default function Home() {
           <div className="flex-1 text-center min-w-0">
             <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
-              <span 
-                className="relative p-1 select-none cursor-pointer flex items-center justify-center"
+              <button 
+                className="relative p-2 select-none cursor-pointer flex items-center justify-center transition-transform duration-75 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ 
+                  '--tw-ring-color': palette.primary,
+                } as React.CSSProperties}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                onTouchStart={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+                onTouchEnd={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 onClick={() => {
                   if (secretText) return;
                   tapCountRef.current += 1;
@@ -241,9 +249,9 @@ export default function Home() {
                   primaryColor={palette.primary}
                   secondaryColor={palette.secondary}
                   accentColor={palette.accent}
-                  className="h-5 sm:h-8 md:h-10 lg:h-12 w-auto"
+                  className="h-10 sm:h-16 md:h-20 lg:h-24 w-auto"
                 />
-              </span>
+              </button>
               <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>
             <a 
