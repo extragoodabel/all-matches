@@ -376,6 +376,7 @@ export default function Home() {
                   <button
                     onClick={handleReset}
                     className="eg-button-white rounded-full flex-1 flex items-center justify-center gap-2"
+                    style={{ color: '#1a1a1a' }}
                   >
                     <RotateCcw className="w-4 h-4" />
                     Reset
@@ -384,7 +385,7 @@ export default function Home() {
                     onClick={handleSave}
                     disabled={!isValid}
                     className="eg-button rounded-full flex-1 disabled:opacity-50"
-                    style={{ background: palette.primary }}
+                    style={{ background: palette.primary, color: '#1a1a1a' }}
                   >
                     Save & Go
                   </button>
