@@ -41,6 +41,31 @@ const MATCHES_PATHS = [
   "M971.85,78.27c-16.98,1.49-29.66-10.5-29.66-26.86v-13.09c0-1.84,1.43-3.4,3.07-3.54s3.07,1.16,3.07,3v13.09c0,13.91,10.64,23,23.52,21.87s23.73-12.3,23.73-26.21c0-28.43-22.09-48.79-50.11-46.34s-50.52,26.71-50.52,55.14c0,9.2,2.66,17.97,7.16,25.35,4.09-3.63,11.45-6.93,16.98-7.42,16.77-1.47,29.25,10.53,29.25,27.1v21.48c0,2.25-1.43,4.01-3.07,4.15s-3.07-1.37-3.07-3.62v-21.48c0-12.89-10.64-23.2-23.11-22.11-13.5,1.18-24.14,11.52-24.14,27.06,0,27.82,22.29,48.16,50.52,45.69s50.11-26.68,50.11-55.11c0-9.2-2.45-17.99-6.95-25.37-4.5,3.46-11.45,6.73-16.77,7.19Z"
 ];
 
+const BRAND_COLORS = {
+  hotPink: '#FF1493',
+  lemon: '#FFDC00',
+  lavender: '#B388FF',
+  mint: '#00D9A5',
+  sky: '#00BFFF',
+  coral: '#FF6B6B',
+  peach: '#FFAB91',
+  violet: '#7C4DFF',
+  lime: '#C6FF00',
+  tangerine: '#FF9800',
+  tomato: '#FF4136',
+  ink: '#1A1A1A',
+};
+
+const LIGHT_BRAND_COLORS = [
+  BRAND_COLORS.lemon,
+  BRAND_COLORS.mint, 
+  BRAND_COLORS.sky,
+  BRAND_COLORS.coral,
+  BRAND_COLORS.peach,
+  BRAND_COLORS.lime,
+  BRAND_COLORS.lavender,
+];
+
 export function AllMatchesLogo({ 
   className = "", 
   style = {},
@@ -52,16 +77,34 @@ export function AllMatchesLogo({
 }: AllMatchesLogoProps) {
   const isStatic = variant === "static";
   
-  const heartColor = isStatic ? "#ff1493" : (primaryColor || "#ff1493");
-  const rawAllTextColor = isStatic ? "#ffdc00" : (secondaryColor || "#ffdc00");
-  const rawAccentColor = isStatic ? "#ffdc00" : (accentColor || "#ffdc00");
+  const heartColor = isStatic ? BRAND_COLORS.hotPink : (primaryColor || BRAND_COLORS.hotPink);
+  const rawAllTextColor = isStatic ? BRAND_COLORS.lemon : (secondaryColor || BRAND_COLORS.lemon);
+  const rawAccentColor = isStatic ? BRAND_COLORS.lemon : (accentColor || BRAND_COLORS.lemon);
   
-  const allTextColor = isStatic 
-    ? rawAllTextColor 
-    : (hasGoodContrast(heartColor, rawAllTextColor) ? rawAllTextColor : (isLightColor(heartColor) ? "#1a1a1a" : "#ffffff"));
+  let allTextColor: string;
+  if (isStatic) {
+    allTextColor = rawAllTextColor;
+  } else {
+    if (hasGoodContrast(heartColor, rawAllTextColor)) {
+      allTextColor = rawAllTextColor;
+    } else {
+      allTextColor = isLightColor(heartColor) ? BRAND_COLORS.ink : "#ffffff";
+    }
+  }
   
-  const matchesTextColor = "#1a1a1a";
-  const matchesShadowColor = isLightColor(rawAccentColor) ? rawAccentColor : "#ffdc00";
+  const matchesIsBlack = true;
+  const matchesTextColor = BRAND_COLORS.ink;
+  
+  let matchesShadowColor: string;
+  if (matchesIsBlack) {
+    if (isLightColor(rawAccentColor) && rawAccentColor.toLowerCase() !== '#ffffff') {
+      matchesShadowColor = rawAccentColor;
+    } else {
+      matchesShadowColor = BRAND_COLORS.lemon;
+    }
+  } else {
+    matchesShadowColor = BRAND_COLORS.ink;
+  }
   
   const outlineFilter = withOutline 
     ? "drop-shadow(0 0 3px white) drop-shadow(0 0 3px white) drop-shadow(0 0 5px white) drop-shadow(0 0 8px white)"
