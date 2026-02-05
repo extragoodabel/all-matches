@@ -31,8 +31,7 @@ export default function Home() {
     preferences.maxAge,
   ]);
   const [secretText, setSecretText] = useState(false);
-  const [headerPressed, setHeaderPressed] = useState(false);
-  const tapCountRef = useRef(0);
+    const tapCountRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
@@ -222,17 +221,7 @@ export default function Home() {
             <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer transition-transform duration-75 flex items-center justify-center"
-                style={{ 
-                  background: palette.background,
-                  boxShadow: headerPressed ? `2px 2px 0 ${palette.accent}` : `4px 4px 0 ${palette.accent}`,
-                  transform: headerPressed ? 'translate(2px, 2px)' : 'translate(0, 0)',
-                }}
-                onMouseDown={() => setHeaderPressed(true)}
-                onMouseUp={() => setHeaderPressed(false)}
-                onMouseLeave={() => setHeaderPressed(false)}
-                onTouchStart={() => setHeaderPressed(true)}
-                onTouchEnd={() => setHeaderPressed(false)}
+                className="relative p-1 select-none cursor-pointer flex items-center justify-center"
                 onClick={() => {
                   if (secretText) return;
                   tapCountRef.current += 1;
