@@ -1,6 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const STORAGE_KEY = "matchPreferences";
+
+const preferenceListeners = new Set<(prefs: MatchPreferences) => void>();
+
+function notifyListeners(prefs: MatchPreferences) {
+  preferenceListeners.forEach(listener => listener(prefs));
+}
 
 export type MatchPreferences = {
   minAge: number;
@@ -49,17 +55,29 @@ function savePreferences(prefs: MatchPreferences): void {
 export function usePreferences() {
   const [preferences, setPreferencesState] = useState<MatchPreferences>(() => loadPreferences());
 
-  const setPreferences = (newPrefs: MatchPreferences) => {
+  useEffect(() => {
+    const listener = (newPrefs: MatchPreferences) => {
+      setPreferencesState(newPrefs);
+    };
+    preferenceListeners.add(listener);
+    return () => {
+      preferenceListeners.delete(listener);
+    };
+  }, []);
+
+  const setPreferences = useCallback((newPrefs: MatchPreferences) => {
     setPreferencesState(newPrefs);
     savePreferences(newPrefs);
-  };
+    notifyListeners(newPrefs);
+  }, []);
 
-  const resetPreferences = () => {
+  const resetPreferences = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setPreferencesState({ ...DEFAULT_PREFERENCES });
     savePreferences(DEFAULT_PREFERENCES);
+    notifyListeners(DEFAULT_PREFERENCES);
     console.log("[Preferences] Reset to defaults");
-  };
+  }, []);
 
   return {
     preferences,
