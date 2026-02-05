@@ -1,12 +1,10 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useMemo } from "react";
 import { type Profile } from "@shared/schema";
 import { Heart, Loader2, Sparkles, X, ExternalLink } from "lucide-react";
 import { getProfileTheme, getContrastTextColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { DopamineConfetti } from "./dopamine-confetti";
 import { isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
-
-const COUNTDOWN_DURATION = 5000;
 
 interface MatchNotificationProps {
   profile: Profile;
@@ -23,10 +21,6 @@ export function MatchNotification({
 }: MatchNotificationProps) {
   const isAd = isAdProfile(profile);
   const baseTheme = useMemo(() => getProfileTheme(Math.abs(profile.id)), [profile.id]);
-  const [progress, setProgress] = useState(1);
-  const startTimeRef = useRef<number | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const timerCancelledRef = useRef(false);
   
   const adPalette = {
     primary: AD_CARD_BRAND.bgColor,
@@ -45,54 +39,6 @@ export function MatchNotification({
     [theme.patternName]
   );
 
-  const cancelTimer = useCallback(() => {
-    timerCancelledRef.current = true;
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  }, []);
-
-  const handleClose = useCallback(() => {
-    cancelTimer();
-    onClose();
-  }, [cancelTimer, onClose]);
-
-  const handleStartChat = useCallback(() => {
-    cancelTimer();
-    onStartChat();
-  }, [cancelTimer, onStartChat]);
-
-  useEffect(() => {
-    timerCancelledRef.current = false;
-    startTimeRef.current = performance.now();
-
-    const animate = (currentTime: number) => {
-      if (timerCancelledRef.current || startTimeRef.current === null) return;
-
-      const elapsed = currentTime - startTimeRef.current;
-      const remaining = Math.max(0, 1 - elapsed / COUNTDOWN_DURATION);
-      
-      setProgress(remaining);
-
-      if (remaining > 0) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        onClose();
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      cancelTimer();
-    };
-  }, [onClose, cancelTimer]);
-
-  const ringRadius = 22;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const strokeDashoffset = ringCircumference * (1 - progress);
-
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -110,14 +56,14 @@ export function MatchNotification({
           ...patternStyle,
           opacity: 0.3,
         }}
-        onClick={handleClose}
+        onClick={onClose}
       />
       
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative eg-modal-content max-w-sm w-full animate-in zoom-in-95 duration-300">
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors eg-outline"
         >
           <X className="w-5 h-5" />
@@ -170,7 +116,6 @@ export function MatchNotification({
                 href={AD_CARD_BRAND.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={cancelTimer}
                 className="flex-1 rounded-full flex items-center justify-center gap-2 px-6 py-3 font-bold uppercase tracking-wide eg-outline border-2 transition-colors hover:opacity-90"
                 style={{ 
                   background: 'transparent',
@@ -183,7 +128,7 @@ export function MatchNotification({
               </a>
             ) : (
               <button
-                onClick={handleStartChat}
+                onClick={onStartChat}
                 disabled={isPending}
                 className="flex-1 rounded-full px-6 py-3 font-bold uppercase tracking-wide border-2 transition-colors hover:opacity-90 disabled:opacity-50"
                 style={{ 
@@ -202,52 +147,16 @@ export function MatchNotification({
                 )}
               </button>
             )}
-            <div className="flex-1 relative">
-              <svg
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                viewBox="0 0 100 50"
-                preserveAspectRatio="none"
-                style={{ overflow: 'visible' }}
-              >
-                <rect
-                  x="2"
-                  y="2"
-                  width="96"
-                  height="46"
-                  rx="23"
-                  ry="23"
-                  fill="none"
-                  stroke={getContrastTextColor(theme.palette.primary)}
-                  strokeWidth="3"
-                  strokeOpacity="0.3"
-                />
-                <rect
-                  x="2"
-                  y="2"
-                  width="96"
-                  height="46"
-                  rx="23"
-                  ry="23"
-                  fill="none"
-                  stroke={getContrastTextColor(theme.palette.primary)}
-                  strokeWidth="3"
-                  strokeDasharray={`${280 * progress} 280`}
-                  style={{
-                    transition: 'stroke-dasharray 16ms linear',
-                  }}
-                />
-              </svg>
-              <button
-                onClick={handleClose}
-                className="w-full rounded-full px-6 py-3 font-bold uppercase tracking-wide eg-outline transition-colors hover:opacity-90"
-                style={{ 
-                  background: theme.palette.primary,
-                  color: getContrastTextColor(theme.palette.primary),
-                }}
-              >
-                Keep Swiping
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-full px-6 py-3 font-bold uppercase tracking-wide eg-outline transition-colors hover:opacity-90"
+              style={{ 
+                background: theme.palette.primary,
+                color: getContrastTextColor(theme.palette.primary),
+              }}
+            >
+              Keep Swiping
+            </button>
           </div>
         </div>
       </div>
