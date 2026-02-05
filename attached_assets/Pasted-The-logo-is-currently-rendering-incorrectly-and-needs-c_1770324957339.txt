@@ -1,0 +1,49 @@
+The logo is currently rendering incorrectly and needs corrective work.
+
+Current issues to fix:
+1) The drop shadow behind “MATCHES” is still only partially rendering.
+2) There are unintended color blobs/shapes appearing behind “MATCHES” (see attached reference).
+3) This indicates a rendering or layering problem (SVG viewBox, overflow, masking, or filter issues) that must be fixed so all logo elements render cleanly and completely.
+
+Please diagnose and resolve the SVG rendering issues first before adjusting colors further.
+
+––––––––––––––––––
+UPDATED COLOR & CONTRAST RULES (IMPORTANT)
+––––––––––––––––––
+
+A) “ALL” text rules:
+- “ALL” may render as:
+  • Black
+  • White
+  • OR approved on-brand colors
+- Black or white may be used *in addition to* brand colors, but ONLY when necessary to maintain high contrast against the heart background.
+
+B) “MATCHES” text rules:
+- “MATCHES” should NEVER use a white background.
+- If “MATCHES” is black:
+  • Its background must be a light, on-brand color only (no white).
+- If “MATCHES” renders in a color other than black:
+  • That color must be lighter.
+  • A black drop shadow may be used ONLY in this case to preserve legibility.
+
+C) Drop shadow rules for “MATCHES”:
+- Drop shadow color must be conditional:
+  • Yellow or other on-brand shadow when “MATCHES” is black.
+  • Black shadow ONLY when “MATCHES” is rendered in a lighter color.
+- Do not default to white or black shadows in all cases.
+- Avoid heavy white/black contrast unless explicitly required for legibility.
+
+D) Brand reinforcement priority:
+- The original brand color scheme should generate MORE FREQUENTLY than other combinations:
+  • Pink heart
+  • Yellow “ALL”
+  • Black “MATCHES”
+  • Yellow drop shadow behind “MATCHES”
+- Other color combinations are allowed, but this primary scheme should be the dominant outcome to reinforce brand identity.
+
+––––––––––––––––––
+IMPLEMENTATION NOTES
+––––––––––––––––––
+- Fix SVG clipping, filters, masks, and overflow so all elements (especially “MATCHES” background and shadow) render fully.
+- Ensure no duplicate shadows, stacked fills, or unintended layers are being applied.
+- Maintain reactive color behavior, but follow the conditional logic above instead of random color assignment.
