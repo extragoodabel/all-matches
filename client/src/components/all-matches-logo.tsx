@@ -68,9 +68,13 @@ export function AllMatchesLogo({
     : undefined;
 
   const extrusionLayers = [];
-  for (let i = 20; i >= 1; i--) {
-    const x = -i * 0.8;
-    const y = i * 1.2;
+  const totalDepth = 24;
+  const stepSize = 0.5;
+  const numSteps = Math.ceil(totalDepth / stepSize);
+  
+  for (let i = numSteps; i >= 0; i--) {
+    const x = -i * stepSize * 0.7;
+    const y = i * stepSize;
     extrusionLayers.push(
       <g key={`extrusion-${i}`} transform={`translate(${x}, ${y})`}>
         {MATCHES_PATHS.map((d, idx) => (
@@ -82,7 +86,7 @@ export function AllMatchesLogo({
 
   return (
     <svg 
-      viewBox="0 0 995.58 270" 
+      viewBox="0 0 1010 280" 
       preserveAspectRatio="xMidYMid meet"
       className={className}
       style={{ 
