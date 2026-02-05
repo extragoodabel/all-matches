@@ -307,7 +307,7 @@ export default function Home() {
               
               <div className="p-6 space-y-8" style={{ background: palette.background }}>
                 <div className="space-y-4">
-                  <label className="eg-label block" style={{ color: palette.accent }}>
+                  <label className="eg-label block" style={{ color: '#1a1a1a' }}>
                     Show Me
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -322,9 +322,9 @@ export default function Home() {
                         }`}
                         style={{
                           background: draftGenderPref === opt.value ? palette.primary : 'white',
-                          color: palette.accent,
-                          border: `3px solid ${palette.accent}`,
-                          boxShadow: draftGenderPref === opt.value ? `4px 4px 0 ${palette.accent}` : 'none',
+                          color: '#1a1a1a',
+                          border: `3px solid #1a1a1a`,
+                          boxShadow: draftGenderPref === opt.value ? `4px 4px 0 #1a1a1a` : 'none',
                         }}
                       >
                         {opt.label}
@@ -334,7 +334,7 @@ export default function Home() {
                 </div>
                 
                 <div className="space-y-4">
-                  <label className="eg-label block" style={{ color: palette.accent }}>
+                  <label className="eg-label block" style={{ color: '#1a1a1a' }}>
                     Age Range: {draftAgeRange[0]} - {draftAgeRange[1]}
                   </label>
                   <div className="px-2">
@@ -351,7 +351,7 @@ export default function Home() {
                 </div>
                 
                 <div className="space-y-4">
-                  <label className="eg-label block" style={{ color: palette.accent }}>
+                  <label className="eg-label block" style={{ color: '#1a1a1a' }}>
                     Accessibility
                   </label>
                   <button
@@ -359,15 +359,15 @@ export default function Home() {
                     className="w-full flex items-center justify-between px-5 py-3 rounded-full font-bold text-sm uppercase tracking-wide transition-all"
                     style={{
                       background: draftAccessibilityMode ? palette.primary : 'white',
-                      color: palette.accent,
-                      border: `3px solid ${palette.accent}`,
-                      boxShadow: draftAccessibilityMode ? `4px 4px 0 ${palette.accent}` : 'none',
+                      color: '#1a1a1a',
+                      border: `3px solid #1a1a1a`,
+                      boxShadow: draftAccessibilityMode ? `4px 4px 0 #1a1a1a` : 'none',
                     }}
                   >
                     <span>Accessibility Mode</span>
                     <span className="text-xs">{draftAccessibilityMode ? 'ON' : 'OFF'}</span>
                   </button>
-                  <p className="text-xs opacity-70" style={{ color: palette.accent }}>
+                  <p className="text-xs opacity-70" style={{ color: '#1a1a1a' }}>
                     Enables grayscale display with increased contrast for better visibility.
                   </p>
                 </div>
