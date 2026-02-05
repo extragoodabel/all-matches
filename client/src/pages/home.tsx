@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Profile, Match } from "@shared/schema";
 import { Settings2, MessageCircle, RotateCcw, X, Heart } from "lucide-react";
 import { HeartKiss, StarFirework } from "@/components/easter-eggs";
+import { AllMatchesLogo } from "@/components/all-matches-logo";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
 import { getSessionPalette } from "@/styles/theme";
@@ -221,10 +222,9 @@ export default function Home() {
             <h1 className="eg-hero-title inline-flex items-center gap-1 sm:gap-3 whitespace-nowrap !text-xl sm:!text-4xl md:!text-5xl lg:!text-6xl">
               <HeartKiss color={palette.primary} accentColor={palette.accent} />
               <span 
-                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer transition-transform duration-75"
+                className="relative px-2 sm:px-4 py-0.5 sm:py-1 select-none cursor-pointer transition-transform duration-75 flex items-center justify-center"
                 style={{ 
-                  color: palette.background,
-                  background: palette.primary,
+                  background: palette.background,
                   boxShadow: headerPressed ? `2px 2px 0 ${palette.accent}` : `4px 4px 0 ${palette.accent}`,
                   transform: headerPressed ? 'translate(2px, 2px)' : 'translate(0, 0)',
                 }}
@@ -247,7 +247,13 @@ export default function Home() {
                   }
                 }}
               >
-                All Matches!
+                <AllMatchesLogo 
+                  variant="reactive"
+                  primaryColor={palette.primary}
+                  secondaryColor={palette.secondary}
+                  accentColor={palette.accent}
+                  className="h-5 sm:h-8 md:h-10 lg:h-12 w-auto"
+                />
               </span>
               <StarFirework color={palette.primary} secondaryColor={palette.secondary} />
             </h1>

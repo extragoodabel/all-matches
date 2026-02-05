@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AllMatchesLogo } from "./all-matches-logo";
 
 type Phase = "flood1" | "logoBob" | "drain1" | "cardHold" | "flood2" | "drain2" | "done";
 
@@ -420,7 +421,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         <div className="am-splash-bg" />
         <div className="am-splash-content">
           <div className="am-logo-card am-logo-card-static">
-            <span className="am-logo-text">All Matches!</span>
+            <AllMatchesLogo variant="static" className="am-logo-svg" />
           </div>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
@@ -473,7 +474,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg) scale(${logoPos.scaleX}, ${logoPos.scaleY})`,
         }}
       >
-        <span className="am-logo-text">All Matches!</span>
+        <AllMatchesLogo variant="static" className="am-logo-svg" />
       </div>
 
       <div 

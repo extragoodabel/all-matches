@@ -653,6 +653,11 @@
   white-space: nowrap;
 }
 
+.am-logo-svg {
+  height: 28px;
+  width: auto;
+}
+
 .am-visible {
   opacity: 1;
   pointer-events: auto;
@@ -753,5 +758,9 @@
   
   .am-logo-text {
     font-size: 49px;
+  }
+  
+  .am-logo-svg {
+    height: 49px;
   }
 }
