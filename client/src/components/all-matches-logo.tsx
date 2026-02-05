@@ -98,11 +98,19 @@ export function AllMatchesLogo({
   let matchesShadowColor: string;
   if (matchesIsBlack) {
     const normalizedAccent = rawAccentColor.toLowerCase();
-    const isWhite = normalizedAccent === '#ffffff' || normalizedAccent === '#fff' || normalizedAccent === 'white';
-    const isBlackish = normalizedAccent === '#1a1a1a' || normalizedAccent === '#000000' || normalizedAccent === '#000' || normalizedAccent === 'black';
+    const normalizedSecondary = rawAllTextColor.toLowerCase();
+    const isAccentWhite = normalizedAccent === '#ffffff' || normalizedAccent === '#fff' || normalizedAccent === 'white';
+    const isAccentBlackish = normalizedAccent === '#1a1a1a' || normalizedAccent === '#000000' || normalizedAccent === '#000' || normalizedAccent === 'black';
+    const isSecondaryWhite = normalizedSecondary === '#ffffff' || normalizedSecondary === '#fff' || normalizedSecondary === 'white';
+    const isSecondaryBlackish = normalizedSecondary === '#1a1a1a' || normalizedSecondary === '#000000' || normalizedSecondary === '#000' || normalizedSecondary === 'black';
     
-    if (!isWhite && !isBlackish && isLightColor(rawAccentColor)) {
+    const accentLuminance = getLuminance(rawAccentColor);
+    const secondaryLuminance = getLuminance(rawAllTextColor);
+    
+    if (!isAccentWhite && !isAccentBlackish && accentLuminance > 0.15) {
       matchesShadowColor = rawAccentColor;
+    } else if (!isSecondaryWhite && !isSecondaryBlackish && secondaryLuminance > 0.15) {
+      matchesShadowColor = rawAllTextColor;
     } else {
       matchesShadowColor = BRAND_COLORS.lemon;
     }
