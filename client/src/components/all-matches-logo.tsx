@@ -122,7 +122,7 @@ export function AllMatchesLogo({
   }
   
   const outlineFilter = withOutline 
-    ? "drop-shadow(4px 0 0 white) drop-shadow(-4px 0 0 white) drop-shadow(0 4px 0 white) drop-shadow(0 -4px 0 white) drop-shadow(3px 3px 0 white) drop-shadow(-3px 3px 0 white) drop-shadow(3px -3px 0 white) drop-shadow(-3px -3px 0 white)"
+    ? `drop-shadow(4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(-4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(0 4px 0 ${BRAND_COLORS.lemon}) drop-shadow(0 -4px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px -3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px -3px 0 ${BRAND_COLORS.lemon})`
     : undefined;
 
   const extrusionLayers = [];
