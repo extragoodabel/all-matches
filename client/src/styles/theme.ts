@@ -138,4 +138,35 @@ export function applyThemeVars(element: HTMLElement | null, theme: ProfileTheme)
   });
 }
 
+/**
+ * Calculate relative luminance of a color for WCAG contrast calculations
+ * Returns a value between 0 (black) and 1 (white)
+ */
+export function getLuminance(hexColor: string): number {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  
+  const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/**
+ * Determine if a background color is light or dark
+ * Returns true if the color is considered "light" (should use dark text)
+ */
+export function isLightColor(hexColor: string): boolean {
+  return getLuminance(hexColor) > 0.5;
+}
+
+/**
+ * Get the appropriate contrast text color for a given background
+ * Returns black for light backgrounds, white for dark backgrounds
+ */
+export function getContrastTextColor(backgroundColor: string): string {
+  return isLightColor(backgroundColor) ? COLORS.ink : COLORS.white;
+}
+
 export type { PatternName };

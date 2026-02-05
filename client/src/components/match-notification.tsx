@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { type Profile } from "@shared/schema";
 import { Heart, Loader2, Sparkles, X, ExternalLink } from "lucide-react";
-import { getProfileTheme } from "@/styles/theme";
+import { getProfileTheme, getContrastTextColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { DopamineConfetti } from "./dopamine-confetti";
 import { isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
@@ -111,19 +111,17 @@ export function MatchNotification({
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <button
-              onClick={onClose}
-              className="eg-button-white flex-1 rounded-full"
-            >
-              Keep Swiping
-            </button>
             {isAdProfile(profile) ? (
               <a
                 href={AD_CARD_BRAND.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="eg-button flex-1 rounded-full flex items-center justify-center gap-2"
-                style={{ background: AD_CARD_BRAND.bgColor }}
+                className="flex-1 rounded-full flex items-center justify-center gap-2 px-6 py-3 font-bold uppercase tracking-wide eg-outline border-2 transition-colors hover:opacity-90"
+                style={{ 
+                  background: 'transparent',
+                  borderColor: AD_CARD_BRAND.bgColor,
+                  color: AD_CARD_BRAND.bgColor,
+                }}
               >
                 Connect
                 <ExternalLink className="w-4 h-4" />
@@ -132,12 +130,16 @@ export function MatchNotification({
               <button
                 onClick={onStartChat}
                 disabled={isPending}
-                className="eg-button flex-1 rounded-full disabled:opacity-50"
-                style={{ background: theme.palette.primary }}
+                className="flex-1 rounded-full px-6 py-3 font-bold uppercase tracking-wide border-2 transition-colors hover:opacity-90 disabled:opacity-50"
+                style={{ 
+                  background: 'transparent',
+                  borderColor: theme.palette.primary,
+                  color: theme.palette.primary,
+                }}
               >
                 {isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin inline" />
                     Saving...
                   </>
                 ) : (
@@ -145,6 +147,16 @@ export function MatchNotification({
                 )}
               </button>
             )}
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-full px-6 py-3 font-bold uppercase tracking-wide eg-outline transition-colors hover:opacity-90"
+              style={{ 
+                background: theme.palette.primary,
+                color: getContrastTextColor(theme.palette.primary),
+              }}
+            >
+              Keep Swiping
+            </button>
           </div>
         </div>
       </div>
