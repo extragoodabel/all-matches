@@ -77,6 +77,9 @@ export function AllMatchesLogo({
 }: AllMatchesLogoProps) {
   const isStatic = variant === "static";
   
+  const isPrimaryBrandScheme = isStatic || 
+    (primaryColor === BRAND_COLORS.hotPink || primaryColor === '#FF1493' || !primaryColor);
+  
   const heartColor = isStatic ? BRAND_COLORS.hotPink : (primaryColor || BRAND_COLORS.hotPink);
   const rawAllTextColor = isStatic ? BRAND_COLORS.lemon : (secondaryColor || BRAND_COLORS.lemon);
   const rawAccentColor = isStatic ? BRAND_COLORS.lemon : (accentColor || BRAND_COLORS.lemon);
@@ -92,11 +95,13 @@ export function AllMatchesLogo({
     }
   }
   
-  const matchesIsBlack = true;
-  const matchesTextColor = BRAND_COLORS.ink;
+  const useWhiteMatches = isPrimaryBrandScheme;
+  const matchesTextColor = useWhiteMatches ? "#ffffff" : BRAND_COLORS.ink;
   
   let matchesShadowColor: string;
-  if (matchesIsBlack) {
+  if (useWhiteMatches) {
+    matchesShadowColor = BRAND_COLORS.ink;
+  } else {
     const normalizedAccent = rawAccentColor.toLowerCase();
     const normalizedSecondary = rawAllTextColor.toLowerCase();
     const isAccentWhite = normalizedAccent === '#ffffff' || normalizedAccent === '#fff' || normalizedAccent === 'white';
@@ -114,8 +119,6 @@ export function AllMatchesLogo({
     } else {
       matchesShadowColor = BRAND_COLORS.lemon;
     }
-  } else {
-    matchesShadowColor = BRAND_COLORS.ink;
   }
   
   const outlineFilter = withOutline 
