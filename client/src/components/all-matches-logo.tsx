@@ -139,8 +139,9 @@ export function AllMatchesLogo({
     }
   }
   
+  const darkYellow = '#B8960A';
   const outlineFilter = withOutline 
-    ? `drop-shadow(4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(-4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(0 4px 0 ${BRAND_COLORS.lemon}) drop-shadow(0 -4px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px -3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px -3px 0 ${BRAND_COLORS.lemon})`
+    ? `drop-shadow(2px 0 0 ${darkYellow}) drop-shadow(-2px 0 0 ${darkYellow}) drop-shadow(0 2px 0 ${darkYellow}) drop-shadow(0 -2px 0 ${darkYellow}) drop-shadow(1.5px 1.5px 0 ${darkYellow}) drop-shadow(-1.5px 1.5px 0 ${darkYellow}) drop-shadow(1.5px -1.5px 0 ${darkYellow}) drop-shadow(-1.5px -1.5px 0 ${darkYellow}) drop-shadow(4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(-4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(0 4px 0 ${BRAND_COLORS.lemon}) drop-shadow(0 -4px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px -3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px -3px 0 ${BRAND_COLORS.lemon})`
     : undefined;
 
   const extrusionLayers = [];
