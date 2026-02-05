@@ -6,12 +6,14 @@ export type MatchPreferences = {
   minAge: number;
   maxAge: number;
   genderPreference: "male" | "female" | "other" | "all";
+  accessibilityMode: boolean;
 };
 
 const DEFAULT_PREFERENCES: MatchPreferences = {
   minAge: 21,
   maxAge: 99,
   genderPreference: "all",
+  accessibilityMode: false,
 };
 
 function loadPreferences(): MatchPreferences {
@@ -24,6 +26,7 @@ function loadPreferences(): MatchPreferences {
         minAge: parsed.minAge ?? DEFAULT_PREFERENCES.minAge,
         maxAge: parsed.maxAge ?? DEFAULT_PREFERENCES.maxAge,
         genderPreference: parsed.genderPreference ?? DEFAULT_PREFERENCES.genderPreference,
+        accessibilityMode: parsed.accessibilityMode ?? DEFAULT_PREFERENCES.accessibilityMode,
       };
     }
   } catch (e) {

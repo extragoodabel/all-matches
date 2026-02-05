@@ -36,6 +36,9 @@ export default function Home() {
   const [draftGenderPref, setDraftGenderPref] = useState<"male" | "female" | "other" | "all">(
     preferences.genderPreference
   );
+  const [draftAccessibilityMode, setDraftAccessibilityMode] = useState(
+    preferences.accessibilityMode
+  );
 
   // Track swiped profile IDs to never show them again
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
@@ -142,6 +145,7 @@ export default function Home() {
   const openModal = () => {
     setDraftAgeRange([preferences.minAge, preferences.maxAge]);
     setDraftGenderPref(preferences.genderPreference);
+    setDraftAccessibilityMode(preferences.accessibilityMode);
     setIsModalOpen(true);
   };
 
@@ -150,6 +154,7 @@ export default function Home() {
       minAge: draftAgeRange[0],
       maxAge: draftAgeRange[1],
       genderPreference: draftGenderPref,
+      accessibilityMode: draftAccessibilityMode,
     });
     setIsModalOpen(false);
   };
@@ -161,6 +166,7 @@ export default function Home() {
   const handleReset = () => {
     setDraftAgeRange([DEFAULT_PREFERENCES.minAge, DEFAULT_PREFERENCES.maxAge]);
     setDraftGenderPref(DEFAULT_PREFERENCES.genderPreference);
+    setDraftAccessibilityMode(DEFAULT_PREFERENCES.accessibilityMode);
     resetPreferences();
   };
 
@@ -339,6 +345,28 @@ export default function Home() {
                       className="py-4"
                     />
                   </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <label className="eg-label block" style={{ color: palette.accent }}>
+                    Accessibility
+                  </label>
+                  <button
+                    onClick={() => setDraftAccessibilityMode(!draftAccessibilityMode)}
+                    className="w-full flex items-center justify-between px-5 py-3 rounded-full font-bold text-sm uppercase tracking-wide transition-all"
+                    style={{
+                      background: draftAccessibilityMode ? palette.primary : 'white',
+                      color: palette.accent,
+                      border: `3px solid ${palette.accent}`,
+                      boxShadow: draftAccessibilityMode ? `4px 4px 0 ${palette.accent}` : 'none',
+                    }}
+                  >
+                    <span>Accessibility Mode</span>
+                    <span className="text-xs">{draftAccessibilityMode ? 'ON' : 'OFF'}</span>
+                  </button>
+                  <p className="text-xs opacity-70" style={{ color: palette.accent }}>
+                    Enables grayscale display with increased contrast for better visibility.
+                  </p>
                 </div>
                 
                 <div className="flex gap-3 pt-4">
