@@ -68,13 +68,13 @@ export function AllMatchesLogo({
     : undefined;
 
   const extrusionLayers = [];
-  const totalDepth = 24;
-  const stepSize = 0.5;
+  const totalDepth = 28;
+  const stepSize = 0.4;
   const numSteps = Math.ceil(totalDepth / stepSize);
   
   for (let i = numSteps; i >= 0; i--) {
-    const x = -i * stepSize * 0.7;
-    const y = i * stepSize;
+    const x = -i * stepSize * 1.1;
+    const y = i * stepSize * 0.85;
     extrusionLayers.push(
       <g key={`extrusion-${i}`} transform={`translate(${x}, ${y})`}>
         {MATCHES_PATHS.map((d, idx) => (
