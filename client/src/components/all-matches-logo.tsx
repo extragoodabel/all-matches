@@ -28,7 +28,7 @@ function hasGoodContrast(color1: string, color2: string): boolean {
   const lighter = Math.max(lum1, lum2);
   const darker = Math.min(lum1, lum2);
   const contrastRatio = (lighter + 0.05) / (darker + 0.05);
-  return contrastRatio >= 3;
+  return contrastRatio >= 2.5;
 }
 
 const MATCHES_PATHS = [

@@ -100,17 +100,29 @@ export function getPatternForProfile(profileId: number): PatternName {
 }
 
 let sessionAccentIndex: number | null = null;
+let sessionStartTime: number | null = null;
 
 export function getSessionPalette(): Palette {
-  if (sessionAccentIndex === null) {
+  const now = Date.now();
+  if (sessionAccentIndex === null || sessionStartTime === null || (now - sessionStartTime > 60000)) {
+    sessionStartTime = now;
     const rand = Math.random();
     if (rand < 0.4) {
       sessionAccentIndex = 0;
     } else {
       sessionAccentIndex = 1 + Math.floor(Math.random() * (PALETTES.length - 1));
     }
+    console.log('[Theme] Selected palette:', PALETTES[sessionAccentIndex].name, 
+      'primary:', PALETTES[sessionAccentIndex].primary,
+      'secondary:', PALETTES[sessionAccentIndex].secondary,
+      'accent:', PALETTES[sessionAccentIndex].accent);
   }
   return PALETTES[sessionAccentIndex];
+}
+
+export function resetSessionPalette(): void {
+  sessionAccentIndex = null;
+  sessionStartTime = null;
 }
 
 export interface ProfileTheme {
