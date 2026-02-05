@@ -97,7 +97,11 @@ export function AllMatchesLogo({
   
   let matchesShadowColor: string;
   if (matchesIsBlack) {
-    if (isLightColor(rawAccentColor) && rawAccentColor.toLowerCase() !== '#ffffff') {
+    const normalizedAccent = rawAccentColor.toLowerCase();
+    const isWhite = normalizedAccent === '#ffffff' || normalizedAccent === '#fff' || normalizedAccent === 'white';
+    const isBlackish = normalizedAccent === '#1a1a1a' || normalizedAccent === '#000000' || normalizedAccent === '#000' || normalizedAccent === 'black';
+    
+    if (!isWhite && !isBlackish && isLightColor(rawAccentColor)) {
       matchesShadowColor = rawAccentColor;
     } else {
       matchesShadowColor = BRAND_COLORS.lemon;

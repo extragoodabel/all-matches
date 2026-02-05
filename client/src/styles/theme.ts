@@ -103,7 +103,12 @@ let sessionAccentIndex: number | null = null;
 
 export function getSessionPalette(): Palette {
   if (sessionAccentIndex === null) {
-    sessionAccentIndex = Math.floor(Math.random() * PALETTES.length);
+    const rand = Math.random();
+    if (rand < 0.4) {
+      sessionAccentIndex = 0;
+    } else {
+      sessionAccentIndex = 1 + Math.floor(Math.random() * (PALETTES.length - 1));
+    }
   }
   return PALETTES[sessionAccentIndex];
 }
