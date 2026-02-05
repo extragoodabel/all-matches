@@ -96,7 +96,25 @@ export function AllMatchesLogo({
   }
   
   const useWhiteMatches = isPrimaryBrandScheme;
-  const matchesTextColor = useWhiteMatches ? "#ffffff" : BRAND_COLORS.ink;
+  let matchesTextColor: string;
+  if (useWhiteMatches) {
+    matchesTextColor = "#ffffff";
+  } else {
+    const candidates = [
+      primaryColor,
+      accentColor,
+      secondaryColor,
+    ].filter((c): c is string => !!c);
+    
+    const picked = candidates.find(c => {
+      const normalized = c.toLowerCase();
+      if (normalized === '#ffffff' || normalized === '#fff' || normalized === 'white') return false;
+      if (normalized === '#1a1a1a' || normalized === '#000000' || normalized === '#000' || normalized === 'black') return false;
+      const lum = getLuminance(c);
+      return lum > 0.04 && lum < 0.6;
+    });
+    matchesTextColor = picked || BRAND_COLORS.ink;
+  }
   
   let matchesShadowColor: string;
   if (useWhiteMatches) {
