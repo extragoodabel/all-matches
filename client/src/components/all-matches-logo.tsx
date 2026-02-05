@@ -107,7 +107,7 @@ export function AllMatchesLogo({
   }
   
   const outlineFilter = withOutline 
-    ? "drop-shadow(0 0 3px white) drop-shadow(0 0 3px white) drop-shadow(0 0 5px white) drop-shadow(0 0 8px white)"
+    ? "drop-shadow(2px 0 0 white) drop-shadow(-2px 0 0 white) drop-shadow(0 2px 0 white) drop-shadow(0 -2px 0 white) drop-shadow(1px 1px 0 white) drop-shadow(-1px 1px 0 white) drop-shadow(1px -1px 0 white) drop-shadow(-1px -1px 0 white)"
     : undefined;
 
   const extrusionLayers = [];
