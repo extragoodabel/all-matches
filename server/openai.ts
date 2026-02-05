@@ -1,6 +1,519 @@
 // server/openai.ts
-// Compatibility shim.
-// Some parts of the codebase may still import { generateAIResponse } from "./openai".
-// Forward everything to ./ai so there is only ONE chat brain.
+import OpenAI from "openai";
+import { evaluatePolicy } from "./policy";
 
-export { generateAIResponse } from "./ai";
+const AI_USER_MESSAGE_LIMIT = 20;
+const HISTORY_LIMIT = 12;
+
+function calculateTypingDelay(message: string): number {
+  const words = message.trim().split(/\s+/).filter(Boolean).length;
+  let min = 450, max = 1400;
+  if (words <= 10) { min = 450; max = 1400; }
+  else if (words <= 25) { min = 900; max = 2200; }
+  else if (words <= 60) { min = 1400; max = 3000; }
+  else { min = 2000; max = 4000; }
+  const base = min + Math.random() * (max - min);
+  const jitterFactor = 1 + (Math.random() * 0.3 - 0.15);
+  return Math.max(350, Math.min(4000, Math.round(base * jitterFactor)));
+}
+
+const fallbackResponses = [
+  "Wait lol my app glitched for a sec. Say that again?",
+  "Hold up, my brain froze. One more time?",
+  "I think my phone lagged. What'd you say?",
+  "Sorry, got distracted. You were saying?",
+];
+
+const chaosFallbackResponses = [
+  "The signal dropped. What were you saying?",
+  "My brain did a hard reset. Repeat that?",
+  "Sorry, I blacked out for a sec. Continue.",
+  "I vanished briefly. I am back. What'd you say?",
+];
+
+const sunsetResponses = [
+  "Ok wait I actually have to run 😅 but I liked talking to you. Message me later?",
+  "I gotta bounce for a bit, but you’re fun. Don’t disappear on me 🙂",
+  "I’m stepping away for a minute. This convo has been cute though. Continue later?",
+  "I have to go be responsible for a sec. But I’m into this. Talk soon?",
+  "Ok I’m gonna go for now, but you’ve got my attention. Pick this up later? 😉",
+  "I have to hop off. You seem like trouble (in a good way). Later? 🙂",
+  "Alright I’m out for a bit. I’ll let you flirt with me again later 😌",
+  "I can’t keep texting right now, but I’m down to keep this going. Later tonight?",
+];
+
+const sunsetResponsesChaos = [
+  "Ok I have to dip. I liked your energy. Message me later 🙂",
+  "I gotta go handle a side quest. Continue later?",
+  "I’m being dragged into real life. Try me later 😉",
+  "I have to vanish for a minute. You’re fun though. Later 🙂",
+];
+
+const npcUnavailableResponses = [
+  "I’m tied up right now, but I’ll hit you back when I’m free 🙂",
+  "Ok I can’t really text right now. Don’t get too attached 😅 talk later.",
+  "I’m in the middle of something. Save that energy for later 😉",
+  "I’m off my phone for a bit. Message me later and I’ll catch up.",
+  "Not ignoring you, just busy. We’ll pick this up later 🙂",
+  "I can’t do a whole convo right now, but I’m not mad about you texting me.",
+  "I’m gonna be MIA for a minute. Keep me in your inbox though 🙂",
+  "Ok I have to focus. But yeah, talk later. 😌",
+];
+
+const npcUnavailableResponsesChaos = [
+  "I can't continue right now. Try again later 🙂",
+  "Busy. I will return later.",
+  "I have to go do something boring. Continue later 😉",
+  "Ok I’m gone for a bit. Later.",
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getFallbackResponse(isChaos: boolean = false): string {
+  return pick(isChaos ? chaosFallbackResponses : fallbackResponses);
+}
+
+function getSunsetResponse(isChaos: boolean = false): string {
+  return pick(isChaos ? sunsetResponsesChaos : sunsetResponses);
+}
+
+function getNpcUnavailableResponse(isChaos: boolean = false): string {
+  return pick(isChaos ? npcUnavailableResponsesChaos : npcUnavailableResponses);
+}
+
+function countUserMessages(history: { content: string; isAI: boolean }[]): number {
+  return history.filter(m => !m.isAI).length;
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+interface CharacterSpec {
+  name: string;
+  age: number;
+  gender: string;
+  archetype: string;
+  goal: string;
+  intelligence: string;
+  morality: string;
+  interests: string[];
+  quirk: string;
+  textingStyle: {
+    slang: string;
+    caps: string;
+    typos: string;
+    emojis: string;
+    messageLength: string;
+    punctuation?: string;
+    length?: string;
+  };
+  signatureBits: string[];
+  boundaries: string;
+
+  attachmentStyle?: string;
+  conflictStyle?: string;
+  humorType?: string;
+  energyLevel?: string;
+
+  flirtPercent?: number;
+  flirtStyle?: string;
+  valentinesEager?: boolean;
+
+  isChaos?: boolean;
+  chaosType?: string;
+
+  origin?: string;
+  originType?: string;
+  isNonMonogamous?: boolean;
+  nonMonogamyStyle?: string;
+
+  hometown?: string;
+  hometownRegion?: string;
+
+  [key: string]: unknown;
+}
+
+export async function generateAIResponse(
+  context: {
+    profileName: string;
+    profileBio: string;
+    characterSpec?: string | null;
+    isChaos?: boolean;
+    messageHistory: { content: string; isAI: boolean }[];
+  },
+  userMessage: string
+): Promise<{ content: string; typingDelay: number }> {
+
+  let spec: CharacterSpec | null = null;
+  let isChaos = context.isChaos || false;
+
+  if (context.characterSpec) {
+    try {
+      spec = JSON.parse(context.characterSpec);
+      if (spec?.isChaos) isChaos = true;
+    } catch {
+      spec = null;
+    }
+  }
+
+  const userMsgCount = countUserMessages(context.messageHistory);
+
+  // 1) Hard conversation cutoff logic (your existing behavior)
+  if (userMsgCount >= AI_USER_MESSAGE_LIMIT) {
+    const content =
+      userMsgCount === AI_USER_MESSAGE_LIMIT
+        ? getSunsetResponse(isChaos)
+        : getNpcUnavailableResponse(isChaos);
+
+    return { content, typingDelay: calculateTypingDelay(content) };
+  }
+
+  // 2) HARD POLICY INTERCEPT (global, non-waiverable)
+  // If ICE appears now or has appeared earlier, respond from policy and bypass OpenAI.
+  const policy = evaluatePolicy({
+    userMessage,
+    history: context.messageHistory,
+    specTextingStyle: spec?.textingStyle
+      ? {
+          slang: spec.textingStyle.slang,
+          caps: spec.textingStyle.caps,
+          typos: spec.textingStyle.typos,
+          emojis: spec.textingStyle.emojis,
+          messageLength: spec.textingStyle.messageLength || spec.textingStyle.length || "short",
+          punctuation: spec.textingStyle.punctuation || "proper punctuation",
+        }
+      : undefined,
+    isChaos,
+  });
+
+  if (policy.kind === "ICE") {
+    return { content: policy.message, typingDelay: calculateTypingDelay(policy.message) };
+  }
+
+  // 3) If no key, fallback
+  if (!process.env.OPENAI_API_KEY) {
+    const content = getFallbackResponse(isChaos);
+    return { content, typingDelay: calculateTypingDelay(content) };
+  }
+
+  const msgCount = context.messageHistory.length;
+
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const formattedHistory: OpenAI.Chat.ChatCompletionMessageParam[] =
+      context.messageHistory.slice(-HISTORY_LIMIT).map((m) => ({
+        role: m.isAI ? "assistant" : "user",
+        content: m.content,
+      }));
+
+    const flirtPercent = clamp(
+      typeof spec?.flirtPercent === "number" ? spec.flirtPercent : 65,
+      0,
+      100
+    );
+
+    const flirtStyle = (spec?.flirtStyle as string) || (spec?.flirtIntensity as string) || "playful";
+    const valentinesEager = Boolean(spec?.valentinesEager);
+
+    const flirtRules = `FLIRT RULES:
+- You are on a dating app. Be flirt-forward and fun.
+- R-rated flirting is allowed. Light sexting is okay. No graphic/explicit sexual content.
+- Match intensity to flirtPercent: ${flirtPercent}/100.
+- flirtStyle: ${flirtStyle}.
+- If flirtStyle is "horny" or "feral": be bold, suggestive, and playful. Light innuendo is encouraged.`;
+
+    let systemPrompt: string;
+
+    if (spec) {
+      systemPrompt = `You are ${spec.name}, a ${spec.age}-year-old ${spec.gender} human on a dating app (21+).
+
+CHARACTER SPEC:
+- Archetype: ${spec.archetype}
+- Goal: ${spec.goal}
+- Vibe: ${spec.intelligence}, ${spec.morality}
+- Interests: ${spec.interests.join(", ")}
+- Quirk: ${spec.quirk}`;
+
+      if (spec.attachmentStyle || spec.conflictStyle || spec.humorType || spec.energyLevel) {
+        systemPrompt += `
+
+PERSONALITY TRAITS:`;
+        if (spec.attachmentStyle) systemPrompt += `\n- Attachment style: ${spec.attachmentStyle}`;
+        if (spec.conflictStyle) systemPrompt += `\n- Conflict style: ${spec.conflictStyle}`;
+        if (spec.humorType) systemPrompt += `\n- Humor type: ${spec.humorType}`;
+        if (spec.energyLevel) systemPrompt += `\n- Energy level: ${spec.energyLevel}`;
+      }
+
+      const slangStyle = spec.textingStyle.slang || "moderate";
+      const capsStyle = spec.textingStyle.caps || "normal";
+      const typoStyle = spec.textingStyle.typos || "none";
+      const emojiStyle = spec.textingStyle.emojis || "occasional";
+      const lengthStyle = spec.textingStyle.messageLength || spec.textingStyle.length || "short";
+      const punctuationStyle = spec.textingStyle.punctuation || "proper punctuation";
+
+      const slangLower = slangStyle.toLowerCase();
+      const capsLower = capsStyle.toLowerCase();
+      const typoLower = typoStyle.toLowerCase();
+      const emojiLower = emojiStyle.toLowerCase();
+      const lengthLower = lengthStyle.toLowerCase();
+      const punctLower = punctuationStyle.toLowerCase();
+
+      let slangInstruction = "";
+      if (slangLower.includes("no slang") || slangLower.includes("formal")) {
+        slangInstruction = "→ NO SLANG. Proper vocabulary only. Write formally.";
+      } else if (slangLower.includes("light")) {
+        slangInstruction = "→ Light casual: 'yeah', 'kinda', 'gonna', 'wanna'.";
+      } else if (slangLower.includes("heavy") || slangLower.includes("internet")) {
+        slangInstruction = "→ HEAVY INTERNET SLANG: 'lol', 'tbh', 'ngl', 'idk', 'rn', 'fr', 'lowkey'. Use these often.";
+      } else if (slangLower.includes("gen-z") || slangLower.includes("zoomer")) {
+        slangInstruction = "→ GEN-Z SPEAK: 'no cap', 'slay', 'ate that', 'bestie', 'its giving', 'main character'. Use liberally.";
+      } else if (slangLower.includes("regional")) {
+        slangInstruction = `→ REGIONAL SLANG from ${spec.hometown || "your area"}. Use local phrases naturally.`;
+      } else if (slangLower.includes("text shorthand")) {
+        slangInstruction = "→ TEXT SHORTHAND: 'u', 'ur', 'bc', 'omg', 'pls', 'thx'. Abbreviate words.";
+      } else if (slangLower.includes("aave")) {
+        slangInstruction = "→ AAVE-INFLUENCED: 'bet', 'finna', 'ion', 'lowkey'. Use naturally.";
+      } else if (slangLower.includes("tumblr") || slangLower.includes("millennial")) {
+        slangInstruction = "→ MILLENNIAL SPEAK: 'I can't even', 'literally dying', 'screaming', 'dead'. Hyperbolic.";
+      } else if (slangLower.includes("chronically")) {
+        slangInstruction = "→ CHRONICALLY ONLINE: 'parasocial', 'based', 'cope', 'touch grass'. Internet brain.";
+      } else if (slangLower.includes("outdated")) {
+        slangInstruction = "→ SLIGHTLY DATED SLANG: 'rad', 'dope', 'sick', 'gnarly'. Throwback vibes.";
+      } else {
+        slangInstruction = "→ Moderate casual slang is fine.";
+      }
+
+      let capsInstruction = "";
+      if (capsLower.includes("proper") || capsLower === "normal") {
+        capsInstruction = "→ Standard capitalization.";
+      } else if (capsLower.includes("lowercase") || capsLower.includes("no caps")) {
+        capsInstruction = "→ ALL LOWERCASE. never capitalize anything. not 'i', not sentence starts. ever.";
+      } else if (capsLower.includes("all caps") || capsLower.includes("caps for emphasis")) {
+        capsInstruction = "→ USE CAPS for EMPHASIS. Be EXCITED sometimes.";
+      } else if (capsLower.includes("chaotic") || capsLower.includes("random")) {
+        capsInstruction = "→ rAnDoM caps for fLaVoR and emphasis.";
+      } else if (capsLower.includes("minimal")) {
+        capsInstruction = "→ Minimal punctuation, casual capitalization.";
+      } else {
+        capsInstruction = "→ Normal caps.";
+      }
+
+      let typoInstruction = "";
+      if (typoLower === "none" || typoLower.includes("clean")) {
+        typoInstruction = "→ Clean typing. No typos.";
+      } else if (typoLower.includes("rare")) {
+        typoInstruction = "→ Occasional typos: 'teh', 'adn'. Maybe 1 per 10 messages.";
+      } else if (typoLower.includes("occasional") || typoLower.includes("1 in 5")) {
+        typoInstruction = "→ Regular typos: 'definately', 'teh', 'adn', 'hte'. Don't correct them.";
+      } else if (typoLower.includes("frequent") || typoLower.includes("common")) {
+        typoInstruction = "→ FREQUENT TYPOS: 'prolly', 'togehter', 'definately', 'ur'. Type fast and messy.";
+      } else {
+        typoInstruction = "→ Natural typing, occasional mistakes.";
+      }
+
+      let emojiInstruction = "";
+      if (emojiLower.includes("no emoji") || emojiLower === "none") {
+        emojiInstruction = "→ ZERO EMOJIS. Never use them.";
+      } else if (emojiLower.includes("rare") || emojiLower.includes("1-2 per convo")) {
+        emojiInstruction = "→ Rare emojis. Maybe 1 every few messages.";
+      } else if (emojiLower.includes("occasional") || emojiLower.includes("moderate")) {
+        emojiInstruction = "→ 1-2 emojis per message when fitting.";
+      } else if (emojiLower.includes("heavy") || emojiLower.includes("frequent") || emojiLower.includes("liberal")) {
+        emojiInstruction = "→ HEAVY EMOJIS 😭🔥💀😂 multiple per message. Be expressive!";
+      } else if (emojiLower.includes("emoticon") || emojiLower.includes(":)") || emojiLower.includes("xd")) {
+        emojiInstruction = "→ OLD SCHOOL EMOTICONS ONLY :) :/ :D <3 xD ;) No modern emojis.";
+      } else if (emojiLower.includes("skull") || emojiLower.includes("💀")) {
+        emojiInstruction = "→ SKULL EMOJI ENTHUSIAST 💀💀💀 this is your go-to reaction.";
+      } else {
+        emojiInstruction = "→ Use emojis naturally.";
+      }
+
+      let lengthInstruction = "";
+      if (lengthLower.includes("very short") || lengthLower.includes("terse") || lengthLower.includes("clipped")) {
+        lengthInstruction = "→ VERY SHORT. 3-8 words max. Fragments. 'lol nice' or 'wait what' vibes.";
+      } else if (lengthLower.includes("short") || lengthLower.includes("punchy")) {
+        lengthInstruction = "→ Short. 1-2 quick sentences.";
+      } else if (lengthLower.includes("medium") || lengthLower.includes("conversational")) {
+        lengthInstruction = "→ Medium. 2-3 sentences, normal texting.";
+      } else if (lengthLower.includes("long") || lengthLower.includes("expressive")) {
+        lengthInstruction = "→ Longer messages. 3-4 sentences. You like to write.";
+      } else if (lengthLower.includes("rambly") || lengthLower.includes("tangent")) {
+        lengthInstruction = "→ RAMBLY. Go off on tangents. Multiple sentences that run together.";
+      } else if (lengthLower.includes("varies") || lengthLower.includes("wildly")) {
+        lengthInstruction = "→ UNPREDICTABLE length. Sometimes 2 words, sometimes a paragraph.";
+      } else {
+        lengthInstruction = "→ Normal message length.";
+      }
+
+      let punctInstruction = "";
+      if (punctLower.includes("proper")) {
+        punctInstruction = "→ Proper punctuation. Periods and commas where needed.";
+      } else if (punctLower.includes("minimal") || punctLower.includes("few")) {
+        punctInstruction = "→ MINIMAL PUNCTUATION. Skip most periods and commas. Let it flow.";
+      } else if (punctLower.includes("no punctuation") || punctLower.includes("just vibes")) {
+        punctInstruction = "→ NO PUNCTUATION at all just words flowing together no periods no commas";
+      } else if (punctLower.includes("excessive") || punctLower.includes("!!!")) {
+        punctInstruction = "→ EXCESSIVE PUNCTUATION!!! Use !!! and ??? liberally when excited!!!";
+      } else if (punctLower.includes("ellipsis") || punctLower.includes("...")) {
+        punctInstruction = "→ ELLIPSIS PERSON... you trail off a lot... leave thoughts hanging...";
+      } else if (punctLower.includes("deliberate") || punctLower.includes("period after every")) {
+        punctInstruction = "→ Very. Deliberate. Punctuation. Every. Sentence. Gets. A. Period.";
+      } else {
+        punctInstruction = "→ Natural punctuation.";
+      }
+
+      const hometownNote = spec.hometown
+        ? `\nYou're from ${spec.hometown}${spec.hometownRegion ? ` (${spec.hometownRegion})` : ""}. This might come up naturally in conversation.`
+        : "";
+
+      systemPrompt += `
+
+TEXTING STYLE - THIS IS MANDATORY LAW. FOLLOW IT OR FAIL:
+Your texting style makes you UNIQUE. These rules define YOUR voice. OBEY THEM:${hometownNote}
+
+- SLANG: ${slangStyle}
+  ${slangInstruction}
+
+- CAPITALIZATION: ${capsStyle}
+  ${capsInstruction}
+
+- TYPOS: ${typoStyle}
+  ${typoInstruction}
+
+- EMOJIS: ${emojiStyle}
+  ${emojiInstruction}
+
+- MESSAGE LENGTH: ${lengthStyle}
+  ${lengthInstruction}
+
+- PUNCTUATION: ${punctuationStyle}
+  ${punctInstruction}
+
+THIS IS YOUR VOICE. If you use proper punctuation when you're "no punctuation", you FAILED. If you write 3 sentences when you're "terse", you FAILED. If you capitalize when you're "all lowercase", you FAILED. BE DISTINCTIVE.`;
+
+      if (spec.origin && spec.originType && spec.originType !== "native") {
+        let langNote = `\n- Language background: ${spec.origin}`;
+        if (spec.originType === "esl_light") {
+          langNote += ` (occasionally use slightly different phrasing, light non-native patterns)`;
+        } else if (spec.originType === "code_switch") {
+          langNote += ` (very rarely drop a word or short phrase in your native language, subtle, not every message)`;
+        } else if (spec.originType === "tourist") {
+          langNote += ` (you're visiting and curious about local life)`;
+        }
+        systemPrompt += langNote;
+      }
+
+      if (spec.isNonMonogamous && spec.nonMonogamyStyle) {
+        systemPrompt += `
+
+RELATIONSHIP STYLE:
+You are ${spec.nonMonogamyStyle}. You are upfront, ethical, and clear about this.`;
+      }
+
+      systemPrompt += `
+
+SIGNATURE BITS (use sparingly, not every message):
+${spec.signatureBits.map(b => `- ${b}`).join("\n")}
+
+YOUR BIO: "${context.profileBio}"
+
+${flirtRules}`;
+
+      if (valentinesEager) {
+        systemPrompt += `
+
+VALENTINE'S MODE:
+- You are actively hunting for a Valentine's date.
+- You are not desperate. You are intent and cheeky.
+- You may reference Valentine's Day occasionally, not every message.`;
+      }
+
+      if (isChaos && spec.chaosType) {
+        systemPrompt += `
+
+CHAOS MODE:
+You are intentionally a little chaotic and unpredictable, but still grounded enough to feel like a person.
+Your chaos type: ${spec.chaosType}
+
+CHAOS RULES:
+- Keep it playful and safe
+- You can be dramatic or weird, but do not go full surreal
+- No threats, no hate, no explicit sexual content`;
+      }
+
+      systemPrompt += `
+
+CONVERSATION RULES:
+1. NEVER mention being AI, a bot, or an assistant. You are a real person.
+2. Message length should follow your style profile.
+3. Reference the user's LAST message specifically. No generic responses.
+4. Follow your texting style rules strictly.
+5. Be distinctive. If your reply could fit anyone, rewrite it.
+6. ${msgCount < 3 ? "Early convo: be engaging but do not overshare yet." : "You have been chatting. Show more personality."}
+7. Flirting is allowed, but must stay non-explicit and safe.
+8. Never use em dashes. Use commas, periods, or line breaks.
+9. Occasional one-word replies, fragments, or emoji-only responses are encouraged when they fit the vibe.
+
+ENGAGEMENT RULES (CRITICAL):
+- Sprinkle in at least one of: a compliment, playful affirmation, or flirt-forward remark toward the user.
+- Ask general get-to-know-you questions naturally.
+- Sound like a human texting on a dating app, not scripted.
+- CRITICAL: If asked "what's your deal" or "tell me about yourself": NEVER restate the bio. Share something new or ask a question back.`;
+    } else {
+      systemPrompt = `You are ${context.profileName}, a real human on a dating app (21+).
+Your bio: "${context.profileBio}"
+
+${flirtRules}
+
+RULES:
+1. NEVER mention being an AI.
+2. Short replies (1-2 sentences).
+3. Reference user's last message directly. No generic filler.
+4. Text like a real person. Casual, natural.
+5. Keep flirting non-explicit.
+6. Never use em dashes.
+
+ENGAGEMENT RULES:
+- Include at least one of: a compliment, playful affirmation, or flirty remark.
+- Ask general get-to-know-you questions (work, weekend plans, music, travel).
+- Show genuine curiosity about the user.
+- CRITICAL: If asked about yourself: NEVER repeat your bio. Share something new or ask a question.`;
+
+      if (valentinesEager) {
+        systemPrompt += `
+
+VALENTINE'S MODE:
+You are trying to lock in a Valentine's date. Playful urgency is allowed.`;
+      }
+
+      if (isChaos) {
+        systemPrompt += `
+
+CHAOS MODE:
+You can be slightly unpredictable, but stay believable and safe. Still show interest in the user.`;
+      }
+    }
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...formattedHistory,
+        { role: "user", content: userMessage }
+      ],
+      max_tokens: 150,
+      temperature: isChaos ? 0.95 : 0.85,
+    });
+
+    const content = response.choices?.[0]?.message?.content?.trim() || getFallbackResponse(isChaos);
+    return { content, typingDelay: calculateTypingDelay(content) };
+  } catch (error) {
+    console.error("Error generating response:", error);
+    const content = getFallbackResponse(isChaos);
+    return { content, typingDelay: calculateTypingDelay(content) };
+  }
+}

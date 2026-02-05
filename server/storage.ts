@@ -19,7 +19,7 @@ function generateMockCharacterSpec(name: string, bio: string, age: number, gende
     "Cynical but Funny", "Mysterious", "Hyper-Competent Techie", "Spiritual Nomad"
   ];
   const goals = ["flirt", "relationship", "validation", "debate", "chaos", "sincere", "making a friend"];
-  const intelligenceTypes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical"];
+  const intelligenceVibes = ["academic", "street smart", "ditzy", "intense", "witty", "philosophical"];
   const moralityFlavors = ["kind", "neutral", "messy", "blunt", "slightly toxic", "overly honest"];
   const interestPool = [
     "analog photography", "deep-sea diving", "obscure 70s horror", "competitive chess",
@@ -49,7 +49,7 @@ function generateMockCharacterSpec(name: string, bio: string, age: number, gende
     gender,
     archetype: archetypes[n(0) % archetypes.length],
     goal: goals[n(2) % goals.length],
-    intelligence: intelligenceTypes[n(4) % intelligenceTypes.length],
+    intelligence: intelligenceVibes[n(4) % intelligenceVibes.length],
     morality: moralityFlavors[n(6) % moralityFlavors.length],
     interests: [interestPool[n(8) % interestPool.length], interestPool[n(10) % interestPool.length]],
     quirk: quirks[n(12) % quirks.length],
