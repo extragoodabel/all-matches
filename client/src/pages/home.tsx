@@ -362,7 +362,9 @@ export default function Home() {
                     className="w-full flex items-center justify-between px-5 py-3 rounded-full font-bold text-sm uppercase tracking-wide transition-all"
                     style={{
                       background: draftAccessibilityMode ? palette.primary : 'white',
-                      color: '#1a1a1a',
+                      color: draftAccessibilityMode && preferences.accessibilityMode
+                        ? getAccessibilityTextColor(palette.primary)
+                        : '#1a1a1a',
                       border: `3px solid #1a1a1a`,
                       boxShadow: draftAccessibilityMode ? `4px 4px 0 #1a1a1a` : 'none',
                     }}
@@ -388,7 +390,12 @@ export default function Home() {
                     onClick={handleSave}
                     disabled={!isValid}
                     className="eg-button rounded-full flex-1 disabled:opacity-50"
-                    style={{ background: palette.primary, color: '#1a1a1a' }}
+                    style={{
+                      background: palette.primary,
+                      color: preferences.accessibilityMode
+                        ? getAccessibilityTextColor(palette.primary)
+                        : '#1a1a1a',
+                    }}
                   >
                     Save & Go
                   </button>
