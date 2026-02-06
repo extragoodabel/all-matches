@@ -40,6 +40,9 @@ export default function Home() {
   const [draftAccessibilityMode, setDraftAccessibilityMode] = useState(
     preferences.accessibilityMode
   );
+  const [savedAccessibilityMode, setSavedAccessibilityMode] = useState(
+    preferences.accessibilityMode
+  );
 
   // Track swiped profile IDs to never show them again
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
@@ -147,10 +150,18 @@ export default function Home() {
     setDraftAgeRange([preferences.minAge, preferences.maxAge]);
     setDraftGenderPref(preferences.genderPreference);
     setDraftAccessibilityMode(preferences.accessibilityMode);
+    setSavedAccessibilityMode(preferences.accessibilityMode);
     setIsModalOpen(true);
   };
 
+  const toggleAccessibilityPreview = () => {
+    const newValue = !draftAccessibilityMode;
+    setDraftAccessibilityMode(newValue);
+    setPreferences({ ...preferences, accessibilityMode: newValue });
+  };
+
   const handleSave = () => {
+    setSavedAccessibilityMode(draftAccessibilityMode);
     setPreferences({
       minAge: draftAgeRange[0],
       maxAge: draftAgeRange[1],
@@ -161,6 +172,7 @@ export default function Home() {
   };
 
   const handleCancel = () => {
+    setPreferences({ ...preferences, accessibilityMode: savedAccessibilityMode });
     setIsModalOpen(false);
   };
 
@@ -168,6 +180,8 @@ export default function Home() {
     setDraftAgeRange([DEFAULT_PREFERENCES.minAge, DEFAULT_PREFERENCES.maxAge]);
     setDraftGenderPref(DEFAULT_PREFERENCES.genderPreference);
     setDraftAccessibilityMode(DEFAULT_PREFERENCES.accessibilityMode);
+    setPreferences({ ...preferences, accessibilityMode: DEFAULT_PREFERENCES.accessibilityMode });
+    setSavedAccessibilityMode(DEFAULT_PREFERENCES.accessibilityMode);
     resetPreferences();
   };
 
@@ -358,11 +372,11 @@ export default function Home() {
                     Accessibility
                   </label>
                   <button
-                    onClick={() => setDraftAccessibilityMode(!draftAccessibilityMode)}
+                    onClick={toggleAccessibilityPreview}
                     className="w-full flex items-center justify-between px-5 py-3 rounded-full font-bold text-sm uppercase tracking-wide transition-all"
                     style={{
                       background: draftAccessibilityMode ? palette.primary : 'white',
-                      color: draftAccessibilityMode && preferences.accessibilityMode
+                      color: draftAccessibilityMode
                         ? getAccessibilityTextColor(palette.primary)
                         : '#1a1a1a',
                       border: `3px solid #1a1a1a`,
