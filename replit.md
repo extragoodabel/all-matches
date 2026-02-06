@@ -47,6 +47,16 @@ Preferred communication style: Simple, everyday language.
 - **UI Treatment**: "Ad" label on cards, "Connect" button in match notification linking to extragood.studio
 - **Theme Handling**: Uses Math.abs(profile.id) for theme lookup to handle negative IDs safely
 
+### Matches Counter / Odometer (Feb 2026)
+- **Component**: `client/src/components/odometer-counter.tsx` - analog odometer display
+- **State**: `client/src/hooks/use-match-count.ts` - global match count with pub/sub pattern
+- **Location**: Fixed to bottom of Messages page only, not visible on swipe screen
+- **Animation**: Rolling digit animation triggers only on Messages page when count increases
+- **Silent Updates**: Count increments silently during swiping; animates on next Messages page visit
+- **Persistence**: Last-seen count stored in localStorage to detect changes across page navigations
+- **Theming**: All colors derived from session palette, no hardcoded colors
+- **Accessibility**: Text contrast adapts via `getAccessibilityTextColor` in accessibility mode
+
 ### Design System (Jan 2026)
 - **Location**: `client/src/styles/theme.ts` and `client/src/styles/patterns.ts`
 - **Color Palettes**: 6 named palettes (hotshot, citrus, ocean, berry, tropical, sunset)

@@ -1,0 +1,50 @@
+Add a persistent “Matches Counter” to the Messages page.
+
+Location & layout:
+1) On the Messages page only, add a UI element locked to the bottom of the screen (fixed position).
+2) The element should remain visible while scrolling the Messages list.
+3) It should not appear on the swipe screen or other pages.
+
+Visual design:
+4) The Matches Counter should resemble a classic analog odometer:
+   - Mechanical, rotating number wheels.
+   - Each digit rolls vertically when incrementing.
+   - Clear separation between digits.
+5) The design should feel physical and tactile, not flat or purely digital.
+
+Theme consistency:
+6) Fonts must match the app’s existing typography system (same font family used elsewhere in the app).
+7) Colors must come from the app’s active theme / palette:
+   - No hardcoded colors.
+   - Reactive color behavior should match the rest of the UI.
+8) Maintain high contrast and legibility, consistent with existing accessibility rules.
+
+Behavior & logic:
+9) The counter represents the total number of matched profiles available in the Messages page.
+10) Every time a user swipes right on a profile card (creating a match):
+    - Increment the internal match count by +1.
+11) The odometer animation (rolling digits + mechanical “click” feel) should ONLY occur when the user is currently on the Messages page.
+12) If matches occur while the user is on the swipe screen:
+    - Update the count silently in state.
+    - Do NOT animate yet.
+13) When the user navigates to the Messages page:
+    - The counter should already reflect the correct total.
+    - If the count has increased since last view, animate the digits rolling up to the new value once.
+
+Interaction & accessibility:
+14) The counter is display-only (not clickable).
+15) Ensure sufficient contrast for readability in both color and accessibility modes.
+16) Animation speed should be readable and not disorienting.
+
+Implementation notes:
+- Use a single source of truth for match count (app state).
+- Trigger odometer animation only when:
+  a) Messages page is mounted AND
+  b) match count increases.
+- Avoid replaying animations on re-renders or state hydration.
+
+Verification:
+- Swiping right increases match count.
+- Counter animates only on Messages page.
+- Counter stays fixed at bottom while scrolling.
+- Fonts and colors remain consistent with the rest of the app theme.

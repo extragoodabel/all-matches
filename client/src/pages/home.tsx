@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { SwipeDeck } from "@/components/swipe-deck";
 import { MatchNotification } from "@/components/match-notification";
@@ -14,6 +14,7 @@ import { usePreferences } from "@/hooks/use-preferences";
 import { getSessionPalette, getAccessibilityTextColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { injectAdCards, isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
+import { incrementMatchCount, setMatchCount } from "@/hooks/use-match-count";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -83,6 +84,18 @@ export default function Home() {
     refetchOnReconnect: false,
   });
 
+  const { data: inboxItems = [] } = useQuery<{ matchId: number }[]>({
+    queryKey: ["/api/inbox/1"],
+  });
+
+  const matchCountInitialized = useRef(false);
+  useEffect(() => {
+    if (!matchCountInitialized.current) {
+      setMatchCount(inboxItems.length);
+      matchCountInitialized.current = true;
+    }
+  }, [inboxItems]);
+
   // Filter out swiped profiles and apply preferences, then inject ad cards
   const filteredProfiles = useMemo(() => {
     const baseProfiles = profiles.filter((p) => {
@@ -125,6 +138,7 @@ export default function Home() {
         const createdMatch: Match = await response.json();
         console.log(`[Swipe] Match created: match.id=${createdMatch.id}, profile.id=${profile.id}`);
         setCurrentMatch({ profile, matchId: createdMatch.id });
+        incrementMatchCount();
         queryClient.invalidateQueries({ queryKey: ["/api/inbox/1"] });
       } catch (error) {
         console.error("[Swipe] Failed to create match:", error);

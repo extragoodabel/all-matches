@@ -1,9 +1,12 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MessageCircle, ArrowLeft, Heart, Sparkles } from "lucide-react";
 import { getSessionPalette, getProfileTheme } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { PatternBackground } from "@/components/pattern-background";
+import { OdometerCounter } from "@/components/odometer-counter";
+import { useMatchCountAnimator, setMatchCount } from "@/hooks/use-match-count";
 
 interface InboxItem {
   matchId: number;
@@ -40,10 +43,19 @@ export default function Inbox() {
   const [, setLocation] = useLocation();
   const palette = getSessionPalette();
   const patternStyle = getPatternStyle('dots');
+  const { displayCount, shouldAnimate } = useMatchCountAnimator();
 
   const { data: inboxItems = [], isLoading } = useQuery<InboxItem[]>({
     queryKey: ["/api/inbox/1"],
   });
+
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (!syncedRef.current) {
+      setMatchCount(inboxItems.length);
+      syncedRef.current = true;
+    }
+  }, [inboxItems]);
 
   if (isLoading) {
     return (
@@ -158,7 +170,10 @@ export default function Inbox() {
           </div>
         )}
         </div>
+        <div style={{ height: 100 }} />
       </div>
+
+      <OdometerCounter value={displayCount} animate={shouldAnimate} />
     </PatternBackground>
   );
 }
