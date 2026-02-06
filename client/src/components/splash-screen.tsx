@@ -44,6 +44,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [dismissed, setDismissed] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [logoPos, setLogoPos] = useState({ x: 0, y: -100, vy: 0, rotation: 0, visible: false, scaleX: 1, scaleY: 1 });
   const [cardPos, setCardPos] = useState({ y: 0, vy: 0, rotation: 0, opacity: 0 });
 
@@ -421,7 +422,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         <div className="am-splash-bg" />
         <div className="am-splash-content">
           <div className="am-logo-card am-logo-card-static">
-            <AllMatchesLogo variant="static" className="am-logo-svg" withOutline />
+            <AllMatchesLogo variant="static" className="am-logo-svg" withOutline mobileStroke={isMobile} />
           </div>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
@@ -480,7 +481,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           pointerEvents: "none",
         }}
       >
-        <AllMatchesLogo variant="static" className="am-logo-svg" withOutline />
+        <AllMatchesLogo variant="static" className="am-logo-svg" withOutline mobileStroke={isMobile} />
       </div>
 
       <div 

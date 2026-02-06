@@ -6,6 +6,7 @@ interface AllMatchesLogoProps {
   secondaryColor?: string;
   accentColor?: string;
   withOutline?: boolean;
+  mobileStroke?: boolean;
 }
 
 function getLuminance(hex: string): number {
@@ -74,6 +75,7 @@ export function AllMatchesLogo({
   secondaryColor,
   accentColor,
   withOutline = false,
+  mobileStroke = false,
 }: AllMatchesLogoProps) {
   const isStatic = variant === "static";
   
@@ -139,8 +141,10 @@ export function AllMatchesLogo({
     }
   }
   
+  const outlineSize = mobileStroke ? 2 : 4;
+  const outlineDiag = mobileStroke ? 1.5 : 3;
   const outlineFilter = withOutline 
-    ? `drop-shadow(4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(-4px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(0 4px 0 ${BRAND_COLORS.lemon}) drop-shadow(0 -4px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px 3px 0 ${BRAND_COLORS.lemon}) drop-shadow(3px -3px 0 ${BRAND_COLORS.lemon}) drop-shadow(-3px -3px 0 ${BRAND_COLORS.lemon})`
+    ? `drop-shadow(${outlineSize}px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(-${outlineSize}px 0 0 ${BRAND_COLORS.lemon}) drop-shadow(0 ${outlineSize}px 0 ${BRAND_COLORS.lemon}) drop-shadow(0 -${outlineSize}px 0 ${BRAND_COLORS.lemon}) drop-shadow(${outlineDiag}px ${outlineDiag}px 0 ${BRAND_COLORS.lemon}) drop-shadow(-${outlineDiag}px ${outlineDiag}px 0 ${BRAND_COLORS.lemon}) drop-shadow(${outlineDiag}px -${outlineDiag}px 0 ${BRAND_COLORS.lemon}) drop-shadow(-${outlineDiag}px -${outlineDiag}px 0 ${BRAND_COLORS.lemon})`
     : undefined;
 
   const extrusionLayers = [];
@@ -185,7 +189,7 @@ export function AllMatchesLogo({
 
         <g>
           {MATCHES_PATHS.map((d, idx) => (
-            <path key={idx} fill={matchesTextColor} stroke={useWhiteMatches ? "#000000" : "none"} strokeWidth={10} strokeLinejoin="round" strokeLinecap="round" paintOrder="stroke" d={d} />
+            <path key={idx} fill={matchesTextColor} stroke={useWhiteMatches ? "#000000" : "none"} strokeWidth={mobileStroke ? 5 : 10} strokeLinejoin="round" strokeLinecap="round" paintOrder="stroke" d={d} />
           ))}
         </g>
       </g>
