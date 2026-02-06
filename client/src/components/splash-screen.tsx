@@ -508,7 +508,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       <div
         style={{
           position: "absolute",
-          bottom: 32,
+          top: 32,
           left: 0,
           right: 0,
           textAlign: "center",
