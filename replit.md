@@ -53,6 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Patterns**: 12 CSS/SVG patterns (checker, stripes, dots, squiggle, halftone, stars, hearts, zigzag, waves, grid, confetti, diamonds)
 - **Profile Theming**: Each profile gets a deterministic palette and pattern based on profile ID via `getProfileTheme(profileId)`
 - **Session Theming**: `getSessionPalette()` returns a random palette for the session
+- **White MATCHES Contrast**: When MATCHES text is white (hotshot palette), app background is darkened 8% via `darkenColor()` and `willMatchesBeWhite()` in `theme.ts`
 - **CSS Variables**: `--eg-primary`, `--eg-secondary`, `--eg-accent`, `--eg-background`, `--eg-text`
 - **Utility Classes**: `.eg-card`, `.eg-button`, `.eg-chip`, `.eg-modal`, `.eg-shadow-offset`, `.eg-outline`, `.eg-chat-bubble-*`
 - **Design Preview**: Available at `/design` route for visual verification

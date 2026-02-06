@@ -11,7 +11,7 @@ import { HeartKiss, StarFirework } from "@/components/easter-eggs";
 import { AllMatchesLogo } from "@/components/all-matches-logo";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
-import { getSessionPalette } from "@/styles/theme";
+import { getSessionPalette, willMatchesBeWhite, darkenColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { injectAdCards, isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
 
@@ -22,6 +22,8 @@ export default function Home() {
   
   const { preferences, setPreferences, resetPreferences, DEFAULT_PREFERENCES } = usePreferences();
   const palette = getSessionPalette();
+  const matchesIsWhite = willMatchesBeWhite(palette);
+  const appBackground = matchesIsWhite ? darkenColor(palette.background, 0.08) : palette.background;
   const patternStyle = getPatternStyle('stripes');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -180,14 +182,14 @@ export default function Home() {
   const isValid = draftAgeRange[0] >= 21 && draftAgeRange[1] <= 99 && draftAgeRange[0] <= draftAgeRange[1];
 
   return (
-    <PatternBackground baseColor={palette.background} patternIndex={bgPatternIndex}>
+    <PatternBackground baseColor={appBackground} patternIndex={bgPatternIndex}>
       <div 
         className="h-dvh flex flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+12px)] sm:pt-0"
         style={{
           '--eg-primary': palette.primary,
           '--eg-secondary': palette.secondary,
           '--eg-accent': palette.accent,
-          '--eg-background': palette.background,
+          '--eg-background': appBackground,
         } as React.CSSProperties}
       >
         {/* Centered easter egg overlay */}
@@ -305,7 +307,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="p-6 space-y-8" style={{ background: palette.background }}>
+              <div className="p-6 space-y-8" style={{ background: appBackground }}>
                 <div className="space-y-4">
                   <label className="eg-label block" style={{ color: '#1a1a1a' }}>
                     Show Me

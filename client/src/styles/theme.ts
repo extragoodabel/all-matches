@@ -186,4 +186,16 @@ export function getContrastTextColor(backgroundColor: string): string {
   return isLightColor(backgroundColor) ? COLORS.ink : COLORS.white;
 }
 
+export function darkenColor(hex: string, amount: number): string {
+  const h = hex.replace('#', '');
+  const r = Math.max(0, Math.round(parseInt(h.substring(0, 2), 16) * (1 - amount)));
+  const g = Math.max(0, Math.round(parseInt(h.substring(2, 4), 16) * (1 - amount)));
+  const b = Math.max(0, Math.round(parseInt(h.substring(4, 6), 16) * (1 - amount)));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+export function willMatchesBeWhite(palette: Palette): boolean {
+  return palette.primary === COLORS.hotPink || palette.primary === '#FF1493';
+}
+
 export type { PatternName };
