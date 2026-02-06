@@ -45,17 +45,17 @@ export default function Inbox() {
   const patternStyle = getPatternStyle('dots');
   const { displayCount, shouldAnimate } = useMatchCountAnimator();
 
-  const { data: inboxItems = [], isLoading } = useQuery<InboxItem[]>({
+  const { data: inboxItems, isLoading, isSuccess: inboxLoaded } = useQuery<InboxItem[]>({
     queryKey: ["/api/inbox/1"],
   });
 
   const syncedRef = useRef(false);
   useEffect(() => {
-    if (!syncedRef.current) {
-      setMatchCount(inboxItems.length);
+    if (inboxLoaded && !syncedRef.current) {
+      setMatchCount((inboxItems || []).length);
       syncedRef.current = true;
     }
-  }, [inboxItems]);
+  }, [inboxLoaded, inboxItems]);
 
   if (isLoading) {
     return (
@@ -108,7 +108,7 @@ export default function Inbox() {
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {inboxItems.length === 0 ? (
+        {(!inboxItems || inboxItems.length === 0) ? (
           <div className="text-center py-12">
             <div className="eg-card inline-block p-8">
               <Heart className="w-16 h-16 mx-auto mb-4" style={{ color: palette.primary }} />
@@ -125,7 +125,7 @@ export default function Inbox() {
           </div>
         ) : (
           <div className="space-y-3">
-            {inboxItems.map((item) => {
+            {(inboxItems || []).map((item) => {
               const itemTheme = getProfileTheme(item.profileId);
               return (
                 <button

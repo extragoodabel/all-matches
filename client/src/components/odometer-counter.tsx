@@ -7,6 +7,8 @@ interface OdometerCounterProps {
   animate: boolean;
 }
 
+const DIGIT_HEIGHT = 40;
+
 function OdometerDigit({ digit, animate, delay, palette }: { digit: number; animate: boolean; delay: number; palette: ReturnType<typeof getSessionPalette> }) {
   const [currentDigit, setCurrentDigit] = useState(digit);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -36,8 +38,8 @@ function OdometerDigit({ digit, animate, delay, palette }: { digit: number; anim
     <div
       className="relative overflow-hidden"
       style={{
-        width: "1.4em",
-        height: "2em",
+        width: 28,
+        height: DIGIT_HEIGHT,
         background: palette.accent,
         borderRadius: 6,
         border: `2px solid ${palette.text}`,
@@ -50,24 +52,23 @@ function OdometerDigit({ digit, animate, delay, palette }: { digit: number; anim
           top: 0,
           left: 0,
           right: 0,
-          height: "100%",
           display: "flex",
           flexDirection: "column",
-          transform: `translateY(${-currentDigit * 100}%)`,
-          transition: isAnimating ? "transform 0.6s cubic-bezier(0.22, 0.68, 0.35, 1.2)" : "none",
+          transform: `translateY(${-currentDigit * DIGIT_HEIGHT}px)`,
+          transition: isAnimating ? "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)" : "none",
         }}
       >
         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <div
             key={n}
             style={{
-              height: "2em",
+              height: DIGIT_HEIGHT,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
-              fontSize: "1.3em",
+              fontSize: 26,
               color: digitColor,
               flexShrink: 0,
             }}
@@ -162,7 +163,6 @@ export function OdometerCounter({ value, animate }: OdometerCounterProps) {
             borderRadius: 14,
             border: `3px solid ${palette.text}`,
             boxShadow: `4px 4px 0 ${palette.text}`,
-            fontSize: 20,
           }}
         >
           {digits.map((d, i) => (

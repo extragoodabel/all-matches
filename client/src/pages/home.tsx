@@ -84,17 +84,17 @@ export default function Home() {
     refetchOnReconnect: false,
   });
 
-  const { data: inboxItems = [] } = useQuery<{ matchId: number }[]>({
+  const { data: inboxItems, isSuccess: inboxLoaded } = useQuery<{ matchId: number }[]>({
     queryKey: ["/api/inbox/1"],
   });
 
   const matchCountInitialized = useRef(false);
   useEffect(() => {
-    if (!matchCountInitialized.current) {
-      setMatchCount(inboxItems.length);
+    if (inboxLoaded && !matchCountInitialized.current) {
+      setMatchCount((inboxItems || []).length);
       matchCountInitialized.current = true;
     }
-  }, [inboxItems]);
+  }, [inboxLoaded, inboxItems]);
 
   // Filter out swiped profiles and apply preferences, then inject ad cards
   const filteredProfiles = useMemo(() => {
