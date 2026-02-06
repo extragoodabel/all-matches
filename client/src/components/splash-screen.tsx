@@ -513,8 +513,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           right: 0,
           textAlign: "center",
           color: "white",
-          fontSize: 14,
-          fontWeight: 600,
+          fontSize: 16,
+          fontWeight: 800,
           letterSpacing: "0.05em",
           textTransform: "uppercase",
           opacity: 0.7,
@@ -522,7 +522,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           zIndex: 10000,
         }}
       >
-        click to skip
+        tap anywhere to skip
       </div>
     </div>
   );
