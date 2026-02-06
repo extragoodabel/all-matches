@@ -443,11 +443,16 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const emojisAboveCard = phase !== "cardHold"; // Emojis in front except during card hold
 
   return (
-    <div ref={overlayRef} className={`am-splash-overlay ${fadingOut ? "am-fading-out" : ""}`}>
+    <div
+      ref={overlayRef}
+      className={`am-splash-overlay ${fadingOut ? "am-fading-out" : ""}`}
+      onClick={safeDismiss}
+      style={{ cursor: "pointer" }}
+    >
       <div className="am-splash-bg" />
 
       {/* Emoji layer - z-index changes based on phase */}
-      <div className={`am-emoji-layer ${emojisAboveCard ? "am-emoji-layer-front" : ""}`}>
+      <div className={`am-emoji-layer ${emojisAboveCard ? "am-emoji-layer-front" : ""}`} style={{ pointerEvents: "none" }}>
         {emojiRender.map((e) => (
           <span
             key={e.id}
@@ -472,6 +477,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           left: logoPos.x,
           top: logoPos.y,
           transform: `translate(-50%, -50%) rotate(${logoPos.rotation}deg) scale(${logoPos.scaleX}, ${logoPos.scaleY})`,
+          pointerEvents: "none",
         }}
       >
         <AllMatchesLogo variant="static" className="am-logo-svg" withOutline />
@@ -483,6 +489,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           transform: `translateY(${cardPos.y}px) rotate(${cardPos.rotation}deg)`,
           opacity: cardPos.opacity,
           transition: 'opacity 0.3s ease',
+          pointerEvents: "none",
         }}
       >
         <div className="am-tagline-card">
@@ -495,7 +502,27 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         </div>
       </div>
 
-      <div className="am-chyron">21+</div>
+      <div className="am-chyron" style={{ pointerEvents: "none" }}>21+</div>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 32,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          color: "white",
+          fontSize: 14,
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          opacity: 0.7,
+          pointerEvents: "none",
+          zIndex: 10000,
+        }}
+      >
+        click to skip
+      </div>
     </div>
   );
 }
