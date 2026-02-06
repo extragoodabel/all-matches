@@ -11,7 +11,7 @@ import { HeartKiss, StarFirework } from "@/components/easter-eggs";
 import { AllMatchesLogo } from "@/components/all-matches-logo";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
-import { getSessionPalette } from "@/styles/theme";
+import { getSessionPalette, getAccessibilityTextColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { injectAdCards, isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
 
@@ -323,7 +323,9 @@ export default function Home() {
                         }`}
                         style={{
                           background: draftGenderPref === opt.value ? palette.primary : 'white',
-                          color: '#1a1a1a',
+                          color: draftGenderPref === opt.value && preferences.accessibilityMode
+                            ? getAccessibilityTextColor(palette.primary)
+                            : '#1a1a1a',
                           border: `3px solid #1a1a1a`,
                           boxShadow: draftGenderPref === opt.value ? `4px 4px 0 #1a1a1a` : 'none',
                         }}

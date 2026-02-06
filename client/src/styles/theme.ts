@@ -196,7 +196,7 @@ export function getGreyscaleValue(hex: string): number {
 
 export function getAccessibilityTextColor(backgroundColor: string): string {
   const grey = getGreyscaleValue(backgroundColor);
-  return grey < 0.5 ? COLORS.white : COLORS.ink;
+  return grey < 0.62 ? COLORS.white : COLORS.ink;
 }
 
 export function darkenColor(hex: string, amount: number): string {
