@@ -154,7 +154,7 @@ export function AllMatchesLogo({
     extrusionLayers.push(
       <g key={`extrusion-${i}`} transform={`translate(${x}, ${y})`}>
         {MATCHES_PATHS.map((d, idx) => (
-          <path key={idx} fill={matchesShadowColor} stroke={matchesShadowColor} strokeWidth={0.5} d={d} />
+          <path key={idx} fill={matchesShadowColor} d={d} />
         ))}
       </g>
     );
@@ -185,7 +185,7 @@ export function AllMatchesLogo({
 
         <g>
           {MATCHES_PATHS.map((d, idx) => (
-            <path key={idx} fill={matchesTextColor} d={d} />
+            <path key={idx} fill={matchesTextColor} stroke="#000000" strokeWidth={6} strokeLinejoin="round" paintOrder="stroke" d={d} />
           ))}
         </g>
       </g>

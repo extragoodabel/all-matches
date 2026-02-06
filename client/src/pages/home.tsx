@@ -11,7 +11,7 @@ import { HeartKiss, StarFirework } from "@/components/easter-eggs";
 import { AllMatchesLogo } from "@/components/all-matches-logo";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/hooks/use-preferences";
-import { getSessionPalette, willMatchesBeWhite, darkenColor } from "@/styles/theme";
+import { getSessionPalette } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { injectAdCards, isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
 
@@ -22,8 +22,7 @@ export default function Home() {
   
   const { preferences, setPreferences, resetPreferences, DEFAULT_PREFERENCES } = usePreferences();
   const palette = getSessionPalette();
-  const matchesIsWhite = willMatchesBeWhite(palette);
-  const appBackground = matchesIsWhite ? darkenColor(palette.background, 0.08) : palette.background;
+  const appBackground = palette.background;
   const patternStyle = getPatternStyle('stripes');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
