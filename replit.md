@@ -51,9 +51,9 @@ Preferred communication style: Simple, everyday language.
 - **Component**: `client/src/components/odometer-counter.tsx` - analog odometer display
 - **State**: `client/src/hooks/use-match-count.ts` - global match count with pub/sub pattern
 - **Location**: Fixed to bottom of Messages page only, not visible on swipe screen
-- **Animation**: Rolling digit animation triggers only on Messages page when count increases
-- **Silent Updates**: Count increments silently during swiping; animates on next Messages page visit
-- **Persistence**: Last-seen count stored in localStorage to detect changes across page navigations
+- **Animation**: Rolling digit animation plays a "catch up" roll when user navigates to Messages page after swiping; starts at old value, waits 400ms, then rolls to current count
+- **Silent Updates**: Count increments silently during swiping; visually animates on next Messages page visit with delayed start for visibility
+- **Persistence**: Module-level variable tracks last displayed count; resets per session (no localStorage)
 - **Theming**: All colors derived from session palette, no hardcoded colors
 - **Accessibility**: Text contrast adapts via `getAccessibilityTextColor` in accessibility mode
 

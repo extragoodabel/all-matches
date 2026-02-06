@@ -41,20 +41,48 @@ export function useMatchCount() {
 
 export function useMatchCountAnimator() {
   const count = useMatchCount();
-  const [displayCount, setDisplayCount] = useState(count);
+  const [displayCount, setDisplayCount] = useState(() =>
+    count > lastDisplayedOnMessages ? lastDisplayedOnMessages : count
+  );
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const mountedRef = useRef(false);
+  const aliveRef = useRef(true);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
+  }, []);
+
+  useEffect(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
     if (!mountedRef.current) {
       mountedRef.current = true;
-      setDisplayCount(count);
+
       if (count > lastDisplayedOnMessages) {
-        setShouldAnimate(true);
-        lastDisplayedOnMessages = count;
-        const timer = setTimeout(() => setShouldAnimate(false), 2000);
-        return () => clearTimeout(timer);
+        setDisplayCount(lastDisplayedOnMessages);
+        const startTimer = setTimeout(() => {
+          if (!aliveRef.current) return;
+          setShouldAnimate(true);
+          setDisplayCount(count);
+          lastDisplayedOnMessages = count;
+          const endTimer = setTimeout(() => {
+            if (!aliveRef.current) return;
+            setShouldAnimate(false);
+          }, 2000);
+          timersRef.current.push(endTimer);
+        }, 400);
+        timersRef.current.push(startTimer);
+        return;
       }
+
+      setDisplayCount(count);
       lastDisplayedOnMessages = count;
       return;
     }
@@ -63,8 +91,12 @@ export function useMatchCountAnimator() {
       setShouldAnimate(true);
       setDisplayCount(count);
       lastDisplayedOnMessages = count;
-      const timer = setTimeout(() => setShouldAnimate(false), 2000);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(() => {
+        if (!aliveRef.current) return;
+        setShouldAnimate(false);
+      }, 2000);
+      timersRef.current.push(timer);
+      return;
     }
 
     setDisplayCount(count);
