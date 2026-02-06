@@ -185,7 +185,7 @@ export function AllMatchesLogo({
 
         <g>
           {MATCHES_PATHS.map((d, idx) => (
-            <path key={idx} fill={matchesTextColor} stroke="#000000" strokeWidth={6} strokeLinejoin="round" paintOrder="stroke" d={d} />
+            <path key={idx} fill={matchesTextColor} stroke={useWhiteMatches ? "#000000" : "none"} strokeWidth={10} strokeLinejoin="round" strokeLinecap="round" paintOrder="stroke" d={d} />
           ))}
         </g>
       </g>
