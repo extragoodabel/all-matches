@@ -186,6 +186,19 @@ export function getContrastTextColor(backgroundColor: string): string {
   return isLightColor(backgroundColor) ? COLORS.ink : COLORS.white;
 }
 
+export function getGreyscaleValue(hex: string): number {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16) / 255;
+  const g = parseInt(h.substring(2, 4), 16) / 255;
+  const b = parseInt(h.substring(4, 6), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function getAccessibilityTextColor(backgroundColor: string): string {
+  const grey = getGreyscaleValue(backgroundColor);
+  return grey < 0.5 ? COLORS.white : COLORS.ink;
+}
+
 export function darkenColor(hex: string, amount: number): string {
   const h = hex.replace('#', '');
   const r = Math.max(0, Math.round(parseInt(h.substring(0, 2), 16) * (1 - amount)));

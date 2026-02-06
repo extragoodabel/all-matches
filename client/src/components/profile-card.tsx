@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { type Profile } from "@shared/schema";
-import { getProfileTheme } from "@/styles/theme";
+import { getProfileTheme, getAccessibilityTextColor } from "@/styles/theme";
 import { getPatternStyle } from "@/styles/patterns";
 import { Sparkles } from "lucide-react";
 import { isAdProfile, AD_CARD_BRAND } from "@/lib/ad-cards";
+import { usePreferences } from "@/hooks/use-preferences";
 
 interface ProfileCardProps {
   profile: Profile;
@@ -13,6 +14,7 @@ interface ProfileCardProps {
 const FALLBACK_IMAGE = "/images/fallback.png";
 
 export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
+  const { preferences } = usePreferences();
   const [displayedImage, setDisplayedImage] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
   const onImageErrorRef = useRef(onImageError);
@@ -60,6 +62,14 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
     [theme.patternName]
   );
 
+  const nameBackground = isAd ? '#FFFFFF' : theme.palette.background;
+  const bioBackground = isAd ? AD_CARD_BRAND.bgColor : theme.palette.secondary;
+  const nameTextColor = preferences.accessibilityMode 
+    ? getAccessibilityTextColor(nameBackground) 
+    : theme.palette.text;
+  const bioTextColor = preferences.accessibilityMode 
+    ? getAccessibilityTextColor(bioBackground) 
+    : theme.palette.text;
   
   return (
     <div
@@ -137,11 +147,11 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         
         <div 
           className="p-3 md:p-4 flex-shrink-0"
-          style={{ background: isAd ? '#FFFFFF' : theme.palette.background }}
+          style={{ background: nameBackground }}
         >
           <h2 
             className="text-2xl md:text-3xl font-black tracking-tight"
-            style={{ color: theme.palette.text }}
+            style={{ color: nameTextColor }}
           >
             {isAd ? profile.name : `${profile.name}, ${profile.age}`}
           </h2>
@@ -150,13 +160,13 @@ export function ProfileCard({ profile, onImageError }: ProfileCardProps) {
         <div 
           className="eg-caption-block flex-shrink min-h-0 overflow-y-auto"
           style={{ 
-            background: isAd ? AD_CARD_BRAND.bgColor : theme.palette.secondary,
+            background: bioBackground,
             borderColor: theme.palette.accent,
           }}
         >
           <p 
             className="text-sm font-medium leading-relaxed"
-            style={{ color: theme.palette.text }}
+            style={{ color: bioTextColor }}
           >
             {profile.bio}
           </p>
