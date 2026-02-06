@@ -287,7 +287,7 @@ export default function Home() {
               href="https://extragood.studio" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="block mt-2 text-sm md:text-base opacity-60 hover:opacity-100 hover:underline transition-opacity"
+              className="block -mt-1 text-sm md:text-base opacity-60 hover:opacity-100 hover:underline transition-opacity"
               style={{ 
                 fontFamily: "var(--font-display)", 
                 letterSpacing: '0.08em',
