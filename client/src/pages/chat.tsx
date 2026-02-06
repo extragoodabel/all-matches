@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ChatInterface } from "@/components/chat-interface";
 import { PatternBackground } from "@/components/pattern-background";
+import { ProfileCardModal } from "@/components/profile-card-modal";
 import type { Message, Profile, Match } from "@shared/schema";
 import { ArrowLeft, Sparkles, Heart } from "lucide-react";
 import { getProfileTheme } from "@/styles/theme";
@@ -23,6 +24,7 @@ export default function Chat({ params }: ChatProps) {
   const matchId = parseInt(params.id);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const [showProfileCard, setShowProfileCard] = useState(false);
 
   const { data, isLoading, error } = useQuery<MatchWithProfile>({
     queryKey: ["/api/matches/by-id", matchId],
@@ -130,24 +132,29 @@ export default function Chat({ params }: ChatProps) {
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           
-          <img
-            src={profile.imageUrl}
-            alt={profile.name}
-            className="w-12 h-12 rounded-full object-cover border-3 border-white"
-            style={{ border: '3px solid white' }}
-          />
-          
-          <div className="flex-1">
-            <h2 className="font-bold text-white text-lg">
-              {profile.name}, {profile.age}
-            </h2>
-            {profile.isChaos && (
-              <div className="flex items-center gap-1 text-white/80 text-sm">
-                <Sparkles className="w-3 h-3" />
-                <span>Chaos Mode</span>
-              </div>
-            )}
-          </div>
+          <button
+            className="flex items-center gap-4 flex-1 min-w-0"
+            onClick={() => setShowProfileCard(true)}
+          >
+            <img
+              src={profile.imageUrl}
+              alt={profile.name}
+              className="w-12 h-12 rounded-full object-cover border-3 border-white hover:ring-2 hover:ring-white/50 hover:ring-offset-1 transition-shadow"
+              style={{ border: '3px solid white' }}
+            />
+            
+            <div className="flex-1 text-left">
+              <h2 className="font-bold text-white text-lg">
+                {profile.name}, {profile.age}
+              </h2>
+              {profile.isChaos && (
+                <div className="flex items-center gap-1 text-white/80 text-sm">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Chaos Mode</span>
+                </div>
+              )}
+            </div>
+          </button>
         </div>
       </div>
 
@@ -165,6 +172,13 @@ export default function Chat({ params }: ChatProps) {
           />
         </div>
       </div>
+
+      {showProfileCard && profile && (
+        <ProfileCardModal
+          profileId={profile.id}
+          onClose={() => setShowProfileCard(false)}
+        />
+      )}
     </PatternBackground>
   );
 }

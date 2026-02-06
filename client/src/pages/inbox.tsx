@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MessageCircle, ArrowLeft, Heart, Sparkles } from "lucide-react";
@@ -7,6 +7,7 @@ import { getPatternStyle } from "@/styles/patterns";
 import { PatternBackground } from "@/components/pattern-background";
 import { OdometerCounter } from "@/components/odometer-counter";
 import { useMatchCountAnimator, setMatchCount } from "@/hooks/use-match-count";
+import { ProfileCardModal } from "@/components/profile-card-modal";
 
 interface InboxItem {
   matchId: number;
@@ -44,6 +45,7 @@ export default function Inbox() {
   const palette = getSessionPalette();
   const patternStyle = getPatternStyle('dots');
   const { displayCount, shouldAnimate } = useMatchCountAnimator();
+  const [viewingProfileId, setViewingProfileId] = useState<number | null>(null);
 
   const { data: inboxItems, isLoading, isSuccess: inboxLoaded } = useQuery<InboxItem[]>({
     queryKey: ["/api/inbox/1"],
@@ -128,19 +130,25 @@ export default function Inbox() {
             {(inboxItems || []).map((item) => {
               const itemTheme = getProfileTheme(item.profileId);
               return (
-                <button
+                <div
                   key={item.matchId}
+                  className="w-full flex items-center gap-4 p-4 bg-white rounded-xl eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--eg-accent)] transition-all text-left cursor-pointer"
                   onClick={() => setLocation(`/chat/${item.matchId}`)}
-                  className="w-full flex items-center gap-4 p-4 bg-white rounded-xl eg-outline-thick eg-shadow-offset-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--eg-accent)] transition-all text-left"
                 >
-                  <div className="relative">
+                  <button
+                    className="relative flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingProfileId(item.profileId);
+                    }}
+                  >
                     <img
                       src={item.profile?.imageUrl || "/placeholder.png"}
                       alt={item.profile?.name || "Match"}
-                      className="w-14 h-14 rounded-full object-cover"
-                      style={{ border: `3px solid ${itemTheme.palette.primary}` }}
+                      className="w-14 h-14 rounded-full object-cover hover:ring-2 hover:ring-offset-1 transition-shadow"
+                      style={{ border: `3px solid ${itemTheme.palette.primary}`, ['--tw-ring-color' as string]: itemTheme.palette.primary }}
                     />
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="font-bold text-gray-900 truncate">
@@ -164,7 +172,7 @@ export default function Inbox() {
                         : "Say hello!"}
                     </p>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -174,6 +182,13 @@ export default function Inbox() {
       </div>
 
       <OdometerCounter value={displayCount} animate={shouldAnimate} />
+
+      {viewingProfileId !== null && (
+        <ProfileCardModal
+          profileId={viewingProfileId}
+          onClose={() => setViewingProfileId(null)}
+        />
+      )}
     </PatternBackground>
   );
 }
