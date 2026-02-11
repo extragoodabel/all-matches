@@ -770,7 +770,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
-              <h1 className="am-tagline-h">all validation. no obligation.</h1>
+              <h1 className="am-tagline-h">all validation. no rejection.</h1>
               <p className="am-tagline-p">no profile. no pressure. your matches are already waiting for you.</p>
             </div>
           </div>
@@ -805,7 +805,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         <div className={`am-tagline-wrap ${showCard ? "am-visible" : "am-hidden"}`}>
           <div className="am-tagline-card">
             <div className="am-tagline-inner">
-              <h1 className="am-tagline-h">all validation. no obligation.</h1>
+              <h1 className="am-tagline-h">all validation. no rejection.</h1>
               <p className="am-tagline-p">no profile. no pressure. your matches are already waiting for you.</p>
             </div>
           </div>

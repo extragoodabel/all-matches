@@ -19,7 +19,7 @@ VISUAL DIRECTION (ON THEME):
 - After the swirl disperses, reveal a centered card with punchy copy.
 
 COPY (keep it minimal, don’t overexplain):
-Headline: “All validation. No obligation.”
+Headline: “All validation. No rejection.”
 Subhead: “No profile. No pressure. Your matches are already waiting.”
 Optional tiny line (if it fits): “Tap to begin” (only if we want users to feel in control; otherwise auto-advance)
 

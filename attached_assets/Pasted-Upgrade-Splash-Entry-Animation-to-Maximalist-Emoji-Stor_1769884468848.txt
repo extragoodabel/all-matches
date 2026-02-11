@@ -33,7 +33,7 @@ ANIMATION STORYBOARD (4.0s total):
 4) 2.0s–3.2s — Clear to Intro Card + Read Time
    - Emojis swirl away just enough to reveal an intro card centered on screen.
    - Card copy (use this exact structure):
-     Headline: “all validation. no obligation.”
+     Headline: “all validation. no rejection.”
      Subhead: “no profile. no pressure. your matches are already waiting.”
    - Provide enough time for the user to read (card must be clearly visible for at least ~900ms).
    - Keep subtle motion in the background so it still feels alive, but do not obscure readability during the primary read window.

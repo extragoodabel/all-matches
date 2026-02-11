@@ -16,7 +16,7 @@ BRANDING REQUIREMENTS
 - Rounded rectangle card, same border radius, stroke, shadow style as our profile cards.
 - Card background uses bold colors and maximalist patterns similar to the rest of the app.
 - Card content:
-  Headline: “all validation. no obligation.”
+  Headline: “all validation. no rejection.”
   Subhead: “no profile. no pressure. your matches are already waiting for you.”
 - Card stays fully visible for 2.0 seconds.
 
