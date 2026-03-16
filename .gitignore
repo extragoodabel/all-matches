@@ -4,3 +4,11 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+.local
+.config/replit
+.replit
+replit.nix
+.env
+.env.local
+.vercel
+build

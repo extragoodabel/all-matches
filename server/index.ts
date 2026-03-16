@@ -59,13 +59,11 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
-  const port = 5000;
+  // Serve the app (API + client). Use 3000 to avoid conflict with macOS AirPlay on 5000
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
   });
