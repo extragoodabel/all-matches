@@ -1,20 +1,18 @@
-import "dotenv/config";
 import express from "express";
 import { registerRoutes } from "../server/routes.ts";
 
 const app = express();
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
-let routesReady = false;
+let initialized = false;
 
-app.use(async (req, res, next) => {
-  if (!routesReady) {
+export default async function handler(req, res) {
+  if (!initialized) {
     await registerRoutes(app);
-    routesReady = true;
+    initialized = true;
   }
-  next();
-});
 
-export default app;
+  return app(req, res);
+}
