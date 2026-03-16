@@ -12,3 +12,4 @@ replit.nix
 .env.local
 .vercel
 build
+.env
